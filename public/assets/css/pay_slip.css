@@ -1,0 +1,21 @@
+@font-face {
+   font-family: my_kalpurush;
+   src: url(kalpurush.woff);
+}
+
+body{font-family: my_kalpurush; margin:0px; font-size:14px;}
+.main{ width:750px; padding: 25px;}
+.head{ margin:0px 220px;}
+.logo{ float:left; margin-right:20px;}
+.logo img{ height:35px;}
+.title{ float:left;}
+.title1{ text-align:left; font-size:20px;}
+.title2{ text-align:center; font-size:16px;}
+.c_b{ clear:both;}
+table.table_border { border-collapse: collapse;}
+table.table_border td{  border: 1px solid #000;}
+.tc{ text-align:center;}
+.tl{ text-align:left;}
+.tr{ text-align:right;}
+.copy{ text-align:right; margin-bottom:-25px;}
+.date{ text-align:right; margin-top:-20px;}
