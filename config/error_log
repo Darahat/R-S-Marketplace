@@ -1,0 +1,76 @@
+[08-Aug-2025 23:36:21 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function env() in /home/marketghor/public_html/config/database.php:19
+Stack trace:
+#0 {main}
+  thrown in /home/marketghor/public_html/config/database.php on line 19
+[09-Aug-2025 00:08:02 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function env() in /home/marketghor/public_html/config/database.php:19
+Stack trace:
+#0 {main}
+  thrown in /home/marketghor/public_html/config/database.php on line 19
+[19-Aug-2025 23:24:25 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function env() in /home/marketghor/public_html/config/database.php:19
+Stack trace:
+#0 {main}
+  thrown in /home/marketghor/public_html/config/database.php on line 19
+[19-Aug-2025 23:28:06 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function env() in /home/marketghor/public_html/config/app.php:16
+Stack trace:
+#0 {main}
+  thrown in /home/marketghor/public_html/config/app.php on line 16
+[19-Aug-2025 23:28:58 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function env() in /home/marketghor/public_html/config/cache.php:18
+Stack trace:
+#0 {main}
+  thrown in /home/marketghor/public_html/config/cache.php on line 18
+[19-Aug-2025 23:45:26 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function env() in /home/marketghor/public_html/config/mail.php:17
+Stack trace:
+#0 {main}
+  thrown in /home/marketghor/public_html/config/mail.php on line 17
+[15-Sep-2025 20:25:40 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function env() in /home/marketghor/public_html/config/session.php:21
+Stack trace:
+#0 {main}
+  thrown in /home/marketghor/public_html/config/session.php on line 21
+[16-Oct-2025 07:04:49 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function env() in /home/marketghor/public_html/config/mail.php:17
+Stack trace:
+#0 {main}
+  thrown in /home/marketghor/public_html/config/mail.php on line 17
+[16-Oct-2025 07:04:50 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function env() in /home/marketghor/public_html/config/mail.php:17
+Stack trace:
+#0 {main}
+  thrown in /home/marketghor/public_html/config/mail.php on line 17
+[20-Oct-2025 04:42:34 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function env() in /home/marketghor/public_html/config/filesystems.php:16
+Stack trace:
+#0 {main}
+  thrown in /home/marketghor/public_html/config/filesystems.php on line 16
+[20-Oct-2025 04:42:37 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function env() in /home/marketghor/public_html/config/app.php:16
+Stack trace:
+#0 {main}
+  thrown in /home/marketghor/public_html/config/app.php on line 16
+[20-Oct-2025 04:42:39 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function env() in /home/marketghor/public_html/config/cache.php:18
+Stack trace:
+#0 {main}
+  thrown in /home/marketghor/public_html/config/cache.php on line 18
+[20-Oct-2025 04:42:39 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function env() in /home/marketghor/public_html/config/database.php:19
+Stack trace:
+#0 {main}
+  thrown in /home/marketghor/public_html/config/database.php on line 19
+[09-Nov-2025 02:31:59 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function env() in /home/marketghor/public_html/config/cache.php:18
+Stack trace:
+#0 {main}
+  thrown in /home/marketghor/public_html/config/cache.php on line 18
+[09-Nov-2025 02:32:00 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function env() in /home/marketghor/public_html/config/database.php:19
+Stack trace:
+#0 {main}
+  thrown in /home/marketghor/public_html/config/database.php on line 19
+[09-Nov-2025 02:32:01 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function env() in /home/marketghor/public_html/config/mail.php:17
+Stack trace:
+#0 {main}
+  thrown in /home/marketghor/public_html/config/mail.php on line 17
+[09-Nov-2025 02:32:03 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function env() in /home/marketghor/public_html/config/app.php:16
+Stack trace:
+#0 {main}
+  thrown in /home/marketghor/public_html/config/app.php on line 16
+[05-Dec-2025 07:50:11 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function env() in /home/marketghor/public_html/config/services.php:18
+Stack trace:
+#0 {main}
+  thrown in /home/marketghor/public_html/config/services.php on line 18
+[05-Dec-2025 09:42:14 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function env() in /home/marketghor/public_html/config/services.php:18
+Stack trace:
+#0 {main}
+  thrown in /home/marketghor/public_html/config/services.php on line 18
