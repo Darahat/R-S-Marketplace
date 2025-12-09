@@ -3,12 +3,8 @@
 namespace Database\Seeders;
 
 use App\Models\User;
-// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
-use UserAddressSeeder;
-use OrderSeeder;
-
-
+use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
@@ -17,13 +13,31 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
-
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+        // Create Admin User
+        User::create([
+            'name' => 'Admin User',
+            'email' => 'admin@marketplace.com',
+            'password' => Hash::make('admin123'),
+            'mobile' => '01700000000',
+            'user_type' => 'ADMIN',
         ]);
-        $this->call(UserAddressSeeder::class);
-        $this->call(OrderSeeder::class);
+
+        // Create Test Customer
+        User::create([
+            'name' => 'Customer User',
+            'email' => 'customer@example.com',
+            'password' => Hash::make('customer123'),
+            'mobile' => '01711111111',
+            'user_type' => 'CUSTOMER',
+        ]);
+
+        // Seed categories
+        $this->call(CategorySeeder::class);
+
+        // Seed products
+        $this->call(ProductSeeder::class);
+
+        // Seed reviews
+        $this->call(ReviewSeeder::class);
     }
 }

@@ -4,7 +4,7 @@
 <div class="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
     <div class="sm:mx-auto sm:w-full sm:max-w-md">
         <a href="{{ route('home') }}">
-            <img class="mx-auto h-12 w-auto" src="{{ asset('images/logo/logo.png') }}" alt="MarketGhor">
+            <img class="mx-auto h-12 w-auto" src="{{ asset('images/logo/logo.png') }}" alt="R&SMarketPlace">
         </a>
         <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
             Sign in to your account
@@ -21,7 +21,7 @@
         <div class="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
             <form class="space-y-6" action="{{ route('checklogin') }}" method="POST">
                 @csrf
-                
+
                 <!-- Email -->
                 <div>
                     <label for="email" class="block text-sm font-medium text-gray-700">

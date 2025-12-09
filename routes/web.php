@@ -39,9 +39,14 @@ Route::prefix('cart')->group(function () {
 
 });
 
-// Route::get('/user-login', [AuthController::class, 'showLogin'])->name('user.login');
+// Guest/Customer Login
+Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
+Route::post('/login', [AuthController::class, 'login'])->name('checklogin');
+
+// Admin Login
 Route::get('/admin-login', [AuthController::class, 'adminLogin'])->name('admin.login');
-Route::post('/checklogin', [AuthController::class, 'login'])->name('checklogin');
+Route::post('/admin-login', [AuthController::class, 'adminLogin'])->name('admin.checklogin');
+
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 // Authentication Routes
@@ -78,7 +83,7 @@ Route::group(['prefix' => 'customer', 'middleware' => 'auth:web'], function () {
 });
 
 
- 
+
 Route::get('/clear-cache', function() {
 	Artisan::call('cache:clear');
 	Artisan::call('config:clear');

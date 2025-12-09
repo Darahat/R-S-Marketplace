@@ -16,12 +16,48 @@ class AuthController extends Controller
     {
         return view('frontend_view.pages.auth.login');
     }
-    public function adminLogin()
+    public function adminLogin(Request $request)
     {
-        return view('frontend_view.pages.auth.admin_login');
+        // Show admin login form on GET
+        if ($request->isMethod('get')) {
+            return view('frontend_view.pages.auth.admin_login');
+        }
+
+        // Handle admin login on POST
+        $credentials = $request->validate([
+            'email' => 'required|email',
+            'password' => 'required'
+        ]);
+
+        if (Auth::attempt($credentials, $request->remember)) {
+            /** @var User|null $user */
+            $user = Auth::user();
+
+            // Check if user is admin
+            if (!$user || $user->user_type !== 'ADMIN') {
+                Auth::logout();
+                return back()->withErrors([
+                    'email' => 'You do not have admin access.',
+                ]);
+            }
+
+            // Update login details
+            $user->last_login = now();
+            $user->last_ip = $request->ip();
+            $user->last_location = $request->getClientIp();
+            $user->last_device = $request->header('User-Agent');
+            $user->save();
+
+            $request->session()->regenerate();
+            return redirect()->intended(route('admin.dashboard'));
+        }
+
+        return back()->withErrors([
+            'email' => 'The provided credentials do not match our records.',
+        ])->onlyInput('email');
     }
 
-    // Handle Login
+    // Handle Customer Login
     public function login(Request $request)
     {
         // return $request->all();
@@ -32,20 +68,23 @@ class AuthController extends Controller
 
         if (Auth::attempt($credentials, $request->remember)) {
             $request->session()->regenerate();
-           
-            $user = Auth::user();
-            $user->last_login    = now();
-            $user->last_ip       = $request->ip();
-            $user->last_location = $request->getClientIp();
-            $user->last_device   = $request->header('User-Agent');
-            $user->save();
 
-            if(Auth::user()->user_type == 'ADMIN'){ 
+            /** @var User|null $user */
+            $user = Auth::user();
+            if ($user) {
+                $user->last_login    = now();
+                $user->last_ip       = $request->ip();
+                $user->last_location = $request->getClientIp();
+                $user->last_device   = $request->header('User-Agent');
+                $user->save();
+            }
+
+            if(Auth::user()->user_type == 'ADMIN'){
                 return redirect()->intended(route('admin.dashboard'));
             } else {
                 return redirect()->intended(route('home'));
             }
-            
+
         }
 
         return back()->withErrors([
@@ -66,7 +105,7 @@ class AuthController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8|confirmed',
-            'phone' => 'required|string|max:15',
+            'mobile' => 'required|string|max:15',
         ]);
 
         if ($validator->fails()) {
@@ -79,7 +118,8 @@ class AuthController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'phone' => $request->phone,
+            'mobile' => $request->mobile,
+            'user_type' => 'CUSTOMER',
         ]);
 
         Auth::login($user);

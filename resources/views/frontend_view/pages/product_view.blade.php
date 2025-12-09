@@ -17,11 +17,10 @@
         <!-- Gallery -->
         <div>
             <div class="bg-white rounded-xl shadow-sm overflow-hidden mb-4">
-                <img src="{{ $product->featured_image }}" alt="{{ $product->name }}" class="w-full h-auto object-cover" loading="lazy">
+                <img src="{{ $product->featured_image ?? $product->image_url ?? $product->image ?? 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800' }}" alt="{{ $product->name }}" class="w-full h-auto object-cover" loading="lazy">
             </div>
             @php
-                
-                $imageUrls = explode(',', $product->image_url);
+                $imageUrls = !empty($product->image_url) ? explode(',', $product->image_url) : [];
             @endphp
             @if($imageUrls && count($imageUrls) > 1)
             <div class="grid grid-cols-4 gap-2">
@@ -49,7 +48,7 @@
             </div>
 
             <div class="text-3xl font-bold text-primary mb-4">
-                
+
 
                   @if(!empty($product->discount_price) && $product->discount_price > 0)
                         <span class="text-primary text-3xl font-bold">${{ $product->discount_price }}</span>
@@ -75,8 +74,11 @@
 
             <!-- Stock & Sold Info -->
             <div class="mt-6 text-sm text-gray-500">
-                @if($product->stock_quantity > 0)
-                    In Stock: {{ $product->stock_quantity }} units
+                @php
+                    $stockQty = $product->stock_quantity ?? $product->stock ?? 0;
+                @endphp
+                @if($stockQty > 0)
+                    In Stock: {{ $stockQty }} units
                 @else
                     <span class="text-red-500">Out of Stock</span>
                 @endif
@@ -93,13 +95,13 @@
             <nav class="border-b border-gray-200">
                 <ul class="flex -mb-px">
                     <li class="mr-6">
-                        <a :class="tab === 'description' ? 'border-primary text-primary' : 'border-transparent text-gray-600'" 
-                            @click.prevent="tab = 'description'" href="#" 
+                        <a :class="tab === 'description' ? 'border-primary text-primary' : 'border-transparent text-gray-600'"
+                            @click.prevent="tab = 'description'" href="#"
                             class="inline-block py-2 px-4 border-b-2 font-medium">Description</a>
                     </li>
                     <li class="mr-6">
-                        <a :class="tab === 'reviews' ? 'border-primary text-primary' : 'border-transparent text-gray-600'" 
-                            @click.prevent="tab = 'reviews'" href="#" 
+                        <a :class="tab === 'reviews' ? 'border-primary text-primary' : 'border-transparent text-gray-600'"
+                            @click.prevent="tab = 'reviews'" href="#"
                             class="inline-block py-2 px-4 border-b-2 font-medium">Reviews ({{ $reviewCount ?? 0 }})</a>
                     </li>
                 </ul>

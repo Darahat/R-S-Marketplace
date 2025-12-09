@@ -15,9 +15,11 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('slug')->unique();
-            
+            // Comma separated category ids (matches existing FIND_IN_SET queries)
+            $table->string('category_id')->nullable();
+
             $table->boolean('status')->default(true); // true = active
-           
+
             $table->timestamps();
         });
     }

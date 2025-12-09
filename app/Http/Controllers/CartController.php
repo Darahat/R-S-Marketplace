@@ -11,13 +11,13 @@ class CartController extends Controller
     protected $siteTitle;
     function __construct()
     {
-        $this->siteTitle = 'MarketGhor | ';
+        $this->siteTitle = 'R&SMarketPlace | ';
     }
     public function view()
     {
         // Get cart items (example using session)
         $cartItems = session('cart', []);
-        
+
         // Or if using database:
         // $cartItems = auth()->user()->cartItems()->with('product')->get();
         $data = array();
@@ -36,7 +36,7 @@ class CartController extends Controller
 
         return view('frontend_view.pages.cart.cartItems', compact('cartItems', 'total'))->render();
     }
-    
+
     protected function calculateTotal($items)
     {
         return array_reduce($items, function($sum, $item) {
@@ -47,15 +47,15 @@ class CartController extends Controller
     {
         $productId = $request->input('product_id');
         $quantity = $request->input('quantity', 1);
-    
+
         $product = DB::table('products')->where('id', $productId)->first();
-    
+
         if (!$product) {
             return response()->json(['error' => 'Product not found.'], 404);
         }
-    
+
         $cart = session()->get('cart', []);
-    
+
         if (isset($cart[$productId])) {
             // Increment quantity if already in cart
             $cart[$productId]['quantity'] += $quantity;
@@ -69,10 +69,10 @@ class CartController extends Controller
                 'image' => $product->image_url
             ];
         }
-    
+
         session()->put('cart', $cart);
         $totalQuantity = collect($cart)->sum('quantity');
-    
+
         // If using AJAX, respond with JSON
         if ($request->ajax()) {
             return response()->json([
@@ -81,26 +81,26 @@ class CartController extends Controller
                 'cartQuantity' => $totalQuantity,
             ]);
         }
-    
+
         return back()->with('success', 'Product added to cart!');
     }
-    
+
 
     public function update(Request $request)
     {
         $itemId = $request->itemId;
         $quantity = (int) $request->quantity;
-    
+
         $cart = session()->get('cart', []);
-    
+
         if (isset($cart[$itemId])) {
             $cart[$itemId]['quantity'] = $quantity;
             session()->put('cart', $cart);
         }
-    
+
         $total = $this->calculateTotal($cart);
         $totalQuantity = collect($cart)->sum('quantity');
-    
+
         return response()->json([
             'message' => 'Cart updated successfully',
             'total' => $total,
@@ -108,30 +108,30 @@ class CartController extends Controller
         ]);
     }
 
-    
+
 
     public function remove(Request $request)
     {
         $cart = session()->get('cart', []);
         $itemId = $request->input('item');
-    
+
         if (isset($cart[$itemId])) {
             unset($cart[$itemId]);
             session()->put('cart', $cart);
         }
-    
+
         $totalQuantity = collect($cart)->sum('quantity');
-    
+
         if ($request->ajax()) {
             return response()->json([
                 'success' => 'Product removed from cart',
                 'totalQuantity' => $totalQuantity,
             ]);
         }
-    
+
         return back()->with('success', 'Product removed from cart');
     }
-    
+
     public function wishlist(Request $request)
     {
         $wishlist = session()->get('wishlist', []);
@@ -152,7 +152,7 @@ class CartController extends Controller
             'count' => count($wishlist)
         ]);
     }
-    
-    
+
+
 
 }

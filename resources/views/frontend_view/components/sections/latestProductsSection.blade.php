@@ -1,11 +1,12 @@
-<section class="py-16 bg-white">
+<section class="py-12 md:py-16 lg:py-20 bg-white">
     <div class="container mx-auto px-4">
-        <div class="text-center mb-12 relative">
-            <h2 class="text-3xl md:text-4xl font-bold text-dark inline-block">Latest Products</h2>
-            <div class="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-20 h-1 bg-gradient-to-r from-primary to-accent rounded"></div>
+        <div class="text-center mb-8 md:mb-12">
+            <h2 class="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-3">Latest Products</h2>
+            <div class="w-20 h-1 bg-gradient-to-r from-primary to-secondary rounded mx-auto"></div>
+            <p class="text-gray-600 mt-4">Check out our newest arrivals</p>
         </div>
-        
-        <div class="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-6 gap-8">
+
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 md:gap-6">
             @foreach($latestProducts as $product)
                 @include('frontend_view.components.cards.productCard', ['product' => $product])
             @endforeach

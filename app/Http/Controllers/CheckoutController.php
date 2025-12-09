@@ -8,10 +8,10 @@ use Illuminate\Support\Facades\Auth;
 class CheckoutController extends Controller
 {
     protected $siteTitle;
-    
+
     function __construct()
     {
-        $this->siteTitle = 'MarketGhor | ';
+        $this->siteTitle = 'R&SMarketPlace | ';
     }
 
     public function index()
@@ -19,7 +19,7 @@ class CheckoutController extends Controller
         $cartItems = session('cart', []);
         $total = $this->calculateTotal($cartItems);
         $data['title'] = $this->siteTitle . 'Checkout';
-        
+
         if (count($cartItems) === 0) {
             return redirect()->route('cart.view')->with('error', 'Your cart is empty');
         }
@@ -36,24 +36,24 @@ class CheckoutController extends Controller
             'data' => $data,
         ]);
     }
-    
+
     public function process(Request $request)
     {
         $cartItems = session('cart', []);
-        
+
         if (count($cartItems) === 0) {
             return redirect()->route('cart.view')->with('error', 'Your cart is empty');
         }
-        
+
         // Validate checkout data
         $validator = $this->validateCheckout($request->all());
-        
+
         if ($validator->fails()) {
             return redirect()->back()
                 ->withErrors($validator)
                 ->withInput();
         }
-        
+
         // Verify product availability again
         foreach ($cartItems as $item) {
             $product = Product::find($item['id']);
@@ -61,34 +61,34 @@ class CheckoutController extends Controller
                 return redirect()->route('cart.view')->with('error', "{$item['name']} is no longer available in the requested quantity");
             }
         }
-        
+
         try {
             // Process payment
             $paymentMethod = $request->payment_method;
             $total = $this->calculateTotal($cartItems);
-            
+
             if ($paymentMethod === 'credit_card') {
                 $this->processStripePayment($request, $total);
             } elseif ($paymentMethod === 'paypal') {
                 // PayPal integration would go here
                 // For now, we'll just mark as pending
             }
-            
+
             // Create the order
             $order = $this->createOrder($request, $cartItems, $total, $paymentMethod);
-            
+
             // Update product stock
             $this->updateProductStock($cartItems);
-            
+
             // Clear the cart
             session()->forget('cart');
-            
+
             // Send order confirmation email
             // $this->sendOrderConfirmation($order);
-            
+
             return redirect()->route('checkout.success', ['order' => $order->order_number])
                 ->with('success', 'Order placed successfully!');
-                
+
         } catch (\Exception $e) {
             Log::error('Checkout error: ' . $e->getMessage());
             return redirect()->back()
@@ -96,7 +96,7 @@ class CheckoutController extends Controller
                 ->withInput();
         }
     }
-    
+
     protected function validateCheckout(array $data)
     {
         return Validator::make($data, [
@@ -114,7 +114,7 @@ class CheckoutController extends Controller
             'stripeToken.required_if' => 'The Stripe token is required for credit card payments',
         ]);
     }
-    
+
     protected function processStripePayment(Request $request, $amount)
     {
         try {
@@ -124,17 +124,17 @@ class CheckoutController extends Controller
                 'source' => $request->stripeToken,
                 'description' => 'Order payment',
             ]);
-            
+
             if (!$charge->paid) {
                 throw new \Exception('Payment was not successful');
             }
-            
+
             return $charge;
         } catch (\Exception $e) {
             throw new \Exception('Stripe payment error: ' . $e->getMessage());
         }
     }
-    
+
     protected function createOrder(Request $request, $cartItems, $total, $paymentMethod)
     {
         $order = new Order();
@@ -154,7 +154,7 @@ class CheckoutController extends Controller
         $order->country = $request->country;
         $order->notes = $request->notes;
         $order->save();
-        
+
         foreach ($cartItems as $item) {
             $orderItem = new OrderItem();
             $orderItem->order_id = $order->id;
@@ -163,10 +163,10 @@ class CheckoutController extends Controller
             $orderItem->price = $item['price'];
             $orderItem->save();
         }
-        
+
         return $order;
     }
-    
+
     protected function updateProductStock($cartItems)
     {
         foreach ($cartItems as $item) {
@@ -177,7 +177,7 @@ class CheckoutController extends Controller
             }
         }
     }
-    
+
     private function calculateTotal($cartItems)
     {
         return array_reduce($cartItems, function($carry, $item) {

@@ -15,8 +15,14 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('email')->unique();
+            $table->string('mobile')->nullable();
+            $table->string('user_type')->default('CUSTOMER'); // ADMIN, CUSTOMER
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            $table->timestamp('last_login')->nullable();
+            $table->string('last_ip')->nullable();
+            $table->string('last_location')->nullable();
+            $table->text('last_device')->nullable();
             $table->rememberToken();
             $table->timestamps();
         });

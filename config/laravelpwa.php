@@ -1,7 +1,7 @@
 <?php
 return [
-'name' => env('APP_NAME', 'MarketGhor'),
-'short_name' => 'MarketGhor',
+'name' => env('APP_NAME', 'R&SMarketPlace'),
+'short_name' => 'R&SMarketPlace',
 'theme_color' => '#6e48aa',
 'background_color' => '#ffffff',
 'start_url' => '/',

@@ -17,16 +17,16 @@ class HomeController extends Controller
 
     function __construct()
     {
-        $this->siteTitle = 'MarketGhor | ';
+        $this->siteTitle = 'R&SMarketPlace | ';
     }
-     
+
     function index(Request $request)
     {
         $data = array();
         $data['title'] = $this->siteTitle . 'Home';
         $data['page'] = 'home';
-        
-       
+
+
         $allCategories = DB::table('categories')
             ->where('status', true)
             ->orderBy('name', 'asc')
@@ -47,22 +47,22 @@ class HomeController extends Controller
                     ->orderBy('created_at', 'desc')
                     ->take(8)
                     ->get(),
-            
+
                 'bestSellingProducts' => DB::table('products')
                     ->orderBy('sold_count', 'desc')
                     ->take(8)
                     ->get(),
-            
+
                 'discountProducts' => DB::table('products')
                     ->where('discount_price', '>', 0)
                     ->take(8)
                     ->get(),
-            
+
                 'regularProducts' => DB::table('products')
                     ->inRandomOrder()
                     ->take(8)
                     ->get(),
-            
+
                 'suggestedProducts' => DB::table('products')
                     ->where('featured', true)
                     ->take(8)
@@ -71,17 +71,17 @@ class HomeController extends Controller
                 'categories' => $categories,
                 'allCategories' => $allCategories,
             ]);
-            
-        
+
+
     }
-    
+
     public function category(Request $request,$slug)
     {
         $data = array();
         $data['title'] = $this->siteTitle . 'Category';
         $data['page'] = 'category';
 
-       
+
 
         $allCategories = DB::table('categories')
             ->where('status', true)
@@ -99,15 +99,15 @@ class HomeController extends Controller
         if (!$category) {
             abort(404);
         }
-        
-        
+
+
         $brands = DB::table('brands')
             ->whereRaw('FIND_IN_SET(?, category_id)', [$category->id])
             ->where('status', true)
             ->orderBy('name', 'asc')
             ->get();
 
-        
+
         $brandIds = [];
         if ($request->filled('brands')) {
             $brandIds = explode(',', $request->input('brands'));
@@ -121,7 +121,7 @@ class HomeController extends Controller
             if (!empty($request->search)) {
                 $products_db->where('name', 'like', '%' . $request->search . '%');
             }
-        
+
         $products = $products_db->paginate(10);
 
         if (request()->ajax()) {
@@ -147,13 +147,13 @@ class HomeController extends Controller
         $data['title'] = $this->siteTitle . 'Category';
         $data['page'] = 'category';
 
-       
-    
 
-        $product = DB::table('products')            
+
+
+        $product = DB::table('products')
             ->where('slug', $slug)->first();
 
-        
+
         // Get product reviews
         $reviews = DB::table('reviews')
             ->join('users', 'reviews.user_id', '=', 'users.id')

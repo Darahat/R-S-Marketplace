@@ -18,6 +18,9 @@ return new class extends Migration
             $table->string('slug')->unique();
             $table->unsignedBigInteger('parent_id')->nullable();
             $table->boolean('status')->default(true);
+            $table->boolean('is_featured')->default(false);
+            $table->boolean('is_new')->default(false);
+            $table->decimal('discount_price', 10, 2)->default(0);
 
             $table->unsignedBigInteger('created_by'); // user who created
             $table->unsignedBigInteger('updated_by')->nullable(); // user who last updated

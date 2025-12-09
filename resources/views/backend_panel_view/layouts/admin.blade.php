@@ -74,7 +74,7 @@
 
     <!-- Preloader -->
     <div class="preloader flex-column justify-content-center align-items-center">
-      <img class="animation__shake" src="{{url('/')}}/images/logo/logo.png" alt="MarketGhor Logo" height="60" width="60">
+      <img class="animation__shake" src="{{url('/')}}/images/logo/logo.png" alt="R&SMarketPlace Logo" height="60" width="60">
     </div>
 
     <!-- Navbar -->

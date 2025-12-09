@@ -4,7 +4,7 @@
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
             <div>
                  <a href="{{route('home')}}" class="flex items-center">
-                        <img src="{{asset('/images/logo/logo.png')}}" alt="MarketGhor" class="h-10">
+                        <img src="{{asset('/images/logo/logo.png')}}" alt="R&SMarketPlace" class="h-10">
                     </a>
                 <p class="text-gray-400 mb-4">Your destination for cutting-edge technology and innovative gadgets that shape the future.</p>
                 <div class="flex gap-4">
@@ -22,7 +22,7 @@
                     </a>
                 </div>
             </div>
-            
+
             <div>
                 <h3 class="text-xl font-semibold mb-4 relative pb-2">Shop</h3>
                 <ul class="space-y-2">
@@ -33,7 +33,7 @@
                     <li><a href="#" class="text-gray-400 hover:text-success transition hover:pl-2">Accessories</a></li>
                 </ul>
             </div>
-            
+
             <div>
                 <h3 class="text-xl font-semibold mb-4 relative pb-2">Support</h3>
                 <ul class="space-y-2">
@@ -44,7 +44,7 @@
                     <li><a href="#" class="text-gray-400 hover:text-success transition hover:pl-2">Warranty</a></li>
                 </ul>
             </div>
-            
+
             <div>
                 <h3 class="text-xl font-semibold mb-4 relative pb-2">Company</h3>
                 <ul class="space-y-2">
@@ -56,7 +56,7 @@
                 </ul>
             </div>
         </div>
-        
+
         <div class="pt-8 border-t border-gray-800 text-center text-gray-400">
             <p>&copy; 2025 Baker e-Commerce. All rights reserved.</p>
         </div>

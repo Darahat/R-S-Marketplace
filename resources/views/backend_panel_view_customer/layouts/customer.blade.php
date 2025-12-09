@@ -3,21 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>  Electronics Gadgets</title>
+    <title>Electronics Gadgets - Customer Panel</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="//unpkg.com/alpinejs" defer></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+
     <!-- PWA -->
-{{-- <link rel="manifest" href="/manifest.json"> --}}
-<meta name="theme-color" content="#6e48aa">
-<script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/serviceworker.js')
-      .then(function() { console.log("Service Worker Registered"); });
-  }
-</script>
+    <meta name="theme-color" content="{{ config('theme.colors.primary.DEFAULT', '#3b82f6') }}">
+    <script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/serviceworker.js')
+          .then(function() { console.log("Service Worker Registered"); });
+      }
+    </script>
     @laravelPWA
 
     <script>
@@ -25,27 +31,33 @@
             theme: {
                 extend: {
                     colors: {
-                        primary: '#6e48aa',
-                        secondary: '#9d50bb',
-                        accent: '#4776e6',
-                        dark: '#1a1a2e',
-                        light: '#f8f9fa',
-                        success: '#4cc9f0',
-                        warning: '#f72585',
+                        primary: {
+                            DEFAULT: '{{ config('theme.colors.primary.DEFAULT', '#3b82f6') }}',
+                            light: '{{ config('theme.colors.primary.light', '#60a5fa') }}',
+                            dark: '{{ config('theme.colors.primary.dark', '#2563eb') }}',
+                        },
+                        secondary: {
+                            DEFAULT: '{{ config('theme.colors.secondary.DEFAULT', '#8b5cf6') }}',
+                            light: '{{ config('theme.colors.secondary.light', '#a78bfa') }}',
+                            dark: '{{ config('theme.colors.secondary.dark', '#7c3aed') }}',
+                        },
+                        success: '{{ config('theme.colors.success.DEFAULT', '#10b981') }}',
+                        warning: '{{ config('theme.colors.warning.DEFAULT', '#f59e0b') }}',
+                        danger: '{{ config('theme.colors.danger.DEFAULT', '#ef4444') }}',
                     },
-                    animation: {
-                        'float': 'float 3s ease-in-out infinite',
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
                     },
-                    keyframes: {
-                        float: {
-                            '0%, 100%': { transform: 'translateY(0)' },
-                            '50%': { transform: 'translateY(-10px)' },
-                        }
-                    }
                 }
             }
         }
     </script>
+
+    <style>
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+    </style>
 </head>
 <body class="h-full" x-data="{ mobileMenuOpen: false }">
     @if(session('message'))
@@ -125,7 +137,7 @@
             window.addEventListener('beforeunload', function() {
                 document.getElementById('loading').classList.remove('hidden');
             });
-            
+
             // Toggle password visibility
             window.togglePassword = function(id) {
                 const input = document.getElementById(id);
@@ -138,7 +150,7 @@
                     icon.classList.replace('fa-eye-slash', 'fa-eye');
                 }
             }
-            
+
             // Auto-hide flash messages after 5 seconds
             setTimeout(() => {
                 const flashes = document.querySelectorAll('[class*="fixed bottom-4"]');

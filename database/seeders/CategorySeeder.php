@@ -14,7 +14,7 @@ class CategorySeeder extends Seeder
      */
     public function run(): void
     {
-        // Sample categories
+        // Sample categories - match migration schema
         $categories = [
             [
                 'name' => 'Electronics',
@@ -23,8 +23,9 @@ class CategorySeeder extends Seeder
                 'status' => true,
                 'is_featured' => true,
                 'is_new' => false,
-                'discount_price' => 0.00,
+                'discount_price' => 0,
                 'parent_id' => null,
+                'created_by' => 1,
             ],
             [
                 'name' => 'Computers',
@@ -33,8 +34,9 @@ class CategorySeeder extends Seeder
                 'status' => true,
                 'is_featured' => false,
                 'is_new' => true,
-                'discount_price' => 0.00,
+                'discount_price' => 0,
                 'parent_id' => 1,
+                'created_by' => 1,
             ],
             [
                 'name' => 'Smartphones',
@@ -43,8 +45,9 @@ class CategorySeeder extends Seeder
                 'status' => true,
                 'is_featured' => true,
                 'is_new' => false,
-                'discount_price' => 0.00,
+                'discount_price' => 0,
                 'parent_id' => 1,
+                'created_by' => 1,
             ],
             [
                 'name' => 'Clothing',
@@ -53,8 +56,9 @@ class CategorySeeder extends Seeder
                 'status' => true,
                 'is_featured' => true,
                 'is_new' => false,
-                'discount_price' => 0.00,
+                'discount_price' => 0,
                 'parent_id' => null,
+                'created_by' => 1,
             ],
             [
                 'name' => 'Men\'s Wear',
@@ -63,8 +67,9 @@ class CategorySeeder extends Seeder
                 'status' => true,
                 'is_featured' => false,
                 'is_new' => false,
-                'discount_price' => 0.00,
+                'discount_price' => 0,
                 'parent_id' => 4,
+                'created_by' => 1,
             ],
             [
                 'name' => 'Women\'s Wear',
@@ -73,8 +78,9 @@ class CategorySeeder extends Seeder
                 'status' => true,
                 'is_featured' => false,
                 'is_new' => true,
-                'discount_price' => 0.00,
+                'discount_price' => 0,
                 'parent_id' => 4,
+                'created_by' => 1,
             ],
             [
                 'name' => 'Books',
@@ -83,18 +89,20 @@ class CategorySeeder extends Seeder
                 'status' => true,
                 'is_featured' => false,
                 'is_new' => false,
-                'discount_price' => 0.00,
+                'discount_price' => 0,
                 'parent_id' => null,
+                'created_by' => 1,
             ],
             [
                 'name' => 'Home & Kitchen',
                 'slug' => 'home-kitchen',
                 'description' => 'Kitchen appliances and home decor',
                 'status' => true,
-                'is_featured' => true,
+                'is_featured' => false,
                 'is_new' => false,
-                'discount_price' => 0.00,
+                'discount_price' => 0,
                 'parent_id' => null,
+                'created_by' => 1,
             ],
         ];
 
