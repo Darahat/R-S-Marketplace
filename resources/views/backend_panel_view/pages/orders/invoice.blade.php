@@ -100,7 +100,7 @@
                 </div>
                 <div class="col-md-6 text-end">
                     <p class="mb-1"><strong>Invoice Date:</strong> {{ $order->created_at->format('F d, Y') }}</p>
-                    <p class="mb-1"><strong>Order Status:</strong> <span class="badge bg-info">{{ ucfirst($order->status) }}</span></p>
+                    <p class="mb-1"><strong>Order Status:</strong> <span class="badge bg-info">{{ ucfirst($order->order_status) }}</span></p>
                     <p class="mb-0"><strong>Payment Status:</strong> <span class="badge bg-success">{{ ucfirst($order->payment_status) }}</span></p>
                 </div>
             </div>
@@ -110,19 +110,20 @@
         <div class="row">
             <div class="col-md-6">
                 <div class="section-title">CUSTOMER INFORMATION</div>
-                <p class="mb-1"><strong>{{ $order->user->name }}</strong></p>
-                <p class="mb-1">{{ $order->user->email }}</p>
-                <p class="mb-0">{{ $order->user->phone ?? 'N/A' }}</p>
+                <p class="mb-1"><strong>{{ $order->address->full_name ?? $order->user->name }}</strong></p>
+                <p class="mb-1">{{ $order->address->email ?? $order->user->email }}</p>
+                <p class="mb-0">{{ $order->address->phone ?? $order->user->phone ?? 'N/A' }}</p>
             </div>
             <div class="col-md-6">
                 <div class="section-title">SHIPPING ADDRESS</div>
                 @if($order->address)
-                    <p class="mb-1">{{ $order->address->address_line_1 }}</p>
-                    @if($order->address->address_line_2)
-                        <p class="mb-1">{{ $order->address->address_line_2 }}</p>
-                    @endif
-                    <p class="mb-1">{{ $order->address->city }}, {{ $order->address->state ?? '' }}</p>
-                    <p class="mb-0">{{ $order->address->zip_code }}</p>
+                    <p class="mb-1">{{ $order->address->street_address }}</p>
+                    <p class="mb-1">{{ $order->address->postal_code }}</p>
+                    <p class="mb-0">
+                        @if($order->address->union) {{ $order->address->union->name }}, @endif
+                        @if($order->address->upazila) {{ $order->address->upazila->name }}, @endif
+                        @if($order->address->district) {{ $order->address->district->name }} @endif
+                    </p>
                 @else
                     <p class="text-muted">No address on file</p>
                 @endif
@@ -159,28 +160,35 @@
         </table>
 
         <!-- Summary -->
+        @php
+            $calcSubtotal = $order->subtotal ?? $order->items->sum('total');
+            $calcShipping = $order->shipping_cost ?? 0;
+            $calcTax = $order->tax ?? 0;
+            $calcDiscount = $order->discount ?? 0;
+            $calcTotal = $order->total_amount ?? ($calcSubtotal + $calcShipping + $calcTax - $calcDiscount);
+        @endphp
         <table class="summary-table">
             <tr>
                 <td class="label">Subtotal:</td>
-                <td class="amount">৳{{ number_format($order->subtotal, 2) }}</td>
+                <td class="amount">৳{{ number_format($calcSubtotal, 2) }}</td>
             </tr>
             <tr>
                 <td class="label">Shipping Cost:</td>
-                <td class="amount">৳{{ number_format($order->shipping_cost, 2) }}</td>
+                <td class="amount">৳{{ number_format($calcShipping, 2) }}</td>
             </tr>
             <tr>
                 <td class="label">Tax:</td>
-                <td class="amount">৳{{ number_format($order->tax, 2) }}</td>
+                <td class="amount">৳{{ number_format($calcTax, 2) }}</td>
             </tr>
-            @if($order->discount > 0)
+            @if($calcDiscount > 0)
             <tr>
                 <td class="label">Discount:</td>
-                <td class="amount">-৳{{ number_format($order->discount, 2) }}</td>
+                <td class="amount">-৳{{ number_format($calcDiscount, 2) }}</td>
             </tr>
             @endif
             <tr class="total-row">
                 <td class="label">TOTAL AMOUNT:</td>
-                <td class="amount">৳{{ number_format($order->total, 2) }}</td>
+                <td class="amount">৳{{ number_format($calcTotal, 2) }}</td>
             </tr>
         </table>
 

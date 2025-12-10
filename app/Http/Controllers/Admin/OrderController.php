@@ -39,8 +39,8 @@ class OrderController extends Controller
         }
 
         // Filter by status
-        if ($request->has('status') && $request->status != '') {
-            $query->where('status', $request->status);
+        if ($request->has('status') && $request->order_status != '') {
+            $query->where('status', $request->order_status);
         }
 
         // Filter by payment status
@@ -109,8 +109,8 @@ class OrderController extends Controller
             ]);
         }
 
-        $oldStatus = $order->status;
-        $order->status = $request->status;
+        $oldStatus = $order->order_status;
+        $order->order_status = $request->status;
 
         // Set timestamps for certain statuses
         if ($request->status == 'shipped' && !$order->shipped_at) {
@@ -126,7 +126,7 @@ class OrderController extends Controller
         return response()->json([
             'success' => true,
             'message' => "Order status updated from '{$oldStatus}' to '{$request->status}'",
-            'status' => $order->status,
+            'status' => $order->order_status,
         ]);
     }
 

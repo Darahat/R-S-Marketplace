@@ -41,32 +41,56 @@ class HomeController extends Controller
             $category->subcategories = $subcategories->where('parent_id', $category->id)->values();
         }
         // $data['products'] = DB::table('products')->where('status', 1)->orderBy('id', 'desc')->paginate(10);
+        // Hero settings (from storage JSON fallback to defaults)
+        $heroSettings = [
+            'headline' => 'Next-Gen Tech for 2025',
+            'highlight' => '2025',
+            'subheadline' => 'Discover the most innovative gadgets that will redefine your digital experience. Cutting-edge technology at your fingertips.',
+            'primary_text' => 'Shop Now',
+            'primary_url' => url('/'),
+            'secondary_text' => 'Explore Deals',
+            'secondary_url' => url('/'),
+        ];
+
+        $heroFile = 'hero_section.json';
+        if (Storage::disk('local')->exists($heroFile)) {
+            $json = json_decode(Storage::disk('local')->get($heroFile), true);
+            if (is_array($json)) {
+                $heroSettings = array_merge($heroSettings, $json);
+            }
+        }
+
+        $productBase = DB::table('products')->where('stock', '>', 0);
+
         return view('frontend_view.pages.homepage',[
 
-                'latestProducts' => DB::table('products')
+                'latestProducts' => (clone $productBase)
+                    ->where('is_latest', true)
                     ->orderBy('created_at', 'desc')
                     ->take(8)
                     ->get(),
 
-                'bestSellingProducts' => DB::table('products')
+                'bestSellingProducts' => (clone $productBase)
+                    ->where('is_best_selling', true)
                     ->orderBy('sold_count', 'desc')
                     ->take(8)
                     ->get(),
 
-                'discountProducts' => DB::table('products')
+                'discountProducts' => (clone $productBase)
                     ->where('discount_price', '>', 0)
                     ->take(8)
                     ->get(),
 
-                'regularProducts' => DB::table('products')
+                'regularProducts' => (clone $productBase)
                     ->inRandomOrder()
                     ->take(8)
                     ->get(),
 
-                'suggestedProducts' => DB::table('products')
+                'suggestedProducts' => (clone $productBase)
                     ->where('featured', true)
                     ->take(8)
                     ->get(),
+                'hero' => $heroSettings,
                 'data' => $data,
                 'categories' => $categories,
                 'allCategories' => $allCategories,

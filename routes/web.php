@@ -130,6 +130,10 @@ Route::group(['prefix' => 'admin', 'middleware' => 'auth:web'], function () {
     Route::get('/api/payments/trends', [\App\Http\Controllers\Admin\PaymentController::class, 'getTrends'])->name('admin.payments.trends');
     Route::get('/api/payments/method-breakdown', [\App\Http\Controllers\Admin\PaymentController::class, 'getMethodBreakdown'])->name('admin.payments.method-breakdown');
 
+    // Hero Section
+    Route::get('/hero', [\App\Http\Controllers\Admin\HeroSectionController::class, 'edit'])->name('admin.hero.edit');
+    Route::post('/hero', [\App\Http\Controllers\Admin\HeroSectionController::class, 'update'])->name('admin.hero.update');
+
 });
 Route::group(['prefix' => 'customer', 'middleware' => 'auth:web'], function () {
     Route::get('/dashboard', [DashboardController::class, 'customer_dashboard'])->name('customer.dashboard');

@@ -7,6 +7,7 @@ use App\Models\Category;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Storage;
 
 class CategoryController extends Controller
 {
@@ -63,6 +64,7 @@ class CategoryController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255|unique:categories',
             'description' => 'nullable|string',
+            'image' => 'nullable|image|max:2048',
             'parent_id' => 'nullable|exists:categories,id',
             'status' => 'required|boolean',
             'is_featured' => 'nullable|boolean',
@@ -80,6 +82,9 @@ class CategoryController extends Controller
         $category->name = $request->name;
         $category->slug = Str::slug($request->name);
         $category->description = $request->description;
+        if ($request->hasFile('image')) {
+            $category->image = $request->file('image')->store('categories', 'public');
+        }
         $category->parent_id = $request->parent_id;
         $category->status = $request->status ?? true;
         $category->is_featured = $request->is_featured ?? false;
@@ -176,6 +181,7 @@ class CategoryController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255|unique:categories,name,' . $id,
             'description' => 'nullable|string',
+            'image' => 'nullable|image|max:2048',
             'parent_id' => 'nullable|exists:categories,id',
             'status' => 'required|boolean',
             'is_featured' => 'nullable|boolean',
@@ -204,6 +210,12 @@ class CategoryController extends Controller
         $category->is_featured = $request->is_featured ?? false;
         $category->is_new = $request->is_new ?? false;
         $category->discount_price = $request->discount_price ?? 0;
+        if ($request->hasFile('image')) {
+            if ($category->image) {
+                Storage::disk('public')->delete($category->image);
+            }
+            $category->image = $request->file('image')->store('categories', 'public');
+        }
         $category->updated_by = Auth::id();
         $category->save();
 

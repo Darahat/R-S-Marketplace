@@ -137,6 +137,13 @@
                         </thead>
                         <tbody>
                             @forelse($orders as $order)
+                            @php
+            $calcSubtotal = $order->subtotal ?? $order->items->sum('total');
+            $calcShipping = $order->shipping_cost ?? 0;
+            $calcTax = $order->tax ?? 0;
+            $calcDiscount = $order->discount ?? 0;
+            $calcTotal = $order->total_amount ?? ($calcSubtotal + $calcShipping + $calcTax - $calcDiscount);
+@endphp
                                 <tr>
                                     <td>
                                         <strong>{{ $order->order_number }}</strong>
@@ -146,19 +153,19 @@
                                         <small class="text-muted">{{ $order->user->email }}</small>
                                     </td>
                                     <td class="text-center">
-                                        <strong>৳{{ number_format($order->total, 2) }}</strong>
+                                        <strong>৳{{ number_format($calcTotal, 2) }}</strong>
                                     </td>
                                     <td class="text-center">
                                         <span class="badge
-                                            {{ $order->status == 'pending' ? 'bg-secondary' : '' }}
-                                            {{ $order->status == 'confirmed' ? 'bg-info' : '' }}
-                                            {{ $order->status == 'processing' ? 'bg-warning' : '' }}
-                                            {{ $order->status == 'shipped' ? 'bg-primary' : '' }}
-                                            {{ $order->status == 'delivered' ? 'bg-success' : '' }}
-                                            {{ $order->status == 'cancelled' ? 'bg-danger' : '' }}
-                                            {{ $order->status == 'returned' ? 'bg-dark' : '' }}
+                                            {{ $order->order_status == 'pending' ? 'bg-secondary' : '' }}
+                                            {{ $order->order_status == 'confirmed' ? 'bg-info' : '' }}
+                                            {{ $order->order_status == 'processing' ? 'bg-warning' : '' }}
+                                            {{ $order->order_status == 'shipped' ? 'bg-primary' : '' }}
+                                            {{ $order->order_status == 'delivered' ? 'bg-success' : '' }}
+                                            {{ $order->order_status == 'cancelled' ? 'bg-danger' : '' }}
+                                            {{ $order->order_status == 'returned' ? 'bg-dark' : '' }}
                                         ">
-                                            {{ ucfirst($order->status) }}
+                                            {{ ucfirst($order->order_status) }}
                                         </span>
                                     </td>
                                     <td class="text-center">
@@ -226,15 +233,8 @@
 </div>
 
 @push('scripts')
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 $(document).ready(function() {
-    // Initialize tooltips
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl)
-    });
 
     // Load statistics
     loadStatistics();

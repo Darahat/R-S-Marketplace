@@ -133,6 +133,18 @@
             <div style="height: 1px; background: rgba(255,255,255,0.1); margin: 10px 0;"></div>
           </li>
 
+          <!-- Hero Section -->
+          <li class="nav-item">
+            <a href="{{ route('admin.hero.edit') }}" class="nav-link {{ Request::routeIs('admin.hero.*') ? 'active' : '' }}">
+              <i class="nav-icon fas fa-image"></i>
+              <p>Hero Section</p>
+            </a>
+          </li>
+
+          <li class="nav-item">
+            <div style="height: 1px; background: rgba(255,255,255,0.1); margin: 10px 0;"></div>
+          </li>
+
 
 
 

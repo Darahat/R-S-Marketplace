@@ -60,19 +60,24 @@
                         <div class="card-body">
                             <div class="row">
                                 <div class="col-md-6">
-                                    <p><strong>Name:</strong> {{ $order->user->name }}</p>
-                                    <p><strong>Email:</strong> {{ $order->user->email }}</p>
-                                    <p><strong>Phone:</strong> {{ $order->user->phone ?? 'N/A' }}</p>
+                                    <p><strong>Name:</strong> {{ $order->address->full_name ?? $order->user->name }}</p>
+                                    <p><strong>Email:</strong> {{ $order->address->email ?? $order->user->email }}</p>
+                                    <p><strong>Phone:</strong> {{ $order->address->phone ?? $order->user->phone ?? 'N/A' }}</p>
                                 </div>
                                 <div class="col-md-6">
                                     @if($order->address)
                                         <p><strong>Address:</strong><br>
-                                            {{ $order->address->address_line_1 }}<br>
-                                            @if($order->address->address_line_2)
-                                                {{ $order->address->address_line_2 }}<br>
+                                            {{ $order->address->street_address }}<br>
+                                            {{ $order->address->postal_code }}<br>
+                                            @if($order->address->union)
+                                                {{ $order->address->union->name }},
                                             @endif
-                                            {{ $order->address->city }}, {{ $order->address->state ?? 'N/A' }}<br>
-                                            {{ $order->address->zip_code }}
+                                            @if($order->address->upazila)
+                                                {{ $order->address->upazila->name }},
+                                            @endif
+                                            @if($order->address->district)
+                                                {{ $order->address->district->name }}
+                                            @endif
                                         </p>
                                     @else
                                         <p class="text-muted">No address on file</p>
@@ -146,7 +151,7 @@
                                 <label class="form-label"><strong>Current Status:</strong></label>
                                 <select class="form-select" id="statusSelect">
                                     @foreach($statuses as $status)
-                                        <option value="{{ $status }}" {{ $order->status == $status ? 'selected' : '' }}>
+                                        <option value="{{ $status }}" {{ $order->order_status == $status ? 'selected' : '' }}>
                                             {{ ucfirst($status) }}
                                         </option>
                                     @endforeach
@@ -204,26 +209,33 @@
                             <h3 class="card-title mb-0"><i class="fas fa-calculator"></i> Order Summary</h3>
                         </div>
                         <div class="card-body">
+                            @php
+                                $calculatedSubtotal = $order->subtotal ?? $order->items->sum('total');
+                                $calculatedShipping = $order->shipping_cost ?? 0;
+                                $calculatedTax = $order->tax ?? 0;
+                                $calculatedDiscount = $order->discount ?? 0;
+                                $calculatedTotal = $order->total_amount ?? ($calculatedSubtotal + $calculatedShipping + $calculatedTax - $calculatedDiscount);
+                            @endphp
                             <div class="row mb-2">
                                 <div class="col-6"><strong>Subtotal:</strong></div>
-                                <div class="col-6 text-end">৳{{ number_format($order->subtotal, 2) }}</div>
+                                <div class="col-6 text-end">৳{{ number_format($calculatedSubtotal, 2) }}</div>
                             </div>
                             <div class="row mb-2">
                                 <div class="col-6"><strong>Shipping:</strong></div>
-                                <div class="col-6 text-end">৳{{ number_format($order->shipping_cost, 2) }}</div>
+                                <div class="col-6 text-end">৳{{ number_format($calculatedShipping, 2) }}</div>
                             </div>
                             <div class="row mb-2">
                                 <div class="col-6"><strong>Tax:</strong></div>
-                                <div class="col-6 text-end">৳{{ number_format($order->tax, 2) }}</div>
+                                <div class="col-6 text-end">৳{{ number_format($calculatedTax, 2) }}</div>
                             </div>
                             <div class="row mb-3">
                                 <div class="col-6"><strong>Discount:</strong></div>
-                                <div class="col-6 text-end">-৳{{ number_format($order->discount, 2) }}</div>
+                                <div class="col-6 text-end">-৳{{ number_format($calculatedDiscount, 2) }}</div>
                             </div>
                             <hr>
                             <div class="row">
                                 <div class="col-6"><strong>Total Amount:</strong></div>
-                                <div class="col-6 text-end"><strong>৳{{ number_format($order->total, 2) }}</strong></div>
+                                <div class="col-6 text-end"><strong>৳{{ number_format($calculatedTotal, 2) }}</strong></div>
                             </div>
                         </div>
                     </div>
@@ -234,15 +246,8 @@
 </div>
 
 @push('scripts')
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 $(document).ready(function() {
-    // Initialize tooltips
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl)
-    });
 
     // Update Status
     $('#updateStatusBtn').on('click', function() {

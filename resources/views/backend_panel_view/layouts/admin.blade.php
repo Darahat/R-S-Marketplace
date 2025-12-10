@@ -69,7 +69,7 @@
     }
   </style>
 </head>
-<body class="hold-transition sidebar-mini layout-fixed text-sm" onload="createTimeline()">
+<body class="hold-transition sidebar-mini layout-fixed text-sm">
 <div class="wrapper">
 
     <!-- Preloader -->
@@ -209,6 +209,7 @@
 <script src="{{ asset('assets/dist/js/demo.js') }}"></script>
 <!-- AdminLTE dashboard demo (This is only for demo purposes) -->
 <script src="{{ asset('assets/dist/js/pages/dashboard.js') }}"></script>
+@stack('scripts')
 
 <script>
 

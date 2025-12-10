@@ -15,7 +15,13 @@
                     <div class="aspect-square overflow-hidden bg-gray-50">
                         <img
                             class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                            src="{{ $category->image_url ?? 'https://images.unsplash.com/photo-1555774698-0b77e0d5fac6?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60' }}"
+                            src="{{
+                                !empty($category->image)
+                                    ? asset('storage/' . $category->image)
+                                    : (!empty($category->image_url)
+                                        ? $category->image_url
+                                        : 'https://images.unsplash.com/photo-1555774698-0b77e0d5fac6?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60')
+                            }}"
                             alt="{{ $category->name }}"
                             loading="lazy"
                         >

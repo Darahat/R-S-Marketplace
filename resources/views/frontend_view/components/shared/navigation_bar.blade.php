@@ -6,20 +6,12 @@
             <div class="flex items-center justify-between py-2 text-xs sm:text-sm">
                 <!-- Left side -->
                 <div class="flex items-center space-x-2 sm:space-x-4">
-                    <a href="#" class="hover:text-yellow-300 transition hidden sm:inline">Seller Center</a>
-                    <span class="hidden md:inline">|</span>
                     <a href="#" class="hover:text-yellow-300 transition">Download App</a>
                 </div>
 
                 <!-- Right side -->
                 <div class="flex items-center space-x-2 sm:space-x-4">
-                    <a href="#" class="hover:text-yellow-300 transition flex items-center">
-                        <i class="fas fa-question-circle mr-1"></i>
-                        <span class="hidden sm:inline">Support</span>
-                    </a>
-
                     @guest
-                        <span class="hidden sm:inline">|</span>
                         <div class="flex items-center space-x-1">
                             <button data-modal="login" class="hover:text-yellow-300 transition">Login</button>
                             <span>/</span>
@@ -234,15 +226,21 @@
                     <a href="{{url('/')}}" class="text-gray-700 hover:text-primary font-medium transition py-2 border-b-2 border-transparent hover:border-primary">
                         <i class="fas fa-home mr-1"></i>Home
                     </a>
-                    <a href="#" class="text-gray-700 hover:text-primary font-medium transition py-2 border-b-2 border-transparent hover:border-primary">
+                    <a href="{{ url('/#todays-deals') }}" class="text-gray-700 hover:text-primary font-medium transition py-2 border-b-2 border-transparent hover:border-primary">
                         <i class="fas fa-fire mr-1"></i>Today's Deals
                     </a>
-                    <a href="#" class="text-gray-700 hover:text-primary font-medium transition py-2 border-b-2 border-transparent hover:border-primary">
+                    <a href="{{ url('/#flash-sale') }}" class="text-gray-700 hover:text-primary font-medium transition py-2 border-b-2 border-transparent hover:border-primary">
                         <i class="fas fa-bolt mr-1"></i>Flash Sale
                     </a>
-                    <a href="#" class="text-gray-700 hover:text-primary font-medium transition py-2 border-b-2 border-transparent hover:border-primary">
-                        <i class="fas fa-shipping-fast mr-1"></i>Track Order
-                    </a>
+                    @auth
+                        <a href="{{ route('customer.orders') }}" class="text-gray-700 hover:text-primary font-medium transition py-2 border-b-2 border-transparent hover:border-primary">
+                            <i class="fas fa-shipping-fast mr-1"></i>Track Order
+                        </a>
+                    @else
+                        <a href="#" data-modal="login" class="text-gray-700 hover:text-primary font-medium transition py-2 border-b-2 border-transparent hover:border-primary">
+                            <i class="fas fa-shipping-fast mr-1"></i>Track Order
+                        </a>
+                    @endauth
                 </nav>
             </div>
         </div>
@@ -265,15 +263,21 @@
                 <a href="{{url('/')}}" class="block px-4 py-3 text-gray-700 hover:bg-primary hover:text-white rounded-lg transition font-medium">
                     <i class="fas fa-home mr-3 w-5"></i>Home
                 </a>
-                <a href="#" class="block px-4 py-3 text-gray-700 hover:bg-primary hover:text-white rounded-lg transition font-medium">
+                <a href="{{ url('/#todays-deals') }}" class="block px-4 py-3 text-gray-700 hover:bg-primary hover:text-white rounded-lg transition font-medium">
                     <i class="fas fa-fire mr-3 w-5"></i>Today's Deals
                 </a>
-                <a href="#" class="block px-4 py-3 text-gray-700 hover:bg-primary hover:text-white rounded-lg transition font-medium">
+                <a href="{{ url('/#flash-sale') }}" class="block px-4 py-3 text-gray-700 hover:bg-primary hover:text-white rounded-lg transition font-medium">
                     <i class="fas fa-bolt mr-3 w-5"></i>Flash Sale
                 </a>
-                <a href="#" class="block px-4 py-3 text-gray-700 hover:bg-primary hover:text-white rounded-lg transition font-medium">
-                    <i class="fas fa-shipping-fast mr-3 w-5"></i>Track Order
-                </a>
+                @auth
+                    <a href="{{ route('customer.orders') }}" class="block px-4 py-3 text-gray-700 hover:bg-primary hover:text-white rounded-lg transition font-medium">
+                        <i class="fas fa-shipping-fast mr-3 w-5"></i>Track Order
+                    </a>
+                @else
+                    <a href="#" data-modal="login" class="block px-4 py-3 text-gray-700 hover:bg-primary hover:text-white rounded-lg transition font-medium">
+                        <i class="fas fa-shipping-fast mr-3 w-5"></i>Track Order
+                    </a>
+                @endauth
 
                 <hr class="my-3">
 
