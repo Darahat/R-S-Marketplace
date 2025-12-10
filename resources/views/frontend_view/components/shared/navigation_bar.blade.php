@@ -67,11 +67,11 @@
                 </button>
 
                 <!-- Wishlist -->
-                <a href="#" class="relative flex flex-col items-center text-gray-700 hover:text-primary transition group">
+                <a href="{{ route('wishlist.view') }}" class="relative flex flex-col items-center text-gray-700 hover:text-primary transition group">
                     <i class="fas fa-heart text-xl group-hover:scale-110 transition-transform"></i>
                     <span class="text-xs mt-1 hidden sm:block">Wishlist</span>
                     <span id="wishlist-count" class="absolute -top-2 -right-2 bg-danger text-white text-xs w-5 h-5 flex items-center justify-center rounded-full font-semibold">
-                        {{ session('wishlist') ? count(session('wishlist')) : 0 }}
+                        {{ $wishlistCount ?? 0 }}
                     </span>
                 </a>
 
@@ -84,7 +84,7 @@
                         <i class="fas fa-shopping-cart text-xl group-hover:scale-110 transition-transform"></i>
                         <span class="text-xs mt-1 hidden sm:block">Cart</span>
                         <span id="cart-count" class="absolute -top-2 -right-2 bg-primary text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-semibold">
-                            {{ collect(session('cart', []))->sum('quantity') }}
+                            {{ $cartCount ?? 0 }}
                         </span>
                     </button>
 

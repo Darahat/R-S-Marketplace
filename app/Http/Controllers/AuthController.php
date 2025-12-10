@@ -5,6 +5,10 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
+use App\Models\Cart;
+use App\Models\CartItem;
+use App\Models\Wishlist;
+use App\Models\WishlistItem;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 
@@ -20,7 +24,7 @@ class AuthController extends Controller
     {
         // Show admin login form on GET
         if ($request->isMethod('get')) {
-            return view('frontend_view.pages.auth.admin_login');
+            return view('backend_panel_view.pages.auth.admin_login');
         }
 
         // Handle admin login on POST
@@ -77,6 +81,12 @@ class AuthController extends Controller
                 $user->last_location = $request->getClientIp();
                 $user->last_device   = $request->header('User-Agent');
                 $user->save();
+
+                // Sync guest cart to user cart
+                $this->syncGuestCart();
+
+                // Sync guest wishlist to user wishlist
+                $this->syncGuestWishlist();
             }
 
             if(Auth::user()->user_type == 'ADMIN'){
@@ -124,6 +134,10 @@ class AuthController extends Controller
 
         Auth::login($user);
 
+        // Sync guest cart and wishlist after registration
+        $this->syncGuestCart();
+        $this->syncGuestWishlist();
+
         return redirect()->route('home')->with('success', 'Registration successful!');
     }
 
@@ -134,5 +148,56 @@ class AuthController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
         return redirect('/');
+    }
+
+    /**
+     * Sync guest cart to database when user logs in or registers
+     */
+    protected function syncGuestCart()
+    {
+        if (session()->has('cart')) {
+            $guestCart = session('cart', []);
+            $cart = Cart::firstOrCreate(['user_id' => Auth::id()]);
+
+            foreach ($guestCart as $productId => $item) {
+                $cartItem = CartItem::where('cart_id', $cart->id)
+                    ->where('product_id', $productId)
+                    ->first();
+
+                if ($cartItem) {
+                    $cartItem->quantity += $item['quantity'];
+                    $cartItem->save();
+                } else {
+                    CartItem::create([
+                        'cart_id' => $cart->id,
+                        'product_id' => $productId,
+                        'quantity' => $item['quantity'],
+                        'price' => $item['price']
+                    ]);
+                }
+            }
+
+            session()->forget('cart');
+        }
+    }
+
+    /**
+     * Sync guest wishlist to database when user logs in or registers
+     */
+    protected function syncGuestWishlist()
+    {
+        if (session()->has('wishlist')) {
+            $guestWishlist = session('wishlist', []);
+            $wishlist = Wishlist::firstOrCreate(['user_id' => Auth::id()]);
+
+            foreach ($guestWishlist as $productId) {
+                WishlistItem::firstOrCreate([
+                    'wishlist_id' => $wishlist->id,
+                    'product_id' => $productId
+                ]);
+            }
+
+            session()->forget('wishlist');
+        }
     }
 }

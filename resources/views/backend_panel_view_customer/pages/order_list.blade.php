@@ -104,7 +104,7 @@
                 'label' => 'Processing'
             ]
         ];
-    
+
         $status = strtolower($order->order_status);
         $config = $statusConfig[$status] ?? [
             'class' => 'bg-gray-100 text-gray-800',
@@ -118,11 +118,11 @@
                     <div class="flex items-center space-x-4">
                         <div>
                             <span class="text-sm font-medium text-gray-500">Order #</span>
-                            <a href="{{ route('customer.order_details', ['id' => $order->order_id]) }}" class="text-base font-semibold text-primary-600 hover:text-primary-800">{{$order->order_id}}</a>
+                            <a href="{{ route('customer.order_details', ['id' => $order->id]) }}" class="text-base font-semibold text-primary-600 hover:text-primary-800">{{ $order->order_number }}</a>
                         </div>
                         <div>
                             <span class="text-sm font-medium text-gray-500">Placed on</span>
-                            <span class="text-sm text-gray-600">>{{ \Carbon\Carbon::parse($order->created_at)->format('d M Y') }}</span>
+                            <span class="text-sm text-gray-600">{{ \Carbon\Carbon::parse($order->created_at)->format('d M Y') }}</span>
                         </div>
                         <div>
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 {{ $config['class'] }}">
@@ -136,16 +136,16 @@
                 <div class="flex items-center space-x-4">
                     <div class="text-right">
                         <span class="text-sm font-medium text-gray-500 block">Total</span>
-                        <span class="text-base font-semibold text-gray-900">{{$order->total_amount}}</span>
+                        <span class="text-base font-semibold text-gray-900">৳{{ number_format($order->total_amount, 2) }}</span>
                     </div>
                     <div>
-                        <a href="{{ route('customer.order_details', ['id' => $order->order_id]) }}" class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                        <a href="{{ route('customer.order_details', ['id' => $order->id]) }}" class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
                             View Details
                         </a>
                     </div>
                 </div>
             </div>
-            
+
             <!-- Order Items Preview -->
             <div class="mt-4">
                 <div class="flex -space-x-2 overflow-hidden">
@@ -231,7 +231,7 @@
         const statusFilter = document.getElementById('status-filter');
         const dateFilter = document.getElementById('date-filter');
         const orderSearch = document.getElementById('order-search');
-        
+
         // You would implement actual filtering logic here
         [statusFilter, dateFilter, orderSearch].forEach(element => {
             element.addEventListener('change', function() {

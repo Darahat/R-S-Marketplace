@@ -5,7 +5,9 @@ use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Route;
-
+use Illuminate\Support\Facades\Auth;
+use App\Models\Cart;
+use App\Models\Wishlist;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -32,23 +34,41 @@ class AppServiceProvider extends ServiceProvider
                     ->where('status', true)
                     ->orderBy('name', 'asc')
                     ->get();
-    
+
                 $categories = $allCategories->whereNull('parent_id')->values();
                 $subcategories = $allCategories->whereNotNull('parent_id');
-    
+
                 // Attach subcategories
                 foreach ($categories as $category) {
                     $category->subcategories = $subcategories
                         ->where('parent_id', $category->id)
                         ->values();
                 }
-    
+
                 return $categories;
             });
-            $cart = session()->get('cart', []);
+
+            // Get cart count based on authentication
+            if (Auth::check()) {
+                $userCart = Cart::where('user_id', Auth::id())->first();
+                $cartCount = $userCart ? $userCart->items->sum('quantity') : 0;
+            } else {
+                $cart = session()->get('cart', []);
+                $cartCount = collect($cart)->sum('quantity');
+            }
+
+            // Get wishlist count based on authentication
+            if (Auth::check()) {
+                $userWishlist = Wishlist::where('user_id', Auth::id())->first();
+                $wishlistCount = $userWishlist ? $userWishlist->items->count() : 0;
+            } else {
+                $wishlistCount = count(session('wishlist', []));
+            }
+
             $view->with('categories', $categories);
-            $view->with('cart', $cart );
+            $view->with('cartCount', $cartCount);
+            $view->with('wishlistCount', $wishlistCount);
         });
-  
+
     }
 }

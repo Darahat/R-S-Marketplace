@@ -2,8 +2,25 @@
 
 @section('content')
 <div class="container mx-auto px-4 py-8">
-    <h1 class="text-3xl font-bold mb-6">Checkout</h1>
-    
+    <!-- Breadcrumb -->
+    <nav class="flex mb-6" aria-label="Breadcrumb">
+        <ol class="inline-flex items-center space-x-1 md:space-x-3">
+            <li class="inline-flex items-center">
+                <a href="{{ route('home') }}" class="text-gray-700 hover:text-primary">
+                    <i class="fas fa-home mr-2"></i>Home
+                </a>
+            </li>
+            <li>
+                <div class="flex items-center">
+                    <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
+                    <span class="text-gray-500">Checkout - Step 1: Shipping</span>
+                </div>
+            </li>
+        </ol>
+    </nav>
+
+    <h1 class="text-3xl font-bold mb-6">Checkout - Step 1: Shipping Details</h1>
+
     @if ($errors->any())
         <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
             <ul>
@@ -13,216 +30,139 @@
             </ul>
         </div>
     @endif
-    
-    <div class="flex flex-col md:flex-row gap-8">
-    <!-- Shipping Information -->
-    <div class="md:w-2/3">
-        @auth
-        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-            <h2 class="text-xl font-semibold mb-4">Shipping Information</h2>
-            
-            
-                <!-- Show address form for logged-in users -->
-                <form id="checkout-form" action="{{ route('checkout.process') }}" method="POST">
-                    @csrf
-                    
-                    <!-- Load saved address if available -->
-                    @php
-                        $user = Auth::user();
-                       
-                        $address = DB::table('addresses')
-                            ->leftJoin('districts', 'addresses.district_id', '=', 'districts.id')
-                            ->leftJoin('upazilas', 'addresses.upazila_id', '=', 'upazilas.id')
-                            ->leftJoin('unions', 'addresses.union_id', '=', 'unions.id')
-                            ->where('addresses.address_type', 'shipping')
-                            ->where('addresses.user_id', $user->id)
-                            ->where('is_default', true)
-                            ->orderBy('addresses.is_default', 'desc')
-                            ->select(
-                                'addresses.*',
-                                'districts.name as district_name',
-                                'upazilas.name as upazila_name',
-                                'unions.name as union_name'
-                            )
-                            ->first();
-                    @endphp
-                     <h3 class="font-medium text-gray-900">{{ $address->full_name }}</h3>
-                    <p class="text-sm text-gray-600">{{ $address->street_address }}</p>
-                    <p class="text-sm text-gray-600">{{ $address->union_name }}, {{ $address->upazila_name }}, {{ $address->district_name }}-{{ $address->postal_code }}</p>
-                    <p class="text-sm text-gray-600">{{ $address->country }}</p>
-                    <p class="text-sm text-gray-600 mt-2"><i class="fas fa-phone mr-1"></i> {{ $address->phone }}</p>
 
-                    <div class="mb-6 mt-4">
-                        <label for="notes" class="block text-sm font-medium text-gray-700">Order Notes (Optional)</label>
-                        <textarea id="notes" name="notes" rows="3" 
-                                  class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary focus:border-primary">{{ old('notes') }}</textarea>
+    <form action="{{ route('checkout.review') }}" method="POST" id="checkout-form">
+        @csrf
+        <input type="hidden" name="is_buy_now" value="{{ $isBuyNow ?? false }}">
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Left Section: Shipping & Notes -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- Shipping Address -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-xl font-semibold">Shipping Address</h2>
+                        <a href="{{ route('customer.address') }}" class="text-primary hover:text-secondary text-sm font-medium">
+                            <i class="fas fa-plus mr-1"></i>Add New Address
+                        </a>
                     </div>
-                    
-                    <h2 class="text-xl font-semibold mb-4">Payment Method *</h2>
-                    <div class="space-y-2 mb-6">
-                        <div class="flex items-center">
-                            <input id="cash" name="payment_method" type="radio" value="cash" 
-                                   class="h-4 w-4 text-primary focus:ring-primary border-gray-300" 
-                                   {{ old('payment_method', 'cash') === 'cash' ? 'checked' : '' }}>
-                            <label for="cash" class="ml-3 block text-sm font-medium text-gray-700">
-                                Cash on Delivery
+
+                    @if($addresses->count() > 0)
+                        <div class="space-y-3">
+                            @foreach($addresses as $address)
+                            <label class="flex items-start p-4 border-2 rounded-lg cursor-pointer hover:border-primary transition {{ $address->is_default ? 'border-primary bg-primary/5' : 'border-gray-200' }}">
+                                <input type="radio" name="address_id" value="{{ $address->id }}"
+                                       class="mt-1 h-4 w-4 text-primary focus:ring-primary"
+                                       {{ $address->is_default ? 'checked' : '' }} required>
+                                <div class="ml-3 flex-1">
+                                    <div class="flex items-center justify-between">
+                                        <h3 class="font-medium text-gray-900">{{ $address->full_name }}</h3>
+                                        @if($address->is_default)
+                                        <span class="text-xs bg-primary text-white px-2 py-1 rounded">Default</span>
+                                        @endif
+                                    </div>
+                                    <p class="text-sm text-gray-600 mt-1">{{ $address->phone }}</p>
+                                    <p class="text-sm text-gray-600">{{ $address->street_address }}</p>
+                                    <p class="text-sm text-gray-600">
+                                        {{ $address->union_name }}, {{ $address->upazila_name }},
+                                        {{ $address->district_name }} - {{ $address->postal_code }}
+                                    </p>
+                                    <p class="text-sm text-gray-600">{{ $address->country }}</p>
+                                </div>
                             </label>
+                            @endforeach
                         </div>
-                        <div class="flex items-center">
-                            <input id="credit_card" name="payment_method" type="radio" value="credit_card" 
-                                   class="h-4 w-4 text-primary focus:ring-primary border-gray-300" 
-                                   {{ old('payment_method', 'credit_card') === 'credit_card' ? 'checked' : '' }}>
-                            <label for="credit_card" class="ml-3 block text-sm font-medium text-gray-700">
-                                Credit Card
-                            </label>
+                    @else
+                        <div class="text-center py-8 border-2 border-dashed rounded-lg">
+                            <i class="fas fa-map-marker-alt text-4xl text-gray-300 mb-3"></i>
+                            <p class="text-gray-500 mb-3">No shipping address found</p>
+                            <a href="{{ route('customer.address') }}" class="inline-flex items-center px-4 py-2 bg-primary hover:bg-secondary text-white font-medium rounded-lg transition">
+                                <i class="fas fa-plus mr-2"></i>Add Shipping Address
+                            </a>
                         </div>
-                        
-                    </div>
-                    
-                    <!-- Stripe Elements Container -->
-                    <div id="card-element" class="mb-4 {{ old('payment_method', 'credit_card') !== 'credit_card' ? 'hidden' : '' }}">
-                        <!-- Stripe card element will be inserted here -->
-                    </div>
-                    
-                    <!-- Used to display form errors -->
-                    <div id="card-errors" role="alert" class="text-red-500 text-sm mb-4"></div>
-                    
-                    <input type="hidden" name="stripeToken" id="stripeToken">
-                    
-                   
-                    
-                   
-                    
-                   
-                    
-                    
-                    
-                    <!-- Rest of your form... -->
-                    
-                </form>
-            @else
-                <!-- Show login prompt for guests -->
-                <div class="text-center py-8">
-                    <h3 class="text-lg font-medium mb-4">Please login to continue checkout</h3>
-                    <button  data-modal="login" 
-                            class="bg-primary hover:bg-secondary text-white py-2 px-6 rounded-md font-medium transition duration-200">
-                        Login / Register
-                    </button>
-                     
+                    @endif
                 </div>
-            @endauth
-        </div>
-    </div>
-    
-    <!-- Order Summary -->
-      <div class="md:w-1/3">
-            <div class="bg-white rounded-lg shadow-md p-6 sticky top-4">
-                <h2 class="text-xl font-semibold mb-4">Order Summary</h2>
-                
-                <div class="divide-y divide-gray-200">
-                    @foreach($cartItems as $item)
-                    <div class="py-4 flex justify-between">
-                        <div class="flex items-center">
-                            <img src="{{ asset($item['image']) }}" alt="{{ $item['name'] }}" class="w-16 h-16 object-cover rounded">
-                            <div class="ml-3">
-                                <h3 class="text-sm font-medium">{{ $item['name'] }}</h3>
-                                <p class="text-xs text-gray-500">Qty: {{ $item['quantity'] }}</p>
-                            </div>
-                        </div>
-                        <div class="text-sm font-medium">
-                            ${{ number_format($item['price'] * $item['quantity'], 2) }}
-                        </div>
-                    </div>
-                    @endforeach
+
+                <!-- Order Notes -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-semibold mb-4">Order Notes (Optional)</h2>
+                    <textarea name="notes" rows="4"
+                              class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                              placeholder="Special instructions for your order...">{{ old('notes') }}</textarea>
                 </div>
-                
-                <div class="border-t border-gray-200 mt-4 pt-4">
-                    <div class="flex justify-between mb-2">
-                        <span class="text-sm text-gray-600">Subtotal</span>
-                        <span class="text-sm font-medium">${{ number_format($total, 2) }}</span>
-                    </div>
-                    <div class="flex justify-between mb-2">
-                        <span class="text-sm text-gray-600">Shipping</span>
-                        <span class="text-sm font-medium">$0.00</span>
-                    </div>
-                    <div class="flex justify-between text-lg font-bold mt-4">
-                        <span>Total</span>
-                        <span>${{ number_format($total, 2) }}</span>
-                    </div>
-                </div>
-                
-                <button type="submit" form="checkout-form" id="submit-button"
-                        class="w-full mt-6 bg-primary hover:bg-secondary text-white py-2 px-4 rounded-md font-medium transition duration-200">
-                    Place Order
+
+                <!-- Continue Button -->
+                <button type="submit"
+                        class="w-full bg-primary hover:bg-secondary text-white font-bold py-3 px-4 rounded-lg transition transform hover:scale-[1.02] flex items-center justify-center"
+                        {{ $addresses->count() == 0 ? 'disabled' : '' }}>
+                    <i class="fas fa-arrow-right mr-2"></i>
+                    Continue to Payment
                 </button>
             </div>
-</div>
 
+            <!-- Right Section: Order Summary -->
+            <div class="lg:col-span-1">
+                <div class="bg-white rounded-lg shadow-md p-6 sticky top-4">
+                    <h2 class="text-xl font-semibold mb-4">Order Summary</h2>
 
+                    <!-- Product List -->
+                    <div class="space-y-4 mb-4 max-h-96 overflow-y-auto">
+                        @foreach($cartItems as $item)
+                        <div class="flex items-center space-x-3 pb-3 border-b">
+                            <img src="{{ asset($item['image']) }}" alt="{{ $item['name'] }}"
+                                 class="w-16 h-16 object-cover rounded">
+                            <div class="flex-1 min-w-0">
+                                <h3 class="text-sm font-medium text-gray-900 truncate">{{ $item['name'] }}</h3>
+                                <p class="text-sm text-gray-500">Qty: {{ $item['quantity'] }}</p>
+                            </div>
+                            <p class="text-sm font-semibold text-gray-900">
+                                ৳{{ number_format($item['price'] * $item['quantity'], 2) }}
+                            </p>
+                        </div>
+                        @endforeach
+                    </div>
+
+                    <!-- Price Summary -->
+                    <div class="space-y-3 pt-4 border-t">
+                        <div class="flex justify-between text-gray-600">
+                            <span>Subtotal</span>
+                            <span>৳{{ number_format($subtotal, 2) }}</span>
+                        </div>
+                        <div class="flex justify-between text-gray-600">
+                            <span>Shipping</span>
+                            <span>{{ $shipping > 0 ? '৳' . number_format($shipping, 2) : 'Free' }}</span>
+                        </div>
+                        <div class="flex justify-between text-lg font-bold text-gray-900 pt-3 border-t">
+                            <span>Total</span>
+                            <span class="text-primary">৳{{ number_format($total + $shipping, 2) }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Info -->
+                    <div class="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                        <p class="text-xs text-blue-800">
+                            <i class="fas fa-info-circle mr-2"></i>
+                            You will select your payment method on the next step
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
 </div>
-@endsection
 
 @push('scripts')
-<script src="https://js.stripe.com/v3/"></script>
 <script>
-    // Stripe elements initialization
-    const stripe = Stripe('{{ config('services.stripe.key') }}');
-    const elements = stripe.elements();
-    const cardElement = elements.create('card');
-    
-    // Only mount card element if credit card is selected
-    @if(old('payment_method', 'credit_card') === 'credit_card')
-        cardElement.mount('#card-element');
-    @endif
-    
-    // Handle payment method change
-    document.querySelectorAll('input[name="payment_method"]').forEach(radio => {
-        radio.addEventListener('change', function() {
-            if (this.value === 'credit_card') {
-                document.getElementById('card-element').classList.remove('hidden');
-                cardElement.mount('#card-element');
-            } else {
-                document.getElementById('card-element').classList.add('hidden');
-                cardElement.unmount();
-            }
-        });
-    });
-    
-    // Handle form submission
-    const form = document.getElementById('checkout-form');
-    const submitButton = document.getElementById('submit-button');
-    
-    form.addEventListener('submit', async (event) => {
-        event.preventDefault();
-        
-        const paymentMethod = document.querySelector('input[name="payment_method"]:checked').value;
-        
-        if (paymentMethod === 'credit_card') {
-            submitButton.disabled = true;
-            
-            const {token, error} = await stripe.createToken(cardElement);
-            
-            if (error) {
-                const errorElement = document.getElementById('card-errors');
-                errorElement.textContent = error.message;
-                submitButton.disabled = false;
-            } else {
-                document.getElementById('stripeToken').value = token.id;
-                form.submit();
-            }
-        } else {
-            form.submit();
+$(document).ready(function() {
+    $('#checkout-form').on('submit', function(e) {
+        const addressSelected = $('input[name="address_id"]:checked').length > 0;
+        if (!addressSelected) {
+            e.preventDefault();
+            alert('Please select a shipping address');
+            return false;
         }
     });
-    
-    // Display card errors
-    cardElement.on('change', function(event) {
-        const displayError = document.getElementById('card-errors');
-        if (event.error) {
-            displayError.textContent = event.error.message;
-        } else {
-            displayError.textContent = '';
-        }
-    });
+});
 </script>
 @endpush
+@endsection

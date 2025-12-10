@@ -31,6 +31,11 @@ class DatabaseSeeder extends Seeder
             'user_type' => 'CUSTOMER',
         ]);
 
+        // Seed location data
+        $this->call(DistrictSeeder::class);
+        $this->call(UpazilaSeeder::class);
+        $this->call(UnionSeeder::class);
+
         // Seed categories
         $this->call(CategorySeeder::class);
 

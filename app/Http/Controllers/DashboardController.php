@@ -10,6 +10,9 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 
 use App\Models\User;
+use App\Models\Cart;
+use App\Models\Wishlist;
+use App\Models\Order;
 use Hash;
 use Session;
 use Carbon\Carbon;
@@ -28,25 +31,25 @@ class DashboardController extends Controller
         $this->user_page_title = "Customer Panel";
 
     }
- 
+
     public function dashboard()
     {
         //   enableuser=1 and expiration>'$date'" radacct where acctstoptime is null
         $currentMonthStart = Carbon::now()->startOfMonth();
         $currentMonthEnd = Carbon::now()->endOfMonth();
-        
-       
-        
+
+
+
         // print_r($nas_status);
         // exit();
 
         return view('backend_panel_view.pages.dashboard', [
             'page_title' =>  $this->page_title,
-            'page_header' => 'Dashboard',                
-           
+            'page_header' => 'Dashboard',
+
         ]);
 
-    }     
+    }
     public function customer_dashboard()
     {
         $user = Auth::user();
@@ -70,6 +73,32 @@ class DashboardController extends Controller
             ->where('user_id', $user->id)
             ->where('created_at', '>=', now()->subDays(1))
             ->get();
+
+        // Get wishlist items
+        $wishlist = Wishlist::where('user_id', $user->id)->with('items.product')->first();
+        $dashboardData['wishlist_items'] = $wishlist ? $wishlist->items->take(5)->map(function($item) {
+            return [
+                'id' => $item->product_id,
+                'name' => $item->product->name,
+                'price' => $item->product->price,
+                'image' => $item->product->image,
+                'slug' => $item->product->slug ?? '',
+            ];
+        }) : collect([]);
+
+        // Get cart items
+        $cart = Cart::where('user_id', $user->id)->with('items.product')->first();
+        $dashboardData['cart_items'] = $cart ? $cart->items->take(5)->map(function($item) {
+            return [
+                'id' => $item->product_id,
+                'name' => $item->product->name,
+                'price' => $item->price,
+                'quantity' => $item->quantity,
+                'image' => $item->product->image,
+                'slug' => $item->product->slug ?? '',
+            ];
+        }) : collect([]);
+
         return view('backend_panel_view_customer.pages.dashboard', [
             'page_title' => $this->page_title,
             'page_header' => 'Dashboard',
@@ -79,7 +108,7 @@ class DashboardController extends Controller
 
 
 public function customer_order_details($id){
-    $order = DB::table('orders')->where('order_id', $id)->first();
+    $order = DB::table('orders')->where('id', $id)->first();
 
     // Define status path
     $statusPath = [
@@ -87,10 +116,10 @@ public function customer_order_details($id){
         'shipped',
         'delivered',
     ];
-    
+
     // Mark which steps are completed
     $currentStatusIndex = array_search($order->order_status, $statusPath);
-    
+
     // Prepare path with status flags
     $progressSteps = [];
     foreach ($statusPath as $index => $status) {
@@ -100,7 +129,7 @@ public function customer_order_details($id){
             'is_current' => $index === $currentStatusIndex,
         ];
     }
-    
+
       return view('backend_panel_view_customer.pages.order_details', [
         'page_title' => $this->page_title,
         'page_header' => 'Dashboard',
@@ -112,13 +141,12 @@ public function customer_order_details($id){
 public function customer_order_history()
 {
     $user = Auth::user();
-    $orders = DB::table('orders')
-        ->where('user_id', $user->id)
+    $orders = Order::where('user_id', $user->id)
         ->orderBy('created_at', 'desc')
         ->paginate(10);
     $orders->setPath('customer-order-history');
     $orders->appends(request()->query());
-    $orders->links();                
+    $orders->links();
     return view('backend_panel_view_customer.pages.order_list', [
         'page_title' => $this->page_title,
         'page_header' => 'Dashboard',
@@ -127,7 +155,7 @@ public function customer_order_history()
 }
     public function customer_profile_setting()
     {
- 
+
        $user = Auth::user();
 
         $profile = [
@@ -138,12 +166,12 @@ public function customer_order_history()
 
         return view('backend_panel_view_customer.pages.profile_setting', [
             'page_title' =>  $this->page_title,
-            'page_header' => 'Settings',                
+            'page_header' => 'Settings',
             'profile' => $profile,
-           
+
         ]);
 
-    } 
+    }
 
-    
+
 }

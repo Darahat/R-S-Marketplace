@@ -1,12 +1,30 @@
 @php
-    $cart = session('cart', []);
+    use Illuminate\Support\Facades\Auth;
+    use App\Models\Cart;
+
+    // Get cart items based on authentication
+    if (Auth::check()) {
+        $userCart = Cart::where('user_id', Auth::id())->with('items.product')->first();
+        $cart = $userCart ? $userCart->items->map(function($item) {
+            return [
+                'id' => $item->product_id,
+                'name' => $item->product->name,
+                'price' => $item->price,
+                'quantity' => $item->quantity,
+                'image' => $item->product->image
+            ];
+        })->toArray() : [];
+    } else {
+        $cart = session('cart', []);
+    }
+
     $totalPriceAmount = 0;
     $totalItemCount = 0;
-@endphp                                
+@endphp
 
 <ul class="max-h-64 overflow-y-auto divide-y">
     @foreach($cart as $item)
-        @php 
+        @php
             $itemTotal = $item['price'] * $item['quantity'];
             $totalPriceAmount += $itemTotal;
             $totalItemCount += $item['quantity'];
@@ -29,7 +47,7 @@
         <span>Total</span>
         <span class="font-semibold">৳{{ number_format($totalPriceAmount, 2) }}</span>
     </div>
-    <a href="{{ route('cart.view') }}" 
+    <a href="{{ route('cart.view') }}"
         class="block w-full text-center bg-primary hover:bg-secondary text-white font-medium py-2 px-4 rounded-md transition-all duration-300 transform hover:scale-[1.02] shadow-md hover:shadow-lg">
         <div class="flex items-center justify-center space-x-2">
             <i class="fas fa-shopping-cart"></i>

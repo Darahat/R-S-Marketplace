@@ -2,13 +2,14 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\CartController;
+use App\Http\Controllers\WishlistController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProductSettingController;
 use Illuminate\Support\Facades\Artisan;
- use App\Http\Controllers\AddressController;
- use App\Http\Controllers\CheckoutController;
+use App\Http\Controllers\AddressController;
+use App\Http\Controllers\CheckoutController;
 
 // Route::get('/', function () {
 //     return view('welcome');
@@ -20,23 +21,38 @@ Route::get('/product/{slug}', [HomeController::class, 'product'])->name('product
 
 
 
-// routes/web.php
+// Cart routes
 Route::prefix('cart')->group(function () {
     Route::get('/', [CartController::class, 'view'])->name('cart.view');
     Route::get('/refresh/view', [CartController::class, 'refreshView'])->name('cart.view.refresh');
     Route::post('/add', [CartController::class, 'addToCart'])->name('cart.add');
     Route::post('/update', [CartController::class, 'update'])->name('cart.update');
     Route::post('/remove', [CartController::class, 'remove'])->name('cart.remove');
-    Route::post('/wishlist', [CartController::class, 'wishlist'])->name('cart.wishlist');
 
     Route::get('/refresh', function () {
         return view('frontend_view.components.cards.cartDropdown');
     })->name('cart.refresh');
+});
 
-    // Checkout routes
+// Checkout routes
+Route::middleware(['auth'])->group(function () {
     Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout');
+    Route::post('/buy-now', [CheckoutController::class, 'buyNow'])->name('buy.now');
+    Route::post('/checkout/review', [CheckoutController::class, 'review'])->name('checkout.review');
+    Route::get('/checkout/payment', [CheckoutController::class, 'payment'])->name('checkout.payment');
     Route::post('/checkout/process', [CheckoutController::class, 'process'])->name('checkout.process');
+    Route::get('/checkout/success', [CheckoutController::class, 'success'])->name('checkout.success');
+    Route::get('/checkout/to-pay', [CheckoutController::class, 'toPayOrders'])->name('checkout.to_pay');
+    Route::post('/checkout/{orderNumber}/complete-payment', [CheckoutController::class, 'completePayment'])->name('checkout.complete_payment');
+});
 
+// Wishlist routes
+Route::prefix('wishlist')->group(function () {
+    Route::get('/', [WishlistController::class, 'view'])->name('wishlist.view');
+    Route::post('/toggle', [WishlistController::class, 'toggle'])->name('wishlist.toggle');
+    Route::post('/remove', [WishlistController::class, 'remove'])->name('wishlist.remove');
+    Route::post('/move-to-cart', [WishlistController::class, 'moveToCart'])->name('wishlist.moveToCart');
+    Route::get('/count', [WishlistController::class, 'getCount'])->name('wishlist.count');
 });
 
 // Guest/Customer Login
@@ -71,15 +87,20 @@ Route::group(['prefix' => 'admin', 'middleware' => 'auth:web'], function () {
 Route::group(['prefix' => 'customer', 'middleware' => 'auth:web'], function () {
     Route::get('/dashboard', [DashboardController::class, 'customer_dashboard'])->name('customer.dashboard');
     Route::get('/profile-setting', [DashboardController::class, 'customer_profile_setting'])->name('customer.profile_setting');
+    Route::post('/profile/update', [\App\Http\Controllers\Api\CustomerProfileApiController::class, 'update'])->name('customer.profile.update');
+    Route::get('/profile/photo', [\App\Http\Controllers\Api\CustomerProfileApiController::class, 'instant_photo_view'])->name('customer.profile.photo');
     Route::get('/order-details/{id}', [DashboardController::class, 'customer_order_details'])->name('customer.order_details');
-     Route::get('/order-history', [DashboardController::class, 'customer_order_history'])->name('customer.orders');
-     Route::get('/addresses', [AddressController::class, 'index'])->name('customer.addresses.index');
-     Route::get('/addresses/create', [AddressController::class, 'create'])->name('customer.addresses.create');
-     Route::post('/addresses/store', [AddressController::class, 'store'])->name('customer.addresses.store');
-     Route::get('/addresses/{address_id}/edit/{user_id}', [AddressController::class, 'edit'])->name('customer.addresses.edit');
-     Route::put('/addresses/{address_id}/update/{user_id}', [AddressController::class, 'update'])->name('customer.addresses.update');
-     Route::delete('/addresses/destory/{address_id}', [AddressController::class, 'destroy'])->name('customer.addresses.destroy');
-     Route::post('/addresses/{address_id}/set-default/{user_id}', [AddressController::class, 'setDefault'])->name('customer.addresses.set-default');
+    Route::get('/order-history', [DashboardController::class, 'customer_order_history'])->name('customer.orders');
+
+    // Address routes
+    Route::get('/addresses', [AddressController::class, 'index'])->name('customer.address');
+    Route::get('/addresses/list', [AddressController::class, 'index'])->name('customer.addresses.index');
+    Route::get('/addresses/create', [AddressController::class, 'create'])->name('customer.addresses.create');
+    Route::post('/addresses/store', [AddressController::class, 'store'])->name('customer.addresses.store');
+    Route::get('/addresses/{address_id}/edit/{user_id}', [AddressController::class, 'edit'])->name('customer.addresses.edit');
+    Route::put('/addresses/{address_id}/update/{user_id}', [AddressController::class, 'update'])->name('customer.addresses.update');
+    Route::delete('/addresses/destory/{address_id}', [AddressController::class, 'destroy'])->name('customer.addresses.destroy');
+    Route::post('/addresses/{address_id}/set-default/{user_id}', [AddressController::class, 'setDefault'])->name('customer.addresses.set-default');
 });
 
 

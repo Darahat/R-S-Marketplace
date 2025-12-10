@@ -104,13 +104,18 @@
                     <span class="hidden sm:inline">Add</span>
                 </button>
             </form>
-            <a
-                href="{{ route('product',['slug'=> $product->slug ]) }}"
-                class="bg-gray-900 hover:bg-gray-800 text-white text-xs sm:text-sm font-semibold py-2.5 px-3 rounded-lg flex items-center justify-center transition-all hover:shadow-lg transform hover:-translate-y-0.5"
-            >
-                <i class="fas fa-shopping-bag mr-1.5"></i>
-                <span class="hidden sm:inline">Buy</span>
-            </a>
+            <form action="{{ route('buy.now') }}" method="POST" class="buy-now-form">
+                @csrf
+                <input type="hidden" name="product_id" value="{{ $product->id }}">
+                <input type="hidden" name="quantity" value="1">
+                <button
+                    type="submit"
+                    class="bg-gray-900 hover:bg-gray-800 text-white text-xs sm:text-sm font-semibold py-2.5 px-3 rounded-lg flex items-center justify-center w-full transition-all hover:shadow-lg transform hover:-translate-y-0.5"
+                >
+                    <i class="fas fa-shopping-bag mr-1.5"></i>
+                    <span class="hidden sm:inline">Buy</span>
+                </button>
+            </form>
         </div>
     </div>
 </div>
