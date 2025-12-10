@@ -48,4 +48,36 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    /**
+     * Get the user's cart.
+     */
+    public function cart()
+    {
+        return $this->hasOne(Cart::class);
+    }
+
+    /**
+     * Get the user's wishlist.
+     */
+    public function wishlist()
+    {
+        return $this->hasOne(Wishlist::class);
+    }
+
+    /**
+     * Get the user's addresses.
+     */
+    public function addresses()
+    {
+        return $this->hasMany(Address::class);
+    }
+
+    /**
+     * Get the user's orders.
+     */
+    public function orders()
+    {
+        return $this->hasMany(Order::class);
+    }
 }

@@ -1,4 +1,4 @@
-<section class="py-12 md:py-16 lg:py-20 bg-gray-50">
+<section id="todays-deals" class="py-12 md:py-16 lg:py-20 bg-gray-50">
     <div class="container mx-auto px-4">
         <div class="text-center mb-8 md:mb-12">
             <h2 class="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-3">

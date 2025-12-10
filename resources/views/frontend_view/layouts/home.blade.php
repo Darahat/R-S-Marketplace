@@ -226,7 +226,7 @@
         const button = $(this);
 
         $.ajax({
-            url: '{{ route("cart.wishlist") }}',
+            url: '{{ route("wishlist.toggle") }}',
             method: 'POST',
             data: {
                 _token: token,
@@ -236,16 +236,24 @@
                 // Toggle the heart icon color
                 const svg = button.find('svg');
                 if (response.isWishlisted) {
-                    svg.addClass('text-red-500 fill-red-500').removeClass('text-gray-400');
+                    svg.addClass('text-danger fill-danger').removeClass('text-gray-400');
+                    svg.attr('fill', 'currentColor');
+                    svg.find('path').attr('stroke-width', '0');
                 } else {
-                    svg.removeClass('text-red-500 fill-red-500').addClass('text-gray-400');
+                    svg.removeClass('text-danger fill-danger').addClass('text-gray-400');
+                    svg.attr('fill', 'none');
+                    svg.find('path').attr('stroke-width', '1.5');
                 }
 
                 // Update the wishlist count
                 $('#wishlist-count').text(response.count);
             },
             error: function () {
-                toastr.error('Something went wrong while updating wishlist.');
+                if (typeof toastr !== 'undefined') {
+                    toastr.error('Something went wrong while updating wishlist.');
+                } else {
+                    alert('Something went wrong while updating wishlist.');
+                }
             }
         });
     });

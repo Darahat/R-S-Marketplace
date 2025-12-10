@@ -70,12 +70,19 @@
                 <button type="submit" class="bg-primary hover:bg-primary-dark text-white py-2 px-6 rounded-lg font-medium transition">Add to Cart</button>
             </form>
 
-            <button onclick="location.href=''" class="bg-gray-900 hover:bg-gray-800 text-white py-2 px-6 rounded-lg font-medium transition">Buy Now</button>
+            <form action="{{ route('buy.now') }}" method="POST" class="inline-block">
+                @csrf
+                <input type="hidden" name="product_id" value="{{ $product->id }}">
+                <input type="hidden" name="quantity" id="buy-now-quantity" value="1">
+                <button type="submit" class="bg-gray-900 hover:bg-gray-800 text-white py-2 px-6 rounded-lg font-medium transition">
+                    <i class="fas fa-bolt mr-1"></i>Buy Now
+                </button>
+            </form>
 
             <!-- Stock & Sold Info -->
             <div class="mt-6 text-sm text-gray-500">
                 @php
-                    $stockQty = $product->stock_quantity ?? $product->stock ?? 0;
+                    $stockQty = $product->stock ?? $product->stock ?? 0;
                 @endphp
                 @if($stockQty > 0)
                     In Stock: {{ $stockQty }} units
@@ -150,4 +157,15 @@
         </div>
     </div>
 </div>
+
+@push('scripts')
+<script>
+    // Sync quantity between add to cart and buy now forms
+    $(document).ready(function() {
+        $('#quantity').on('input change', function() {
+            $('#buy-now-quantity').val($(this).val());
+        });
+    });
+</script>
+@endpush
 @endsection

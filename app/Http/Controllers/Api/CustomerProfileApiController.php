@@ -16,7 +16,7 @@ class CustomerProfileApiController extends Controller
     public function update(Request $request)
     {
         $user = Auth::user();
-        
+
         $field = $request->input('field');
 
         if (!in_array($field, ['name', 'email', 'mobile', 'profile_photo'])) {
@@ -47,14 +47,14 @@ class CustomerProfileApiController extends Controller
     public function instant_photo_view() {
         $user = Auth::user();
         return response()->json([
-            'photo_url' => $user->profile_photo 
-                ? asset('storage/' . $user->profile_photo) 
+            'photo_url' => $user->profile_photo
+                ? asset($user->profile_photo)
                 : asset('images/default-avatar.png'),
         ]);
     }
-    
-   
-    
-     
- 
+
+
+
+
+
 }

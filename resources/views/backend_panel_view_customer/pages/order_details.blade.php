@@ -20,7 +20,7 @@
             <li aria-current="page">
                 <div class="flex items-center">
                     <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
-                    <span class="ml-1 text-sm font-medium text-gray-500 md:ml-2">Order #{{ $orderData->order_id }}</span>
+                    <span class="ml-1 text-sm font-medium text-gray-500 md:ml-2">Order #{{ $orderData->order_number }}</span>
                 </div>
             </li>
         </ol>
@@ -31,11 +31,11 @@
 <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
     <div class="flex flex-col md:flex-row md:justify-between md:items-center mb-6">
         <div>
-            <h1 class="text-2xl font-bold text-gray-800">Order #{{ $orderData->order_id }}</h1>
+            <h1 class="text-2xl font-bold text-gray-800">Order #{{ $orderData->order_number }}</h1>
             <p class="text-gray-600">Placed on {{ \Carbon\Carbon::parse($orderData->created_at)->format('F j, Y') }}</p>
         </div>
         <div class="mt-4 md:mt-0">
-            <span class="px-3 py-1 rounded-full text-sm font-medium 
+            <span class="px-3 py-1 rounded-full text-sm font-medium
                 @if($orderData->order_status === 'shipped') bg-blue-100 text-blue-800
                 @elseif($orderData->order_status === 'delivered') bg-green-100 text-green-800
                 @else bg-yellow-100 text-yellow-800 @endif">
@@ -71,7 +71,7 @@
                 @endforeach
             </div>
             <div class="absolute top-6 left-0 right-0 h-1 bg-gray-200 z-0">
-                <div class="h-full bg-green-500" style="width: 
+                <div class="h-full bg-green-500" style="width:
                     @if($orderData->order_status === 'packaged') 33%
                     @elseif($orderData->order_status === 'shipped') 66%
                     @elseif($orderData->order_status === 'delivered') 100%
@@ -91,7 +91,7 @@
             <p class="text-gray-600">United States</p>
             <p class="text-gray-600">Phone: (123) 456-7890</p>
         </div>
-        
+
         <div class="bg-gray-50 p-4 rounded-lg">
             <h3 class="font-medium text-gray-800 mb-2">Billing Address</h3>
             <p class="text-gray-600">John Doe</p>
@@ -99,12 +99,12 @@
             <p class="text-gray-600">New York, NY 10001</p>
             <p class="text-gray-600">United States</p>
         </div>
-        
+
         <div class="bg-gray-50 p-4 rounded-lg">
             <h3 class="font-medium text-gray-800 mb-2">Payment Summary</h3>
             <div class="flex justify-between py-2 border-b border-gray-200">
                 <span class="text-gray-600">Subtotal:</span>
-                <span class="text-gray-800">${{ number_format($orderData->sub_total, 2) }}</span>
+                <span class="text-gray-800">${{ number_format($orderData->subtotal, 2) }}</span>
             </div>
             <div class="flex justify-between py-2 border-b border-gray-200">
                 <span class="text-gray-600">Discount:</span>
@@ -200,7 +200,7 @@
         if(trackPackageBtn) {
             trackPackageBtn.addEventListener('click', function() {
                 // Implement package tracking functionality
-                console.log('Tracking package for order #{{ $orderData->order_id }}');
+                console.log('Tracking package for order #{{ $orderData->order_number }}');
             });
         }
     });

@@ -58,8 +58,8 @@
                                     @endif
                                 </td>
                                 <td>
-                                    @if($product->stock_quantity > 0)
-                                        <span class="badge bg-success">{{ $product->stock_quantity }}</span>
+                                    @if($product->stock > 0)
+                                        <span class="badge bg-success">{{ $product->stock }}</span>
                                     @else
                                         <span class="badge bg-danger">Out</span>
                                     @endif
@@ -116,14 +116,14 @@
 
                                         <div class="row mb-2">
                                             <div class="col-md-4 mb-2">
-                                                <strong>Stock Quantity:</strong><br>{{ $product->stock_quantity }}
+                                                <strong>Stock Quantity:</strong><br>{{ $product->stock }}
                                             </div>
                                             <div class="col-md-4 mb-2">
                                                 <strong>Sold Count:</strong><br>{{ $product->sold_count }}
                                             </div>
                                             <div class="col-md-4 mb-2">
                                                 <strong>Status:</strong><br>
-                                                @if($product->stock_quantity > 0)
+                                                @if($product->stock > 0)
                                                     <span class="badge bg-success">In Stock</span>
                                                 @else
                                                     <span class="badge bg-danger">Out of Stock</span>
@@ -141,11 +141,11 @@
                                         <div class="row">
                                             <div class="col-md-6 mb-2">
                                                 <strong>Created At:</strong><br>
-                                                {{ $product->created_at ? $product->created_at->format('d M, Y h:i A') : 'N/A' }}
+                                                {{ $product->created_at ? $product->created_at->format('d-m-Y') : 'N/A' }}
                                             </div>
                                             <div class="col-md-6 mb-2">
                                                 <strong>Updated At:</strong><br>
-                                                {{ $product->updated_at ? $product->updated_at->format('d M, Y h:i A') : 'N/A' }}
+                                                {{ $product->updated_at ? $product->updated_at->format('d-m-Y') : 'N/A' }}
                                             </div>
 
                                         </div>

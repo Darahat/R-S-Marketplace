@@ -30,7 +30,7 @@
         <div class="bg-gradient-to-r from-primary to-secondary p-6 text-white">
             <div class="flex flex-col md:flex-row items-center">
                 <div class="relative mb-4 md:mb-0 md:mr-6">
-                    <img src="{{ Auth::user()->profile_photo ? asset(Auth::user()->profile_photo) : asset('images/default-avatar.png') }}" 
+                    <img src="{{ Auth::user()->profile_photo ? asset(Auth::user()->profile_photo) : asset('images/default-avatar.png') }}"
      class="w-24 h-24 rounded-full border-4 border-white border-opacity-50 shadow-md profile-photo-preview">
 
                     <label for="profile_photo" class="absolute bottom-0 right-0 bg-white rounded-full p-2 shadow-md cursor-pointer hover:bg-gray-100 transition">
@@ -59,7 +59,7 @@
                 <div class="flex">
                     <input type="text" id="name" name="name" value="{{ Auth::user()->name }}"
                         class="flex-1 border border-gray-300 rounded-l-md p-2 focus:ring-primary focus:border-primary">
-                    <button class="btn-update bg-primary hover:bg-secondary text-white px-4 rounded-r-md transition-colors duration-200 flex items-center justify-center" 
+                    <button class="btn-update bg-primary hover:bg-secondary text-white px-4 rounded-r-md transition-colors duration-200 flex items-center justify-center"
                             data-field="name"
                             data-confirm="Are you sure you want to update your name?">
                         <i class="fas fa-check"></i>
@@ -79,7 +79,7 @@
                  <div class="flex">
                     <input type="email" id="email" name="email" value="{{ Auth::user()->email }}"
                         class="flex-1 border border-gray-300 rounded-l-md p-2 focus:ring-primary focus:border-primary">
-                    <button class="btn-update bg-primary hover:bg-secondary text-white px-4 rounded-r-md transition-colors duration-200" 
+                    <button class="btn-update bg-primary hover:bg-secondary text-white px-4 rounded-r-md transition-colors duration-200"
                             data-field="email">
                         <i class="fas fa-check"></i>
                     </button>
@@ -92,11 +92,11 @@
                     <label for="mobile" class="block text-sm font-medium text-gray-700">Mobile Number <span class="tooltip ml-2" data-tip="Your registered mobile number">
                         <i class="fas fa-info-circle text-primary cursor-pointer"></i>
                     </span></label>
-                    
+
                  <div class="flex">
                     <input type="text" id="mobile" name="mobile" value="{{ Auth::user()->mobile }}"
                         class="flex-1 border border-gray-300 rounded-l-md p-2 focus:ring-primary focus:border-primary">
-                    <button class="btn-update bg-primary hover:bg-secondary text-white px-4 rounded-r-md transition-colors duration-200" 
+                    <button class="btn-update bg-primary hover:bg-secondary text-white px-4 rounded-r-md transition-colors duration-200"
                             data-field="mobile">
                         <i class="fas fa-check"></i>
                     </button>
@@ -109,7 +109,7 @@
                     <label for="last_login" class="block text-sm font-medium text-gray-700">Last Login  <span class="tooltip ml-2" data-tip="Your last login time">
                         <i class="fas fa-info-circle text-primary cursor-pointer"></i>
                     </span></label>
-                   
+
                  <div class="bg-gray-50 p-3 rounded-md">
                     <p class="text-sm text-gray-600">
                         <i class="fas fa-clock mr-2 text-primary"></i>
@@ -141,13 +141,13 @@
 <script>
     $(document).ready(function () {
         // Initialize tooltips
- 
+
         // Update fields
         $('.btn-update').on('click', function () {
             const field = $(this).data('field');
             const value = $(`#${field}`).val();
             const button = $(this);
-            
+
             button.html('<i class="fas fa-spinner fa-spin"></i>');
             button.prop('disabled', true);
 
@@ -162,7 +162,7 @@
                 success: function (response) {
                     // Show success notification
                     showToast('success', response.message);
-                    
+
                     // Update previews
                     if (field === 'name') {
                         $('.profile-name-preview').text(value);
@@ -205,8 +205,9 @@
                         showToast('success', response.message);
                         // Refresh photo with cache busting
                         $.get('{{ route('customer.profile.photo') }}', function (data) {
-                        $('.profile-photo-preview').attr('src', data.photo_url + '?t=' + new Date().getTime());
-                    });                    },
+                            $('.profile-photo-preview').attr('src', data.photo_url + '?t=' + new Date().getTime());
+                        });
+                    },
                     error: function (xhr) {
                         const errors = xhr.responseJSON.errors;
                         showToast('error', errors[Object.keys(errors)[0]][0]);
@@ -220,7 +221,19 @@
         });
 
         // Toast notification function
-     
+        function showToast(type, message) {
+            const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
+            const toast = `<div class="alert alert-${type} ${bgColor} text-white px-4 py-3 rounded-lg shadow-lg animate-fade-in">
+                <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'} mr-2"></i>
+                ${message}
+            </div>`;
+
+            $('#ajax-alert').html(toast).removeClass('hidden');
+
+            setTimeout(() => {
+                $('#ajax-alert').addClass('hidden');
+            }, 3000);
+        }
     });
 </script>
 <style>

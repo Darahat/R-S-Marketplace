@@ -1,6 +1,7 @@
 <?php
 
 namespace Database\Seeders;
+use Illuminate\Support\Facades\DB;
 
 use Illuminate\Database\Seeder;
 use App\Models\Product;
@@ -38,6 +39,6 @@ class ReviewSeeder extends Seeder
             ];
         }
 
-        \DB::table('reviews')->insert($data);
+        DB::table('reviews')->insert($data);
     }
 }

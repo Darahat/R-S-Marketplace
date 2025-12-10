@@ -61,8 +61,8 @@
                                     @endif
                                 </td>
                                 <td>
-                                    @if($product->stock_quantity > 0)
-                                        <span class="badge bg-success">{{ $product->stock_quantity }}</span>
+                                    @if($product->stock > 0)
+                                        <span class="badge bg-success">{{ $product->stock }}</span>
                                     @else
                                         <span class="badge bg-danger">Out</span>
                                     @endif
@@ -96,8 +96,8 @@
                                         <div class="row mb-4 align-items-start">
                                             <div class="col-md-3 text-center mb-3">
                                                 <div class="border rounded p-2 bg-light">
-                                                    @if($product->image_url)
-                                                        <img src="{{ $product->image_url}}" alt="Product Image" class="img-fluid rounded shadow-sm" style="max-height: 120px; max-width: 100px; object-fit: cover;">
+                                                    @if($product->image)
+                                                        <img src="{{ $product->image}}" alt="Product Image" class="img-fluid rounded shadow-sm" style="max-height: 120px; max-width: 100px; object-fit: cover;">
                                                     @else
                                                         <img src="{{ asset('images/default-product.jpeg') }}" alt="No Image" class="img-fluid rounded shadow-sm" style="max-height: 120px; max-width: 100px; object-fit: cover;">
                                                         <div class="text-muted small mt-2">No image available</div>
@@ -136,14 +136,14 @@
 
                                                 <div class="row mb-2">
                                                     <div class="col-md-4 mb-2">
-                                                        <strong>Stock Quantity:</strong><br>{{ $product->stock_quantity }}
+                                                        <strong>Stock Quantity:</strong><br>{{ $product->stock }}
                                                     </div>
                                                     <div class="col-md-4 mb-2">
                                                         <strong>Sold Count:</strong><br>{{ $product->sold_count }}
                                                     </div>
                                                     <div class="col-md-4 mb-2">
                                                         <strong>Status:</strong><br>
-                                                        @if($product->stock_quantity > 0)
+                                                        @if($product->stock > 0)
                                                             <span class="badge bg-success">In Stock</span>
                                                         @else
                                                             <span class="badge bg-danger">Out of Stock</span>
@@ -165,11 +165,23 @@
                                         <div class="row">
                                             <div class="col-md-6 mb-2">
                                                 <strong>Created At:</strong><br>
-                                                {{ $product->created_at ? $product->created_at->format('d M, Y h:i A') : 'N/A' }}
+                                                @if($product->created_at && is_object($product->created_at))
+                                                    {{ $product->created_at->format('d-m-Y H:i') }}
+                                                @elseif($product->created_at)
+                                                    {{ date('d-m-Y H:i', strtotime($product->created_at)) }}
+                                                @else
+                                                    N/A
+                                                @endif
                                             </div>
                                             <div class="col-md-6 mb-2">
                                                 <strong>Updated At:</strong><br>
-                                                {{ $product->updated_at ? $product->updated_at->format('d M, Y h:i A') : 'N/A' }}
+                                                @if($product->updated_at && is_object($product->updated_at))
+                                                    {{ $product->updated_at->format('d-m-Y H:i') }}
+                                                @elseif($product->updated_at)
+                                                    {{ date('d-m-Y H:i', strtotime($product->updated_at)) }}
+                                                @else
+                                                    N/A
+                                                @endif
                                             </div>
                                         </div>
                                     </div>
@@ -216,7 +228,7 @@
                                         <div class="row">
                                             <div class="col-md-4 mb-2">
                                                 <label><strong>Stock Quantity</strong></label>
-                                                <input type="number" name="stock_quantity" value="{{ $product->stock_quantity }}" class="form-control">
+                                                <input type="number" name="stock" value="{{ $product->stock }}" class="form-control">
                                             </div>
                                             <div class="col-md-4 mb-2">
                                                 <label><strong>Sold Count</strong></label>
@@ -225,8 +237,8 @@
                                             <div class="col-md-4 mb-2">
                                                 <label><strong>Status</strong></label>
                                                 <select name="status" class="form-control">
-                                                    <option value="1" {{ $product->stock_quantity > 0 ? 'selected' : '' }}>In Stock</option>
-                                                    <option value="0" {{ $product->stock_quantity <= 0 ? 'selected' : '' }}>Out of Stock</option>
+                                                    <option value="1" {{ $product->stock > 0 ? 'selected' : '' }}>In Stock</option>
+                                                    <option value="0" {{ $product->stock <= 0 ? 'selected' : '' }}>Out of Stock</option>
                                                 </select>
                                             </div>
                                         </div>
@@ -351,10 +363,10 @@
       $('#deleteProductSlug').text(product.slug);
       $('#deleteProductPrice').text(parseFloat(product.price).toFixed(2));
       $('#deleteProductDiscount').text(product.discount_price ? parseFloat(product.discount_price).toFixed(2) : '0.00');
-      $('#deleteProductStock').text(product.stock_quantity);
+      $('#deleteProductStock').text(product.stock);
       $('#deleteProductDescription').text(product.description ? product.description.substring(0, 100) + '...' : 'No description');
 
-      const imagePath = product.image_url ? `${product.image_url}` : '/images/default-product.jpeg';
+      const imagePath = product.image ? `${product.image}` : '/images/default-product.jpeg';
       $('#deleteProductImage').attr('src', imagePath);
 
       $('#deleteForm').attr('action', url);
