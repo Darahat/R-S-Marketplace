@@ -89,12 +89,34 @@ class AuthController extends Controller
                 $this->syncGuestWishlist();
             }
 
+            // Return JSON for AJAX requests
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Login successful!',
+                    'redirect' => Auth::user()->user_type == 'ADMIN'
+                        ? route('admin.dashboard')
+                        : route('home')
+                ]);
+            }
+
             if(Auth::user()->user_type == 'ADMIN'){
                 return redirect()->intended(route('admin.dashboard'));
             } else {
                 return redirect()->intended(route('home'));
             }
 
+        }
+
+        // Return JSON error for AJAX requests
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'The provided credentials do not match our records.',
+                'errors' => [
+                    'email' => ['The provided credentials do not match our records.']
+                ]
+            ], 422);
         }
 
         return back()->withErrors([
@@ -119,6 +141,15 @@ class AuthController extends Controller
         ]);
 
         if ($validator->fails()) {
+            // Return JSON error for AJAX requests
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
             return redirect()->back()
                 ->withErrors($validator)
                 ->withInput();
@@ -137,6 +168,15 @@ class AuthController extends Controller
         // Sync guest cart and wishlist after registration
         $this->syncGuestCart();
         $this->syncGuestWishlist();
+
+        // Return JSON for AJAX requests
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Registration successful!',
+                'redirect' => route('home')
+            ]);
+        }
 
         return redirect()->route('home')->with('success', 'Registration successful!');
     }

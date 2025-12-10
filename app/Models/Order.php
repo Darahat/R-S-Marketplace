@@ -56,6 +56,14 @@ class Order extends Model
     }
 
     /**
+     * Get payments associated with this order
+     */
+    public function payments()
+    {
+        return $this->hasMany(Payment::class);
+    }
+
+    /**
      * Generate unique order number.
      */
     public static function generateOrderNumber()

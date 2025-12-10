@@ -115,11 +115,22 @@
         }
     });
 
+    // Handle Enter key press on login form
+    $('#login_email, #login_password').on('keypress', function (e) {
+        if (e.which === 13) { // Enter key
+            e.preventDefault();
+            $('#loginBtn').click();
+        }
+    });
+
     // On login button click
     $('#loginBtn').on('click', function () {
         const email = $('#login_email').val();
         const password = $('#login_password').val();
         const remember = $('#remember_me').is(':checked') ? 'on' : '';
+
+        // Disable button to prevent double submission
+        $('#loginBtn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-2"></i>Signing in...');
 
         $.ajax({
             url: "{{ route('checklogin') }}",
@@ -130,21 +141,31 @@
                 remember: remember
             },
             success: function (response) {
-                // Handle successful login
-                console.log('Login success:', response);
-                window.location.href = "{{ route('home') }}"; // Redirect after login
+                // Show success message
+                toastr.success('Login successful! Redirecting...');
+
+                // Close the modal if it exists
+                $('#loginModal').addClass('hidden').removeClass('flex');
+
+                // Redirect after a short delay to show the message
+                setTimeout(function() {
+                    window.location.href = "{{ route('home') }}";
+                }, 1000);
             },
             error: function (xhr) {
+                // Re-enable button
+                $('#loginBtn').prop('disabled', false).html('Sign in');
+
                 // Handle error (e.g., validation)
                 if (xhr.status === 422) {
                     let errors = xhr.responseJSON.errors;
                     let msg = '';
                     for (let key in errors) {
-                        msg += errors[key][0] + '\n';
+                        msg += errors[key][0] + '<br>';
                     }
-                    alert(msg);
+                    toastr.error(msg);
                 } else {
-                    alert('Login failed. Please try again.');
+                    toastr.error('Login failed. Please check your credentials.');
                 }
             }
         });

@@ -47,9 +47,9 @@ class CheckoutController extends Controller
         $total = $this->calculateTotal($cartItems);
         $data['title'] = $this->siteTitle . 'Checkout';
 
-        if (count($cartItems) === 0) {
-            return redirect()->route('cart.view')->with('error', 'Your cart is empty');
-        }
+        // if (count($cartItems) === 0) {
+        //     return redirect()->route('cart.view')->with('error', 'Your cart is empty');
+        // }
 
         // Get user addresses
         $addresses = DB::table('addresses')
@@ -97,6 +97,9 @@ class CheckoutController extends Controller
             'quantity' => $quantity,
             'image' => $product->image
         ]];
+
+        // Store buy now items in session for later use
+        session(['buy_now_items' => $cartItems]);
 
         $total = $product->price * $quantity;
         $data['title'] = $this->siteTitle . 'Buy Now - Checkout';
@@ -157,6 +160,7 @@ class CheckoutController extends Controller
         session([
             'checkout_address_id' => $request->address_id,
             'checkout_notes' => $request->notes ?? '',
+            'is_buy_now' => $request->input('is_buy_now', false),
         ]);
 
         // Redirect to payment page
@@ -173,25 +177,33 @@ class CheckoutController extends Controller
             return redirect()->route('checkout')->with('error', 'Please select a shipping address first');
         }
 
-        // Get cart items from database or session
-        if (Auth::check()) {
-            $userCart = Cart::where('user_id', Auth::id())->with('items.product')->first();
-            $cartItems = $userCart ? $userCart->items->map(function($item) {
-                return [
-                    'id' => $item->product_id,
-                    'name' => $item->product->name,
-                    'price' => $item->price,
-                    'quantity' => $item->quantity,
-                    'image' => $item->product->image
-                ];
-            })->toArray() : [];
+        // Check if this is a Buy Now checkout
+        $isBuyNow = session('is_buy_now', false);
+
+        if ($isBuyNow) {
+            // Get items from buy now session
+            $cartItems = session('buy_now_items', []);
         } else {
-            $cartItems = session('cart', []);
+            // Get cart items from database or session
+            if (Auth::check()) {
+                $userCart = Cart::where('user_id', Auth::id())->with('items.product')->first();
+                $cartItems = $userCart ? $userCart->items->map(function($item) {
+                    return [
+                        'id' => $item->product_id,
+                        'name' => $item->product->name,
+                        'price' => $item->price,
+                        'quantity' => $item->quantity,
+                        'image' => $item->product->image
+                    ];
+                })->toArray() : [];
+            } else {
+                $cartItems = session('cart', []);
+            }
         }
 
-        if (count($cartItems) === 0) {
-            return redirect()->route('cart.view')->with('error', 'Your cart is empty');
-        }
+        // if (count($cartItems) === 0) {
+        //     return redirect()->route('cart.view')->with('error', 'Your cart is empty');
+        // }
 
         $total = $this->calculateTotal($cartItems);
         $data['title'] = $this->siteTitle . 'Payment';
@@ -220,6 +232,7 @@ class CheckoutController extends Controller
             'subtotal' => $total,
             'shipping' => 0,
             'address' => $address,
+            'cartItems' => $cartItems,
             'data' => $data,
         ]);
     }
@@ -245,25 +258,33 @@ class CheckoutController extends Controller
                 ->withInput();
         }
 
-        // Get cart items
-        if (Auth::check()) {
-            $userCart = Cart::where('user_id', Auth::id())->with('items.product')->first();
-            $cartItems = $userCart ? $userCart->items->map(function($item) {
-                return [
-                    'id' => $item->product_id,
-                    'name' => $item->product->name,
-                    'price' => $item->price,
-                    'quantity' => $item->quantity,
-                    'image' => $item->product->image
-                ];
-            })->toArray() : [];
+        // Check if this is a Buy Now checkout
+        $isBuyNow = session('is_buy_now', false);
+
+        if ($isBuyNow) {
+            // Get items from buy now session
+            $cartItems = session('buy_now_items', []);
         } else {
-            $cartItems = session('cart', []);
+            // Get cart items from database or session
+            if (Auth::check()) {
+                $userCart = Cart::where('user_id', Auth::id())->with('items.product')->first();
+                $cartItems = $userCart ? $userCart->items->map(function($item) {
+                    return [
+                        'id' => $item->product_id,
+                        'name' => $item->product->name,
+                        'price' => $item->price,
+                        'quantity' => $item->quantity,
+                        'image' => $item->product->image
+                    ];
+                })->toArray() : [];
+            } else {
+                $cartItems = session('cart', []);
+            }
         }
 
-        if (count($cartItems) === 0) {
-            return redirect()->route('cart.view')->with('error', 'Your cart is empty');
-        }
+        // if (count($cartItems) === 0) {
+        //     return redirect()->route('cart.view')->with('error', 'Your cart is empty');
+        // }
 
         // Verify product availability
         foreach ($cartItems as $item) {
@@ -293,16 +314,21 @@ class CheckoutController extends Controller
             // Update product stock
             $this->updateProductStock($cartItems);
 
-            // Clear the cart from database
-            if (Auth::check()) {
-                $userCart = Cart::where('user_id', Auth::id())->first();
-                if ($userCart) {
-                    CartItem::where('cart_id', $userCart->id)->delete();
+            // Only clear the cart if this is NOT a Buy Now checkout
+            if (!$isBuyNow) {
+                // Clear the cart from database
+                if (Auth::check()) {
+                    $userCart = Cart::where('user_id', Auth::id())->first();
+                    if ($userCart) {
+                        CartItem::where('cart_id', $userCart->id)->delete();
+                    }
                 }
+                // Clear cart session data
+                session()->forget('cart');
             }
 
-            // Clear session data
-            session()->forget(['cart', 'checkout_address_id', 'checkout_notes']);
+            // Clear checkout session data
+            session()->forget(['checkout_address_id', 'checkout_notes', 'is_buy_now', 'buy_now_items']);
 
             // Send order confirmation email
             // $this->sendOrderConfirmation($order);
@@ -352,7 +378,7 @@ class CheckoutController extends Controller
         $order->user_id = Auth::id();
         $order->order_number = 'ORD-' . strtoupper(uniqid());
         $order->address_id = $address->id;
-        $order->order_status = 'to_pay';
+        $order->order_status = 'Processing';
         $order->total_amount = $total;
         $order->payment_method = $paymentMethod;
         $order->payment_status = 'pending';

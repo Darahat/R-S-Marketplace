@@ -25,7 +25,7 @@
     <!-- Main content -->
     <section class="content">
         <div class="container-fluid">
-            
+
             <!-- Overview Cards -->
             <div class="row">
                 <!-- Total Revenue -->
@@ -205,7 +205,7 @@
                                     <tr>
                                         <td>
                                             <div class="d-flex align-items-center">
-                                                <img src="{{ asset($product->image) }}" alt="{{ $product->name }}" 
+                                                <img src="{{ asset($product->image) }}" alt="{{ $product->name }}"
                                                      class="img-thumbnail mr-2" style="width: 40px; height: 40px; object-fit: cover;">
                                                 <span>{{ Str::limit($product->name, 30) }}</span>
                                             </div>
@@ -252,9 +252,9 @@
                                         <td><small>{{ $order->user->name }}</small></td>
                                         <td><small>৳{{ number_format($order->total_amount, 2) }}</small></td>
                                         <td>
-                                            <span class="badge badge-{{ 
-                                                $order->order_status == 'delivered' ? 'success' : 
-                                                ($order->order_status == 'cancelled' ? 'danger' : 'warning') 
+                                            <span class="badge badge-{{
+                                                $order->order_status == 'delivered' ? 'success' :
+                                                ($order->order_status == 'cancelled' ? 'danger' : 'warning')
                                             }}">
                                                 {{ ucfirst($order->order_status) }}
                                             </span>

@@ -172,8 +172,14 @@
         });
 
         $('#submit-button').on('click', function () {
+            // Validate terms checkbox
+            if (!$('#terms').prop('checked')) {
+                toastr.error('Please accept the terms and privacy policy.');
+                return;
+            }
+
             var formData = {
-                _token: $('input[name="_token"]').val(),
+                _token: $('meta[name="csrf-token"]').attr('content'),
                 name: $('#name').val(),
                 email: $('#email').val(),
                 mobile: $('#mobile').val(),
@@ -182,15 +188,40 @@
                 terms: $('#terms').prop('checked') ? 1 : 0,
             };
 
+            // Disable button to prevent double submission
+            $('#submit-button').prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-2"></i>Registering...');
+
             $.ajax({
                 url: '{{ route("register") }}',
                 type: 'POST',
                 data: formData,
                 success: function (response) {
-                    // Handle success (e.g., redirect to a different page or show a success message)
+                    // Show success message
+                    toastr.success('Registration successful! Redirecting...');
+
+                    // Close the modal if it exists
+                    $('#registerModal').addClass('hidden').removeClass('flex');
+
+                    // Redirect after a short delay to show the message
+                    setTimeout(function() {
+                        window.location.href = "{{ route('home') }}";
+                    }, 1000);
                 },
-                error: function (error) {
+                error: function (xhr) {
+                    // Re-enable button
+                    $('#submit-button').prop('disabled', false).html('Register');
+
                     // Handle errors (e.g., show validation errors)
+                    if (xhr.status === 422 && xhr.responseJSON.errors) {
+                        let errors = xhr.responseJSON.errors;
+                        let msg = '';
+                        for (let key in errors) {
+                            msg += errors[key][0] + '<br>';
+                        }
+                        toastr.error(msg);
+                    } else {
+                        toastr.error('Registration failed. Please try again.');
+                    }
                 }
             });
         });

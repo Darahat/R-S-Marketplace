@@ -82,7 +82,7 @@
             <!-- Stock & Sold Info -->
             <div class="mt-6 text-sm text-gray-500">
                 @php
-                    $stockQty = $product->stock_quantity ?? $product->stock ?? 0;
+                    $stockQty = $product->stock ?? $product->stock ?? 0;
                 @endphp
                 @if($stockQty > 0)
                     In Stock: {{ $stockQty }} units

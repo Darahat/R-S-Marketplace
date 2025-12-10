@@ -29,7 +29,7 @@
 <div class="container mx-auto px-4 py-8">
     <div class="mb-6">
         <h1 class="text-3xl font-bold text-gray-900">My Wishlist</h1>
-        <p class="text-gray-600 mt-2">{{ count($wishlistItems) }} item(s) in your wishlist</p>
+        <p class="text-gray-600 mt-2"><span id="wishlist-items-count">{{ count($wishlistItems) }}</span> item(s) in your wishlist</p>
     </div>
 
     @if(count($wishlistItems) > 0)
@@ -128,8 +128,9 @@ function removeFromWishlist(productId) {
             $(`[data-product-id="${productId}"]`).fadeOut(300, function() {
                 $(this).remove();
 
-                // Update wishlist count
+                // Update wishlist count badge and page count
                 $('#wishlist-count').text(response.count);
+                $('#wishlist-items-count').text(response.count);
 
                 // Check if wishlist is now empty
                 if (response.count === 0) {
@@ -159,11 +160,20 @@ function moveToCart(productId) {
             // Remove from wishlist display
             $(`[data-product-id="${productId}"]`).fadeOut(300, function() {
                 $(this).remove();
+
+                // Update wishlist count badge and page count
+                const wishlistCount = response.wishlistCount || 0;
+                $('#wishlist-count').text(wishlistCount);
+                $('#wishlist-items-count').text(wishlistCount);
+
+                // Check if wishlist is empty
+                if (wishlistCount === 0) {
+                    location.reload(); // Reload to show empty state
+                }
             });
 
-            // Update counts
-            $('#wishlist-count').text(response.count || 0);
-            $('#cart-count').text(response.cartQuantity || 0);
+            // Update cart count
+            $('#cart-count').text(response.quantity || response.cartQuantity || 0);
 
             showToast('success', 'Item moved to cart successfully');
         },

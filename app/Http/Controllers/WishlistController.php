@@ -199,10 +199,32 @@ class WishlistController extends Controller
         $productId = $request->input('product_id');
 
         // Remove from wishlist
-        $this->remove($request);
+        if (Auth::check()) {
+            $wishlist = Wishlist::where('user_id', Auth::id())->first();
+            if ($wishlist) {
+                WishlistItem::where('wishlist_id', $wishlist->id)
+                    ->where('product_id', $productId)
+                    ->delete();
+                $wishlist->refresh(); // Refresh to get updated count
+                $wishlistCount = $wishlist->items->count();
+            } else {
+                $wishlistCount = 0;
+            }
+        } else {
+            $wishlistSession = session()->get('wishlist', []);
+            $wishlistSession = array_diff($wishlistSession, [$productId]);
+            session()->put('wishlist', $wishlistSession);
+            $wishlistCount = count($wishlistSession);
+        }
 
         // Add to cart
         $cartController = new \App\Http\Controllers\CartController();
-        return $cartController->addToCart($request);
+        $cartResponse = $cartController->addToCart($request);
+
+        // Get the cart response data and add wishlist count
+        $cartData = $cartResponse->getData(true);
+        $cartData['wishlistCount'] = $wishlistCount;
+
+        return response()->json($cartData);
     }
 }

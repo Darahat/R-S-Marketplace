@@ -14,11 +14,13 @@ class Product extends Model
         'slug',
         'description',
         'price',
+        'purchase_price',
         'discount_price',
         'sold_count',
         'featured',
         'image',
         'category_id',
+        'brand_id',
         'stock',
         'is_best_selling',
         'is_latest',
@@ -29,6 +31,7 @@ class Product extends Model
 
     protected $casts = [
         'price' => 'decimal:2',
+        'purchase_price' => 'decimal:2',
         'discount_price' => 'decimal:2',
         'featured' => 'boolean',
         'is_best_selling' => 'boolean',
@@ -36,11 +39,18 @@ class Product extends Model
         'is_flash_sale' => 'boolean',
         'is_todays_deal' => 'boolean',
         'rating' => 'decimal:1',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
 
     public function category()
     {
         return $this->belongsTo(Category::class);
+    }
+
+    public function brand()
+    {
+        return $this->belongsTo(Brand::class);
     }
 
     public function getDiscountPercentageAttribute()

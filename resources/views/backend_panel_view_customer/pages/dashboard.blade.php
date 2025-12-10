@@ -135,7 +135,7 @@
                                     <i class="fas fa-receipt text-primary"></i>
                                 </div>
                                 <div>
-                                    <div class="text-sm font-medium text-primary">{{ $order->order_id }}</div>
+                                    <div class="text-sm font-medium text-primary">{{ $order->order_number }}</div>
                                  </div>
                             </div>
                         </td>
@@ -157,7 +157,7 @@
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                             <div class="flex space-x-2">
-                                <a href="{{ route('customer.order_details', $order->order_id) }}"
+                                <a href="{{ route('customer.order_details', $order->order_number) }}"
                                    class="text-primary hover:text-secondary transition-colors"
                                    data-tooltip="View Details">
                                    <i class="fas fa-eye"></i>
