@@ -10,6 +10,7 @@ use App\Models\Brand;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 
 class ProductController extends Controller
 {
@@ -111,45 +112,80 @@ class ProductController extends Controller
             'stock' => 'required|integer|min:0',
             'category_id' => 'required|exists:categories,id',
             'brand_id' => 'nullable|exists:brands,id',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
             'rating' => 'nullable|numeric|min:0|max:5',
+        ], [
+            'name.required' => 'Product name is required',
+            'name.unique' => 'A product with this name already exists',
+            'price.required' => 'Price is required',
+            'price.numeric' => 'Price must be a valid number',
+            'price.min' => 'Price cannot be negative',
+            'stock.required' => 'Stock quantity is required',
+            'stock.integer' => 'Stock must be a whole number',
+            'category_id.required' => 'Please select a category',
+            'category_id.exists' => 'Selected category does not exist',
+            'image.image' => 'File must be an image',
+            'image.mimes' => 'Image must be jpeg, png, jpg, gif, or webp',
+            'image.max' => 'Image size must not exceed 2MB',
         ]);
 
         if ($validator->fails()) {
             return redirect()->back()
                 ->withErrors($validator)
-                ->withInput();
+                ->withInput()
+                ->with('error', 'Please fix the errors below and try again.');
         }
 
-        $product = new Product();
-        $product->name = $request->name;
-        $product->slug = Str::slug($request->name);
-        $product->description = $request->description;
-        $product->price = $request->price;
-        $product->purchase_price = $request->purchase_price ?? 0;
-        $product->discount_price = $request->discount_price ?? 0;
-        $product->stock = $request->stock;
-        $product->category_id = $request->category_id;
-        $product->brand_id = $request->brand_id;
-        $product->featured = $request->has('featured');
-        $product->is_best_selling = $request->has('is_best_selling');
-        $product->is_latest = $request->has('is_latest');
-        $product->is_flash_sale = $request->has('is_flash_sale');
-        $product->is_todays_deal = $request->has('is_todays_deal');
-        $product->rating = $request->rating ?? 4.5;
+        try {
+            $product = new Product();
+            $product->name = $request->name;
+            $product->slug = Str::slug($request->name);
+            $product->description = $request->description;
+            $product->price = $request->price;
+            $product->purchase_price = $request->purchase_price ?? 0;
+            $product->discount_price = $request->discount_price ?? 0;
+            $product->stock = $request->stock;
+            $product->category_id = $request->category_id;
+            $product->brand_id = $request->brand_id;
+            $product->featured = $request->input('featured', 0) == 1;
+            $product->is_best_selling = $request->input('is_best_selling', 0) == 1;
+            $product->is_latest = $request->input('is_latest', 0) == 1;
+            $product->is_flash_sale = $request->input('is_flash_sale', 0) == 1;
+            $product->is_todays_deal = $request->input('is_todays_deal', 0) == 1;
+            $product->rating = $request->rating ?? 4.5;
 
-        // Handle image upload
-        if ($request->hasFile('image')) {
-            $image = $request->file('image');
-            $imageName = time() . '_' . Str::slug($request->name) . '.' . $image->getClientOriginalExtension();
-            $imagePath = $image->storeAs('products', $imageName, 'public');
-            $product->image = $imagePath;
+            // Handle image upload
+            if ($request->hasFile('image') && $request->file('image')->isValid()) {
+                $image = $request->file('image');
+                $imageName = time() . '_' . Str::slug($request->name) . '.' . $image->getClientOriginalExtension();
+                $imagePath = $image->storeAs('products', $imageName, 'public');
+
+                if ($imagePath) {
+                    $product->image = $imagePath;
+                } else {
+                    Log::error('Failed to store image for product: ' . $request->name);
+                }
+            } else {
+                // Log if file was not uploaded or invalid
+                if ($request->hasFile('image')) {
+                    Log::error('Invalid image file uploaded for product: ' . $request->name);
+                }
+            }
+
+            $product->save();
+
+            $message = 'Product created successfully!';
+            if ($request->hasFile('image') && !$product->image) {
+                $message .= ' However, the image upload failed.';
+            }
+
+            return redirect()->route('admin.products.index')
+                ->with('success', $message);
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Failed to create product: ' . $e->getMessage());
         }
-
-        $product->save();
-
-        return redirect()->route('admin.products.index')
-            ->with('success', 'Product created successfully!');
     }
 
     /**
@@ -200,49 +236,71 @@ class ProductController extends Controller
             'stock' => 'required|integer|min:0',
             'category_id' => 'required|exists:categories,id',
             'brand_id' => 'nullable|exists:brands,id',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
             'rating' => 'nullable|numeric|min:0|max:5',
+        ], [
+            'name.required' => 'Product name is required',
+            'name.unique' => 'A product with this name already exists',
+            'price.required' => 'Price is required',
+            'price.numeric' => 'Price must be a valid number',
+            'price.min' => 'Price cannot be negative',
+            'stock.required' => 'Stock quantity is required',
+            'stock.integer' => 'Stock must be a whole number',
+            'category_id.required' => 'Please select a category',
+            'category_id.exists' => 'Selected category does not exist',
+            'image.image' => 'File must be an image',
+            'image.mimes' => 'Image must be jpeg, png, jpg, gif, or webp',
+            'image.max' => 'Image size must not exceed 2MB',
         ]);
 
         if ($validator->fails()) {
             return redirect()->back()
                 ->withErrors($validator)
-                ->withInput();
+                ->withInput()
+                ->with('error', 'Please fix the errors below and try again.');
         }
 
-        $product->name = $request->name;
-        $product->slug = Str::slug($request->name);
-        $product->description = $request->description;
-        $product->price = $request->price;
-        $product->purchase_price = $request->purchase_price ?? 0;
-        $product->discount_price = $request->discount_price ?? 0;
-        $product->stock = $request->stock;
-        $product->category_id = $request->category_id;
-        $product->brand_id = $request->brand_id;
-        $product->featured = $request->has('featured');
-        $product->is_best_selling = $request->has('is_best_selling');
-        $product->is_latest = $request->has('is_latest');
-        $product->is_flash_sale = $request->has('is_flash_sale');
-        $product->is_todays_deal = $request->has('is_todays_deal');
-        $product->rating = $request->rating ?? $product->rating;
+        try {
+            $product->name = $request->name;
+            $product->slug = Str::slug($request->name);
+            $product->description = $request->description;
+            $product->price = $request->price;
+            $product->purchase_price = $request->purchase_price ?? 0;
+            $product->discount_price = $request->discount_price ?? 0;
+            $product->stock = $request->stock;
+            $product->category_id = $request->category_id;
+            $product->brand_id = $request->brand_id;
+            $product->featured = $request->input('featured', 0) == 1;
+            $product->is_best_selling = $request->input('is_best_selling', 0) == 1;
+            $product->is_latest = $request->input('is_latest', 0) == 1;
+            $product->is_flash_sale = $request->input('is_flash_sale', 0) == 1;
+            $product->is_todays_deal = $request->input('is_todays_deal', 0) == 1;
+            $product->rating = $request->rating ?? $product->rating;
 
-        // Handle image upload
-        if ($request->hasFile('image')) {
-            // Delete old image
-            if ($product->image && Storage::disk('public')->exists($product->image)) {
-                Storage::disk('public')->delete($product->image);
+            // Handle image upload
+            if ($request->hasFile('image')) {
+                // Delete old image if it's a file path (not a URL)
+                if ($product->image && !filter_var($product->image, FILTER_VALIDATE_URL)) {
+                    if (Storage::disk('public')->exists($product->image)) {
+                        Storage::disk('public')->delete($product->image);
+                    }
+                }
+
+                $image = $request->file('image');
+                $imageName = time() . '_' . Str::slug($request->name) . '.' . $image->getClientOriginalExtension();
+                $imagePath = $image->storeAs('products', $imageName, 'public');
+                $product->image = $imagePath;
             }
 
-            $image = $request->file('image');
-            $imageName = time() . '_' . Str::slug($request->name) . '.' . $image->getClientOriginalExtension();
-            $imagePath = $image->storeAs('products', $imageName, 'public');
-            $product->image = $imagePath;
+            $product->save();
+
+            return redirect()->route('admin.products.index')
+                ->with('success', 'Product updated successfully!');
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Failed to update product: ' . $e->getMessage());
         }
-
-        $product->save();
-
-        return redirect()->route('admin.products.index')
-            ->with('success', 'Product updated successfully!');
     }
 
     /**

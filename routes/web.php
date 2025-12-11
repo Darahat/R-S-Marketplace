@@ -18,6 +18,7 @@ use App\Http\Controllers\CheckoutController;
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/category/{slug}', [HomeController::class, 'category'])->name('category');
 Route::get('/product/{slug}', [HomeController::class, 'product'])->name('product');
+Route::get('/search', [HomeController::class, 'search'])->name('search');
 
 
 
@@ -56,7 +57,7 @@ Route::prefix('wishlist')->group(function () {
 });
 
 // Guest/Customer Login
-Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
+// Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])->name('checklogin');
 
 // Admin Login

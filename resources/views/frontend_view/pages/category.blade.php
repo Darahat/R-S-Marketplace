@@ -36,7 +36,7 @@
                 </div>
             </div>
 
-           
+
             <!-- Brands Filter -->
             <div class="mb-6" id="brand-filters">
                 <h4 class="font-medium text-gray-900 mb-3">Brands</h4>
@@ -46,10 +46,10 @@
                     @endphp
                     @foreach($brands as $brand)
                         <div class="flex items-center">
-                        <input 
-                            id="brand-{{ $brand->id }}" 
-                            name="brands" 
-                            value="{{ $brand->id }}" 
+                        <input
+                            id="brand-{{ $brand->id }}"
+                            name="brands"
+                            value="{{ $brand->id }}"
                             type="checkbox"
                             {{ in_array($brand->id, $selectedBrands) ? 'checked' : '' }}
                             class="brand-checkbox h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
@@ -85,7 +85,7 @@
                 </div>
             </div>
 
-           
+
         </div>
     </div>
 
@@ -137,7 +137,7 @@
                 <button id="load-more-btn" class="px-4 py-2 bg-primary text-white rounded">Load More</button>
             @endif
         </div>
-      
+
     </div>
 </div>
 <script>

@@ -17,7 +17,7 @@
         <!-- Gallery -->
         <div>
             <div class="bg-white rounded-xl shadow-sm overflow-hidden mb-4">
-                <img src="{{ $product->featured_image ?? $product->image_url ?? $product->image ?? 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800' }}" alt="{{ $product->name }}" class="w-full h-auto object-cover" loading="lazy">
+                <img src="{{ $product->image ? (filter_var($product->image, FILTER_VALIDATE_URL) ? $product->image : asset('storage/' . $product->image)) : 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800' }}" alt="{{ $product->name }}" class="w-full h-auto object-cover" loading="lazy">
             </div>
             @php
                 $imageUrls = !empty($product->image_url) ? explode(',', $product->image_url) : [];

@@ -25,10 +25,29 @@
     <!-- Main content -->
     <section class="content">
         <div class="container-fluid">
-            <div class="row">
-                <div class="col-lg-8">
-                    <form action="{{ route('admin.products.store') }}" method="POST" enctype="multipart/form-data">
-                        @csrf
+            @if(session('error'))
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="fas fa-exclamation-circle"></i> {{ session('error') }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            @endif
+
+            @if($errors->any())
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <h5><i class="fas fa-exclamation-triangle"></i> Please fix the following errors:</h5>
+                    <ul class="mb-0">
+                        @foreach($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            @endif
+
+            <form action="{{ route('admin.products.store') }}" method="POST" enctype="multipart/form-data">
+                @csrf
+                <div class="row">
+                    <div class="col-lg-8">
 
                         <!-- Basic Information Card -->
                         <div class="card shadow-sm mb-3">
@@ -226,11 +245,10 @@
                                 </div>
                             </div>
                         </div>
-                    </form>
-                </div>
+                    </div>
 
-                <!-- Right Sidebar -->
-                <div class="col-lg-4">
+                    <!-- Right Sidebar -->
+                    <div class="col-lg-4">
                     <!-- Product Image Card -->
                     <div class="card shadow-sm mb-3">
                         <div class="card-header bg-info text-white">
@@ -302,6 +320,7 @@
                     </div>
                 </div>
             </div>
+            </form>
         </div>
     </section>
 </div>

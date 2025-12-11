@@ -1,4 +1,7 @@
-<section class="bg-gradient-to-br from-primary via-secondary to-primary text-white py-12 md:py-20 lg:py-24 relative overflow-hidden">
+<section class="bg-gradient-to-br from-primary via-secondary to-primary text-white py-12 md:py-20 lg:py-24 relative overflow-hidden"
+         @if(!empty($hero['banner_image']))
+         style="background-image: url('{{ filter_var($hero['banner_image'], FILTER_VALIDATE_URL) ? $hero['banner_image'] : asset('storage/' . $hero['banner_image']) }}'); background-size: cover; background-position: center;"
+         @endif>
     <!-- Animated Background Pattern -->
     <div class="absolute inset-0 opacity-10">
         <div class="absolute inset-0" style="background-image: radial-gradient(circle, white 1px, transparent 1px); background-size: 24px 24px;"></div>
