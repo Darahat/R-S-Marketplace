@@ -3,7 +3,7 @@
     <div class="relative aspect-square bg-gray-50 overflow-hidden">
         <a href="{{ route('product',['slug'=> $product->slug ]) }}" class="block h-full">
             <img
-                src="{{ $product->image_url ?? $product->image ?? 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500' }}"
+                src="{{ $product->image ? (filter_var($product->image, FILTER_VALIDATE_URL) ? $product->image : asset('storage/' . $product->image)) : 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500' }}"
                 alt="{{ $product->name }}"
                 class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                 loading="lazy"

@@ -11,6 +11,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 use DateTime;
 use Auth;
+use App\Models\HeroSection;
 class HomeController extends Controller
 {
     protected $siteTitle;
@@ -41,8 +42,8 @@ class HomeController extends Controller
             $category->subcategories = $subcategories->where('parent_id', $category->id)->values();
         }
         // $data['products'] = DB::table('products')->where('status', 1)->orderBy('id', 'desc')->paginate(10);
-        // Hero settings (from storage JSON fallback to defaults)
-        $heroSettings = [
+        // Hero settings from DB (fallback to defaults)
+        $heroDefaults = [
             'headline' => 'Next-Gen Tech for 2025',
             'highlight' => '2025',
             'subheadline' => 'Discover the most innovative gadgets that will redefine your digital experience. Cutting-edge technology at your fingertips.',
@@ -50,15 +51,20 @@ class HomeController extends Controller
             'primary_url' => url('/'),
             'secondary_text' => 'Explore Deals',
             'secondary_url' => url('/'),
+            'banner_image' => null,
         ];
 
-        $heroFile = 'hero_section.json';
-        if (Storage::disk('local')->exists($heroFile)) {
-            $json = json_decode(Storage::disk('local')->get($heroFile), true);
+        $heroModel = \App\Models\HeroSection::first();
+
+        // One-time migration from legacy JSON if table is empty
+        if (!$heroModel && Storage::disk('local')->exists('hero_section.json')) {
+            $json = json_decode(Storage::disk('local')->get('hero_section.json'), true);
             if (is_array($json)) {
-                $heroSettings = array_merge($heroSettings, $json);
+                $heroModel = \App\Models\HeroSection::create(array_merge($heroDefaults, $json));
             }
         }
+
+        $heroSettings = $heroModel ? array_merge($heroDefaults, $heroModel->toArray()) : $heroDefaults;
 
         $productBase = DB::table('products')->where('stock', '>', 0);
 
@@ -204,4 +210,72 @@ class HomeController extends Controller
         ]);
     }
 
+    public function search(Request $request)
+    {
+        $data = array();
+        $data['title'] = $this->siteTitle . 'Search Results';
+        $data['page'] = 'search';
+
+        $query = $request->input('q', '');
+
+        $allCategories = DB::table('categories')
+            ->where('status', true)
+            ->orderBy('name', 'asc')
+            ->get();
+
+        $categories = $allCategories->whereNull('parent_id');
+        $subcategories = $allCategories->whereNotNull('parent_id');
+
+        foreach ($categories as $category) {
+            $category->subcategories = $subcategories->where('parent_id', $category->id)->values();
+        }
+
+        // Search products
+        $products_query = DB::table('products')
+            ->where('stock', '>', 0);
+
+        if (!empty($query)) {
+            $products_query->where(function($q) use ($query) {
+                $q->where('name', 'like', '%' . $query . '%')
+                  ->orWhere('description', 'like', '%' . $query . '%');
+            });
+        }
+
+        // Apply filters if provided
+        if ($request->filled('brands')) {
+            $brandIds = explode(',', $request->input('brands'));
+            $products_query->whereIn('brand_id', $brandIds);
+        }
+
+        if ($request->filled('categories')) {
+            $categoryIds = $request->input('categories');
+            $products_query->whereIn('category_id', $categoryIds);
+        }
+
+        if ($request->filled('min_price')) {
+            $products_query->where('price', '>=', $request->input('min_price'));
+        }
+
+        if ($request->filled('max_price')) {
+            $products_query->where('price', '<=', $request->input('max_price'));
+        }
+
+        $products = $products_query->orderBy('created_at', 'desc')->paginate(12);
+
+        if (request()->ajax()) {
+            return view('frontend_view.components.cards.productGrid', [
+                'products' => $products,
+            ])->render();
+        }
+
+        return view('frontend_view.pages.search', [
+            'data' => $data,
+            'products' => $products,
+            'query' => $query,
+            'categories' => $categories,
+            'allCategories' => $allCategories,
+        ]);
+    }
+
 }
+

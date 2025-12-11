@@ -44,5 +44,8 @@ class DatabaseSeeder extends Seeder
 
         // Seed reviews
         $this->call(ReviewSeeder::class);
+
+        // Seed hero section
+        $this->call(HeroSectionSeeder::class);
     }
 }

@@ -141,11 +141,26 @@
 
   </div>
   <!-- /.content-wrapper -->
-  <footer class="main-footer">
-    <strong>&copy; 2017-{{ date('Y')}}. Developed by- <a href="https://fb.com/sohelcsm">Md. Sohel Rana</a>.</strong>
-    All rights reserved.
-    <div class="float-right d-none d-sm-inline-block">
-      <b>Version</b> 1.0.0
+  <footer class="main-footer bg-gradient-to-r from-purple-600 to-indigo-600 text-white">
+    <div class="container-fluid">
+      <div class="row align-items-center">
+        <div class="col-md-6">
+          <strong class="text-white">
+            <i class="fas fa-copyright mr-1"></i> {{ date('Y') }} R&S Marketplace
+          </strong>
+          <span class="ml-2">- All rights reserved</span>
+        </div>
+        <div class="col-md-6 text-right">
+          <span class="mr-3">
+            <i class="fas fa-code mr-1"></i>
+            Crafted with <i class="fas fa-heart text-danger mx-1"></i> by
+            <a href="#" class="text-warning font-weight-bold hover:text-yellow-300">Development Team</a>
+          </span>
+          <span class="badge badge-light">
+            <i class="fas fa-tag mr-1"></i> v1.0.0
+          </span>
+        </div>
+      </div>
     </div>
   </footer>
 

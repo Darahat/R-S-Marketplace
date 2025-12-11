@@ -25,11 +25,30 @@
     <!-- Main content -->
     <section class="content">
         <div class="container-fluid">
-            <div class="row">
-                <div class="col-lg-8">
-                    <form action="{{ route('admin.products.update', $product->id) }}" method="POST" enctype="multipart/form-data">
-                        @csrf
-                        @method('PUT')
+            @if(session('error'))
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="fas fa-exclamation-circle"></i> {{ session('error') }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            @endif
+
+            @if($errors->any())
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <h5><i class="fas fa-exclamation-triangle"></i> Please fix the following errors:</h5>
+                    <ul class="mb-0">
+                        @foreach($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            @endif
+
+            <form action="{{ route('admin.products.update', $product->id) }}" method="POST" enctype="multipart/form-data">
+                @csrf
+                @method('PUT')
+                <div class="row">
+                    <div class="col-lg-8">
 
                         <!-- Basic Information Card -->
                         <div class="card shadow-sm mb-3">
@@ -238,11 +257,10 @@
                                 </div>
                             </div>
                         </div>
-                    </form>
-                </div>
+                    </div>
 
-                <!-- Right Sidebar -->
-                <div class="col-lg-4">
+                    <!-- Right Sidebar -->
+                    <div class="col-lg-4">
                     <!-- Product Image Card -->
                     <div class="card shadow-sm mb-3">
                         <div class="card-header bg-info text-white">
@@ -252,9 +270,10 @@
                             @if($product->image)
                             <div class="mb-3">
                                 <label class="form-label">Current Image</label><br>
-                                <img src="{{ asset('storage/' . $product->image) }}"
+                                <img src="{{ filter_var($product->image, FILTER_VALIDATE_URL) ? $product->image : asset('storage/' . $product->image) }}"
                                      alt="{{ $product->name }}"
-                                     class="img-fluid rounded">
+                                     class="img-fluid rounded"
+                                     onerror="this.src='https://via.placeholder.com/400x400?text=No+Image'">
                             </div>
                             @endif
 
@@ -327,6 +346,7 @@
                     </div>
                 </div>
             </div>
+            </form>
         </div>
     </section>
 </div>

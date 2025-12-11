@@ -13,15 +13,21 @@
             <a href="{{ route('category', $category->slug) }}" class="group">
                 <div class="relative bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-2 border border-gray-100 hover:border-primary/30">
                     <div class="aspect-square overflow-hidden bg-gray-50">
+                        @php
+                            $fallbackImage = 'https://images.unsplash.com/photo-1555774698-0b77e0d5fac6?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60';
+                            $imageSrc = $fallbackImage;
+
+                            if (!empty($category->image) && \Illuminate\Support\Facades\Storage::disk('public')->exists($category->image)) {
+                                $imageSrc = asset('storage/' . $category->image);
+                            } elseif (!empty($category->image) && filter_var($category->image, FILTER_VALIDATE_URL)) {
+                                $imageSrc = $category->image;
+                            } elseif (!empty($category->image_url) && filter_var($category->image_url, FILTER_VALIDATE_URL)) {
+                                $imageSrc = $category->image_url;
+                            }
+                        @endphp
                         <img
                             class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                            src="{{
-                                !empty($category->image)
-                                    ? asset('storage/' . $category->image)
-                                    : (!empty($category->image_url)
-                                        ? $category->image_url
-                                        : 'https://images.unsplash.com/photo-1555774698-0b77e0d5fac6?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60')
-                            }}"
+                            src="{{ $imageSrc }}"
                             alt="{{ $category->name }}"
                             loading="lazy"
                         >

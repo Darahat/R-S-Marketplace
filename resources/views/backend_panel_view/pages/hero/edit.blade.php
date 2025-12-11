@@ -30,7 +30,7 @@
                 <div class="card-header bg-primary text-white">
                     <h3 class="card-title mb-0"><i class="fas fa-edit"></i> Update Hero Content</h3>
                 </div>
-                <form method="POST" action="{{ route('admin.hero.update') }}">
+                <form method="POST" action="{{ route('admin.hero.update') }}" enctype="multipart/form-data">
                     @csrf
                     <div class="card-body">
                         <div class="mb-3">
@@ -65,6 +65,22 @@
                                 <input type="text" name="secondary_url" class="form-control" value="{{ old('secondary_url', $hero['secondary_url']) }}">
                             </div>
                         </div>
+                            <div class="mb-3">
+                                <label class="form-label">Banner Image</label>
+                                @if(!empty($hero['banner_image']))
+                                    <div class="mb-2">
+                                        <img src="{{ filter_var($hero['banner_image'], FILTER_VALIDATE_URL) ? $hero['banner_image'] : asset('storage/' . $hero['banner_image']) }}"
+                                             alt="Current Banner"
+                                             class="img-fluid rounded"
+                                             style="max-height: 220px; object-fit: cover;">
+                                    </div>
+                                @endif
+                                <input type="file" name="banner_image" class="form-control @error('banner_image') is-invalid @enderror" accept="image/*">
+                                @error('banner_image')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                                <small class="form-text text-muted">JPEG/PNG/WEBP up to 4MB. Recommended: 1600x600.</small>
+                            </div>
                     </div>
                     <div class="card-footer text-end">
                         <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save</button>
