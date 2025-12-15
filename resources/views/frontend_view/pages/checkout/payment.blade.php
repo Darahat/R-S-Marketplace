@@ -70,12 +70,12 @@
 
                         <!-- Credit/Debit Card -->
                         <label class="flex items-center p-6 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-primary transition">
-                            <input type="radio" name="payment_method" value="card"
+                            <input type="radio" name="payment_method" value="stripe"
                                    class="h-4 w-4 text-primary focus:ring-primary">
                             <div class="ml-4 flex items-center flex-1">
                                 <i class="fas fa-credit-card text-blue-600 text-2xl mr-4"></i>
                                 <div>
-                                    <p class="font-semibold text-gray-900">Credit/Debit Card</p>
+                                    <p class="font-semibold text-gray-900">Stripe</p>
                                     <p class="text-sm text-gray-500">Visa, MasterCard, American Express</p>
                                 </div>
                             </div>
