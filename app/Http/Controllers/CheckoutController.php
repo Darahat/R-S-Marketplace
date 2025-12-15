@@ -12,7 +12,8 @@ use App\Models\CartItem;
 use App\Models\Product;
 use App\Models\Order;
 use App\Models\OrderItem;
-
+use Stripe\Stripe;
+use Stripe\Checkout\Session as StripeSession;
 class CheckoutController extends Controller
 {
     protected $siteTitle;
@@ -249,7 +250,7 @@ class CheckoutController extends Controller
 
         // Validate payment method
         $validator = Validator::make($request->all(), [
-            'payment_method' => 'required|string|in:cash,bkash,card',
+            'payment_method' => 'required|string|in:cash,bkash,stripe',
         ]);
 
         if ($validator->fails()) {
@@ -257,13 +258,25 @@ class CheckoutController extends Controller
                 ->withErrors($validator)
                 ->withInput();
         }
+        if($payment_method = 'stripe'){
+
+        }
 
         // Check if this is a Buy Now checkout
-        $isBuyNow = session('is_buy_now', false);
+       $isBuyNow = in_array($payment_method, ['stripe', 'bkash'], true);
+        session(['is_buy_now' => $isBuyNow]);
+          if ($isBuyNow) {
 
-        if ($isBuyNow) {
             // Get items from buy now session
             $cartItems = session('buy_now_items', []);
+             // Verify product availability
+        foreach ($cartItems as $item) {
+            $product = Product::find($item['id']);
+            if (!$product || $product->stock < $item['quantity']) {
+                return redirect()->route('cart.view')->with('error', "{$item['name']} is no longer available in the requested quantity");
+            }
+        }
+
         } else {
             // Get cart items from database or session
             if (Auth::check()) {
@@ -281,18 +294,10 @@ class CheckoutController extends Controller
                 $cartItems = session('cart', []);
             }
         }
+  $total = $this->calculateTotal($cartItems);
 
-        // if (count($cartItems) === 0) {
-        //     return redirect()->route('cart.view')->with('error', 'Your cart is empty');
-        // }
 
-        // Verify product availability
-        foreach ($cartItems as $item) {
-            $product = Product::find($item['id']);
-            if (!$product || $product->stock < $item['quantity']) {
-                return redirect()->route('cart.view')->with('error', "{$item['name']} is no longer available in the requested quantity");
-            }
-        }
+
 
         try {
             // Get the selected address
@@ -305,8 +310,39 @@ class CheckoutController extends Controller
                 return redirect()->route('checkout')->with('error', 'Address not found');
             }
 
+                if($payment_method === 'stripe') {
+            /// Stripe requires amount in cents
+             Stripe::setApiKey(config('services.stripe.secret'));
+
+            $lineItems = [];
+            foreach($cartItems as $item){
+                $lineItems[] = [
+                    'price_data' => [
+                        'currency' => 'usd',
+                        'product_data' => [
+                            'name' => $item['name'],
+                        ],
+                        'unit_amount' => intval($item['price'] * 100),
+                    ],
+                    'quantity' => $item['quantity'],
+                ];
+            }
+            $session = StripeSession::create([
+                'payment_method_types' => ['card'],
+                'line_items' => $lineItems,
+                'mode' => 'payment',
+                'success_url' => route('checkout.success', ['order' => '{CHECKOUT_SESSION_ID}']),
+                'cancel_url' => route('checkout.cancel'),
+                'metadata' => [
+                    'order_number' => 'temp_order_id',
+                ],
+
+            ]);
+               return redirect($session->url);
+        }
+
             // Calculate total
-            $total = $this->calculateTotal($cartItems);
+
 
             // Create the order
             $order = $this->createOrder($request, $address, $cartItems, $total, $request->payment_method);
@@ -343,6 +379,10 @@ class CheckoutController extends Controller
                 ->withInput();
         }
     }
+public function cancel()
+{
+    return redirect()->route('cart.view')->with('error', 'Your payment was cancelled.');
+}
 
     public function success(Request $request)
     {

@@ -211,7 +211,7 @@ public function customer_order_details($order_number){
         'shipped',
         'delivered',
     ];
-     // Mark which steps are completed
+      // Mark which steps are completed
     $currentStatusIndex = array_search($order->order_status, $statusPath);
 
     // Prepare path with status flags
