@@ -78,6 +78,7 @@ class CheckoutController extends Controller
 
     public function buyNow(Request $request)
     {
+
         if (!Auth::check()) {
             return redirect()->route('home')->with('error', 'Please login to proceed');
         }
@@ -238,151 +239,22 @@ class CheckoutController extends Controller
         ]);
     }
 
-    public function process(Request $request)
+
+
+    /// Helper Method
+    // private function getOrCreateStripeCustomer($user){
+    //     Stripe::setApiKey(config('services.stripe.secret'));
+    //      /// Check if user already has a Stripe customer ID stored
+    //     if($user->id){
+    //         try{
+    //             return Customer:retrive($user->id);
+    //         }
+    //     }
+    // }
+    public function cancel()
     {
-        if (!Auth::check()) {
-            return redirect()->route('home')->with('error', 'Please login to checkout');
-        }
-
-        if (!session('checkout_address_id')) {
-            return redirect()->route('checkout')->with('error', 'Please select a shipping address first');
-        }
-
-        // Validate payment method
-        $validator = Validator::make($request->all(), [
-            'payment_method' => 'required|string|in:cash,bkash,stripe',
-        ]);
-
-        if ($validator->fails()) {
-            return redirect()->back()
-                ->withErrors($validator)
-                ->withInput();
-        }
-        if($payment_method = 'stripe'){
-
-        }
-
-        // Check if this is a Buy Now checkout
-       $isBuyNow = in_array($payment_method, ['stripe', 'bkash'], true);
-        session(['is_buy_now' => $isBuyNow]);
-          if ($isBuyNow) {
-
-            // Get items from buy now session
-            $cartItems = session('buy_now_items', []);
-             // Verify product availability
-        foreach ($cartItems as $item) {
-            $product = Product::find($item['id']);
-            if (!$product || $product->stock < $item['quantity']) {
-                return redirect()->route('cart.view')->with('error', "{$item['name']} is no longer available in the requested quantity");
-            }
-        }
-
-        } else {
-            // Get cart items from database or session
-            if (Auth::check()) {
-                $userCart = Cart::where('user_id', Auth::id())->with('items.product')->first();
-                $cartItems = $userCart ? $userCart->items->map(function($item) {
-                    return [
-                        'id' => $item->product_id,
-                        'name' => $item->product->name,
-                        'price' => $item->price,
-                        'quantity' => $item->quantity,
-                        'image' => $item->product->image
-                    ];
-                })->toArray() : [];
-            } else {
-                $cartItems = session('cart', []);
-            }
-        }
-  $total = $this->calculateTotal($cartItems);
-
-
-
-
-        try {
-            // Get the selected address
-            $address = DB::table('addresses')
-                ->where('id', session('checkout_address_id'))
-                ->where('user_id', Auth::id())
-                ->first();
-
-            if (!$address) {
-                return redirect()->route('checkout')->with('error', 'Address not found');
-            }
-
-                if($payment_method === 'stripe') {
-            /// Stripe requires amount in cents
-             Stripe::setApiKey(config('services.stripe.secret'));
-
-            $lineItems = [];
-            foreach($cartItems as $item){
-                $lineItems[] = [
-                    'price_data' => [
-                        'currency' => 'usd',
-                        'product_data' => [
-                            'name' => $item['name'],
-                        ],
-                        'unit_amount' => intval($item['price'] * 100),
-                    ],
-                    'quantity' => $item['quantity'],
-                ];
-            }
-            $session = StripeSession::create([
-                'payment_method_types' => ['card'],
-                'line_items' => $lineItems,
-                'mode' => 'payment',
-                'success_url' => route('checkout.success', ['order' => '{CHECKOUT_SESSION_ID}']),
-                'cancel_url' => route('checkout.cancel'),
-                'metadata' => [
-                    'order_number' => 'temp_order_id',
-                ],
-
-            ]);
-               return redirect($session->url);
-        }
-
-            // Calculate total
-
-
-            // Create the order
-            $order = $this->createOrder($request, $address, $cartItems, $total, $request->payment_method);
-
-            // Update product stock
-            $this->updateProductStock($cartItems);
-
-            // Only clear the cart if this is NOT a Buy Now checkout
-            if (!$isBuyNow) {
-                // Clear the cart from database
-                if (Auth::check()) {
-                    $userCart = Cart::where('user_id', Auth::id())->first();
-                    if ($userCart) {
-                        CartItem::where('cart_id', $userCart->id)->delete();
-                    }
-                }
-                // Clear cart session data
-                session()->forget('cart');
-            }
-
-            // Clear checkout session data
-            session()->forget(['checkout_address_id', 'checkout_notes', 'is_buy_now', 'buy_now_items']);
-
-            // Send order confirmation email
-            // $this->sendOrderConfirmation($order);
-
-            return redirect()->route('checkout.success', ['order' => $order->order_number])
-                ->with('success', 'Order placed successfully!');
-
-        } catch (\Exception $e) {
-            Log::error('Checkout error: ' . $e->getMessage());
-            return redirect()->back()
-                ->with('error', 'There was an error processing your order: ' . $e->getMessage())
-                ->withInput();
-        }
+        return redirect()->route('cart.view')->with('error', 'Your payment was cancelled.');
     }
-public function cancel()
-{
-    return redirect()->route('cart.view')->with('error', 'Your payment was cancelled.');
-}
 
     public function success(Request $request)
     {
@@ -450,7 +322,7 @@ public function cancel()
         }
     }
 
-    private function calculateTotal($cartItems)
+    public function calculateTotal($cartItems)
     {
         return array_reduce($cartItems, function($carry, $item) {
             return $carry + ($item['price'] * $item['quantity']);

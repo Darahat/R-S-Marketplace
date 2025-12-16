@@ -10,6 +10,9 @@ use App\Http\Controllers\ProductSettingController;
 use Illuminate\Support\Facades\Artisan;
 use App\Http\Controllers\AddressController;
 use App\Http\Controllers\CheckoutController;
+use App\Http\Controllers\StripeWebhookController;
+use App\Http\Controllers\PaymentProcessController;
+
 
 // Route::get('/', function () {
 //     return view('welcome');
@@ -41,9 +44,10 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/buy-now', [CheckoutController::class, 'buyNow'])->name('buy.now');
     Route::post('/checkout/review', [CheckoutController::class, 'review'])->name('checkout.review');
     Route::get('/checkout/payment', [CheckoutController::class, 'payment'])->name('checkout.payment');
-    Route::post('/checkout/process', [CheckoutController::class, 'process'])->name('checkout.process');
+    Route::post('/checkout/process', [PaymentProcessController::class, 'process'])->name('checkout.process');
     Route::get('/checkout/success', [CheckoutController::class, 'success'])->name('checkout.success');
     Route::get('/checkout/cancel', [CheckoutController::class, 'cancel'])->name('checkout.cancel');
+    Route::post('/stripe/webhook', [StripeWebhookController::class, 'handle']);
 
     Route::get('/checkout/to-pay', [CheckoutController::class, 'toPayOrders'])->name('checkout.to_pay');
     Route::post('/checkout/{orderNumber}/complete-payment', [CheckoutController::class, 'completePayment'])->name('checkout.complete_payment');
@@ -66,7 +70,7 @@ Route::post('/login', [AuthController::class, 'login'])->name('checklogin');
 Route::get('/admin-login', [AuthController::class, 'adminLogin'])->name('admin.login');
 Route::post('/admin-login', [AuthController::class, 'adminLogin'])->name('admin.checklogin');
 
-Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+Route::get('/logout', [AuthController::class, 'logout'])->name('logout');
 
 // Authentication Routes
 Route::middleware('guest')->group(function () {

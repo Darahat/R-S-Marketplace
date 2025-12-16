@@ -80,6 +80,31 @@
                                 </div>
                             </div>
                         </label>
+                         <input type="hidden" name="save_payment_method" value="0">
+
+                        <label id="save_payment_method_option" class="flex items-center p-6 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-primary transition" style="display: none;">
+
+                            <input type="checkbox" name="save_payment_method"  value="1" id="save_payment_method" class="h-4 w-4 text-primary focus:ring-primary">
+                            <div class="ml-4 flex items-center flex-1">
+                                 <div>
+                                    <p class="font-semibold text-gray-900">Save Card</p>
+                                    <p class="text-sm text-gray-500">Save Card For Future Payment</p>
+                                </div>
+                            </div>
+                        </label>
+                        <input type="hidden" name="pay_subscription" value="0">
+
+                        <label id="subscription-option" class="flex items-center p-6 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-primary transition" style="display: none;">
+
+                            <input type="checkbox" name="pay_subscription"  value="1" id="pay_subscription" class="h-4 w-4 text-primary focus:ring-primary">
+                            <div class="ml-4 flex items-center flex-1">
+                                 <div>
+                                    <p class="font-semibold text-gray-900">Pay with Subscription</p>
+                                    <p class="text-sm text-gray-500">Pay with Suitable installment</p>
+                                </div>
+                            </div>
+                        </label>
+
                     </div>
                 </div>
 
@@ -157,6 +182,20 @@ $(document).ready(function() {
         const selectedLabel = $(this).closest('label');
         selectedLabel.addClass('border-primary bg-primary/5');
         selectedLabel.append('<i class="fas fa-check-circle text-primary text-xl"></i>');
+
+        // Show/hide subscription option based on Stripe selection
+        if ($(this).val() === 'stripe') {
+            $('#subscription-option').slideDown(300);
+            $('#save_payment_method_option').slideDown(300);
+
+        } else {
+            $('#subscription-option').slideUp(300);
+            $('#pay_subscription').prop('checked', false);
+            $('#save_payment_method_option').slideUp(300);
+            $('#save_payment_method').prop('checked', false);
+
+
+        }
     });
 
     // Initialize first radio button as selected

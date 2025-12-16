@@ -67,7 +67,7 @@ class PaymentController extends Controller
             'page_title' => $this->page_title,
             'page_header' => 'Payments',
             'paymentStatuses' => ['pending', 'processing', 'completed', 'failed', 'refunded'],
-            'paymentMethods' => ['cod', 'card', 'bkash', 'nagad', 'rocket'],
+            'paymentMethods' => ['cod', 'card', 'bkash', 'stripe'],
         ]);
     }
 
@@ -295,7 +295,7 @@ class PaymentController extends Controller
      */
     public function getMethodBreakdown()
     {
-        $methods = ['cod', 'card', 'bkash', 'nagad', 'rocket'];
+        $methods = ['cod', 'card', 'bkash', 'stripe'];
         $breakdown = [];
 
         foreach ($methods as $method) {
@@ -312,4 +312,3 @@ class PaymentController extends Controller
         return response()->json($breakdown);
     }
 }
-

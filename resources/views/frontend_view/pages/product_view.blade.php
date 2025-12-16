@@ -70,6 +70,7 @@
                 <button type="submit" class="bg-primary hover:bg-primary-dark text-white py-2 px-6 rounded-lg font-medium transition">Add to Cart</button>
             </form>
 
+            @auth
             <form action="{{ route('buy.now') }}" method="POST" class="inline-block">
                 @csrf
                 <input type="hidden" name="product_id" value="{{ $product->id }}">
@@ -78,6 +79,11 @@
                     <i class="fas fa-bolt mr-1"></i>Buy Now
                 </button>
             </form>
+            @else
+            <button type="button" data-modal="login" class="inline-block bg-gray-900 hover:bg-gray-800 text-white py-2 px-6 rounded-lg font-medium transition">
+                <i class="fas fa-bolt mr-1"></i>Buy Now
+            </button>
+            @endauth
 
             <!-- Stock & Sold Info -->
             <div class="mt-6 text-sm text-gray-500">

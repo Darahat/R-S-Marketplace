@@ -16,10 +16,10 @@ use Illuminate\Support\Facades\Validator;
 class AuthController extends Controller
 {
     // Show Login Form
-    public function showLogin()
-    {
-        return view('frontend_view.pages.auth.login');
-    }
+    // public function showLogin()
+    // {
+    //     return view('frontend_view.pages.auth.login');
+    // }
     public function adminLogin(Request $request)
     {
         // Show admin login form on GET

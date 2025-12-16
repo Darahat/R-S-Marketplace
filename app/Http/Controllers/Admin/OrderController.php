@@ -70,7 +70,7 @@ class OrderController extends Controller
             'page_header' => 'Orders',
             'statuses' => ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled', 'returned'],
             'paymentStatuses' => ['unpaid', 'paid', 'failed'],
-            'paymentMethods' => ['cod', 'card', 'bkash', 'nagad', 'rocket'],
+            'paymentMethods' => ['cod', 'card', 'bkash', 'stripe'],
         ]);
     }
 
@@ -87,7 +87,7 @@ class OrderController extends Controller
             'page_header' => 'Order Details',
             'statuses' => ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled', 'returned'],
             'paymentStatuses' => ['unpaid', 'paid', 'failed'],
-            'paymentMethods' => ['cod', 'card', 'bkash', 'nagad', 'rocket'],
+            'paymentMethods' => ['cod', 'card', 'bkash', 'stripe'],
         ]);
     }
 
