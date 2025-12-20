@@ -329,7 +329,7 @@ Password: customer123
 
 ---
 
-## ⚠️ Common Issues & Solutions
+## Common Issues & Solutions
 
 ### 1. **"500 Internal Server Error"**
 
@@ -492,6 +492,9 @@ R-S-Marketplace/
 Add screenshots here:
 
 -   Homepage
+
+    ![Homepage - Electronics & Gadgets](./R-SMarketPlace-Home-Electronics-Gadgets-12-11-2025_01_22_PM.png)
+
 -   Product Listing
 -   Admin Dashboard
 -   Cart Page
@@ -537,7 +540,7 @@ php artisan db:seed --class=ProductSeeder
 
 If you encounter any issues:
 
-1. Check the [Common Issues](#-common-issues--solutions) section
+1. Check the [Common Issues](#common-issues--solutions) section
 2. Verify all [Requirements](#-requirements) are met
 3. Ensure database is properly configured
 4. Try clearing all caches: `php artisan optimize:clear`
