@@ -12,6 +12,7 @@ use App\Models\CartItem;
 use App\Models\Product;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\Payment;
 use Stripe\Stripe;
 use Stripe\Checkout\Session as StripeSession;
 use App\Http\Controllers\CheckoutController;
@@ -141,6 +142,23 @@ public function process(Request $request)
 
         $order->update(['stripe_session_id' => $session->id]);
 
+        // Create payment record with pending status
+        Payment::create([
+            'order_id' => $order->id,
+            'user_id' => Auth::id(),
+            'transaction_id' => $session->id, // Stripe session ID as initial transaction ID
+            'payment_method' => 'stripe',
+            'payment_status' => 'pending',
+            'amount' => $total,
+            'fee' => 0,
+            'notes' => 'Stripe ' . ($is_pay_subscription ? 'subscription' : 'payment') . ' session created',
+            'response_data' => json_encode([
+                'session_id' => $session->id,
+                'mode' => $mode,
+                'url' => $session->url,
+            ]),
+        ]);
+
         return redirect($session->url);
     }
 
@@ -184,6 +202,18 @@ public function process(Request $request)
     {
         $order = $this->createOrder($request, $address, $cartItems, $total, $payment_method);
         $this->updateProductStock($cartItems);
+
+        // Create payment record for cash/bkash
+        Payment::create([
+            'order_id' => $order->id,
+            'user_id' => Auth::id(),
+            'transaction_id' => 'TXN-' . strtoupper(uniqid()), // Generate transaction ID
+            'payment_method' => $payment_method,
+            'payment_status' => $payment_method === 'cash' ? 'pending' : 'pending', // COD is pending until delivery
+            'amount' => $total,
+            'fee' => 0,
+            'notes' => ucfirst($payment_method) . ' payment - awaiting confirmation',
+        ]);
 
         $this->clearCartAndSession($isBuyNow);
 
