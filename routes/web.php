@@ -64,13 +64,17 @@ Route::prefix('wishlist')->group(function () {
 
 // Guest/Customer Login
 // Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
+Route::get('/login', function () {
+    return view('errors.page-not-found');
+});
 Route::post('/login', [AuthController::class, 'login'])->name('checklogin');
 
 // Admin Login
 Route::get('/admin-login', [AuthController::class, 'adminLogin'])->name('admin.login');
 Route::post('/admin-login', [AuthController::class, 'adminLogin'])->name('admin.checklogin');
 
-Route::get('/logout', [AuthController::class, 'logout'])->name('logout');
+// Logout - Support both GET and POST
+Route::match(['get', 'post'], '/logout', [AuthController::class, 'logout'])->name('logout');
 
 // Authentication Routes
 Route::middleware('guest')->group(function () {
@@ -78,7 +82,7 @@ Route::middleware('guest')->group(function () {
     Route::post('/register', [AuthController::class, 'register']);
 });
 
-Route::group(['prefix' => 'admin', 'middleware' => 'auth:web'], function () {
+Route::group(['prefix' => 'admin', 'middleware' => ['auth:web', 'isAdmin']], function () {
     Route::get('/dashboard', [DashboardController::class, 'dashboard'])->name('admin.dashboard');
 
     // Product Management
