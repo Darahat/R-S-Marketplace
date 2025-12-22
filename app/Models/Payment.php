@@ -13,6 +13,8 @@ class Payment extends Model
         'order_id',
         'user_id',
         'transaction_id',
+        'stripe_payment_intent_id',
+        'stripe_refund_id',
         'payment_method',
         'payment_status',
         'amount',

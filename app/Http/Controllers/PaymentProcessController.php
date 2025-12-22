@@ -119,7 +119,8 @@ public function process(Request $request)
             'payment_method_types' => ['card'],
             'line_items' => $lineItems,
             'mode' => $mode,
-            'success_url' => route('checkout.success', ['order' => $order->order_number]),
+            // Include session id placeholder so we can retrieve PI on success as a fallback
+            'success_url' => route('checkout.success', ['order' => $order->order_number]) . '&session_id={CHECKOUT_SESSION_ID}',
             'cancel_url' => route('checkout.cancel'),
             'customer_email' => Auth::user()->email,
             'metadata' => [
@@ -135,10 +136,11 @@ public function process(Request $request)
             ];
         }
 
-        $session = StripeSession::create(
+            $session = StripeSession::create(
             $sessionOptions,
             ['idempotency_key' => 'order_' . $order->id]
         );
+            // dd($session); // Commented out to prevent halting flow
 
         $order->update(['stripe_session_id' => $session->id]);
 
@@ -147,6 +149,7 @@ public function process(Request $request)
             'order_id' => $order->id,
             'user_id' => Auth::id(),
             'transaction_id' => $session->id, // Stripe session ID as initial transaction ID
+            'stripe_payment_intent_id' => null,
             'payment_method' => 'stripe',
             'payment_status' => 'pending',
             'amount' => $total,

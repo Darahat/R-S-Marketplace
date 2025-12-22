@@ -268,6 +268,34 @@ class CheckoutController extends Controller
             return redirect()->route('home')->with('error', 'Order not found');
         }
 
+        // Optional fallback: if we have session_id and no PI yet, try to resolve it now
+        try {
+            $sessionId = $request->get('session_id');
+            if ($sessionId && empty($order->stripe_payment_intent_id)) {
+                Stripe::setApiKey(config('services.stripe.secret'));
+                $fullSession = \Stripe\Checkout\Session::retrieve([
+                    'id' => $sessionId,
+                    'expand' => ['payment_intent', 'invoice.payment_intent']
+                ]);
+
+                $paymentIntentId = null;
+                if (!empty($fullSession->payment_intent)) {
+                    $paymentIntentId = is_string($fullSession->payment_intent) ? $fullSession->payment_intent : ($fullSession->payment_intent->id ?? null);
+                } elseif (!empty($fullSession->invoice) && isset($fullSession->invoice->payment_intent)) {
+                    $paymentIntentId = is_string($fullSession->invoice->payment_intent) ? $fullSession->invoice->payment_intent : ($fullSession->invoice->payment_intent->id ?? null);
+                }
+
+                if ($paymentIntentId) {
+                    $order->stripe_session_id = $sessionId;
+                    $order->stripe_payment_intent_id = $paymentIntentId;
+                    $order->payment_status = $order->payment_status === 'paid' ? $order->payment_status : 'paid';
+                    $order->save();
+                }
+            }
+        } catch (\Exception $e) {
+            Log::warning('Checkout success page PI resolve failed: ' . $e->getMessage());
+        }
+
         return view('frontend_view.pages.checkout.success', [
             'order' => $order,
             'data' => ['title' => $this->siteTitle . 'Order Success'],

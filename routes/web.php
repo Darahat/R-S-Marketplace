@@ -47,11 +47,13 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/checkout/process', [PaymentProcessController::class, 'process'])->name('checkout.process');
     Route::get('/checkout/success', [CheckoutController::class, 'success'])->name('checkout.success');
     Route::get('/checkout/cancel', [CheckoutController::class, 'cancel'])->name('checkout.cancel');
-    Route::post('/stripe/webhook', [StripeWebhookController::class, 'handle']);
 
     Route::get('/checkout/to-pay', [CheckoutController::class, 'toPayOrders'])->name('checkout.to_pay');
     Route::post('/checkout/{orderNumber}/complete-payment', [CheckoutController::class, 'completePayment'])->name('checkout.complete_payment');
 });
+
+// Stripe webhook route (must be outside auth middleware)
+Route::post('/stripe/webhook', [StripeWebhookController::class, 'handle']);
 
 // Wishlist routes
 Route::prefix('wishlist')->group(function () {

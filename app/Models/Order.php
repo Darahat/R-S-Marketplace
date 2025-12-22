@@ -24,6 +24,8 @@ class Order extends Model
         'notes',
         'shipped_at',
         'delivered_at',
+        'stripe_session_id',
+        'stripe_payment_intent_id',
     ];
 
     protected $casts = [

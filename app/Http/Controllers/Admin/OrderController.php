@@ -80,7 +80,6 @@ class OrderController extends Controller
     public function show($id)
     {
         $order = Order::with(['user', 'address', 'items.product'])->findOrFail($id);
-
         return view('backend_panel_view.pages.orders.show', [
             'order' => $order,
             'page_title' => $this->page_title,

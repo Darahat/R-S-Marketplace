@@ -185,7 +185,7 @@
                         <div class="card-body">
                             <div class="mb-2">
                                 <label class="form-label"><strong>Status:</strong></label>
-                                <select class="form-select" id="paymentStatusSelect">
+                                <select class="form-select" id="paymentStatusSelect"  >
                                     @foreach($paymentStatuses as $pStatus)
                                         <option value="{{ $pStatus }}" {{ $order->payment_status == $pStatus ? 'selected' : '' }}>
                                             {{ ucfirst($pStatus) }}
