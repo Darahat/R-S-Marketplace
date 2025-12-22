@@ -11,6 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // Consolidated in base create: guard to avoid altering schema if columns exist
+        if (Schema::hasColumn('orders', 'stripe_session_id') || Schema::hasColumn('orders', 'stripe_payment_intent_id')) {
+            return; // already handled in base migration
+        }
         Schema::table('orders', function (Blueprint $table) {
             $table->string('stripe_session_id')->nullable()->after('payment_method');
             $table->string('stripe_payment_intent_id')->nullable()->after('stripe_session_id');
@@ -22,8 +26,17 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('orders', function (Blueprint $table) {
-            $table->dropColumn(['stripe_session_id', 'stripe_payment_intent_id']);
-        });
+        $dropCols = [];
+        if (Schema::hasColumn('orders', 'stripe_session_id')) {
+            $dropCols[] = 'stripe_session_id';
+        }
+        if (Schema::hasColumn('orders', 'stripe_payment_intent_id')) {
+            $dropCols[] = 'stripe_payment_intent_id';
+        }
+        if (!empty($dropCols)) {
+            Schema::table('orders', function (Blueprint $table) use ($dropCols) {
+                $table->dropColumn($dropCols);
+            });
+        }
     }
 };

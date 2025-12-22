@@ -15,6 +15,7 @@ use App\Models\OrderItem;
 use App\Models\Payment;
 use Stripe\Stripe;
 use Stripe\Checkout\Session as StripeSession;
+use Stripe\Customer;
 use App\Http\Controllers\CheckoutController;
 
 class PaymentProcessController extends CheckoutController
@@ -105,10 +106,14 @@ public function process(Request $request)
     private function processStripePayment($request, $address, $cartItems, $total, $is_pay_subscription)
     {
         // Create order FIRST
+
         $order = $this->createOrder($request, $address, $cartItems, $total, 'stripe');
         $this->updateProductStock($cartItems);
 
         Stripe::setApiKey(config('services.stripe.secret'));
+
+        // Ensure Stripe customer exists for the user
+        $stripeCustomerId = $this->ensureStripeCustomer(Auth::user());
 
         // Build line items
         $lineItems = $this->buildStripeLineItems($cartItems, $is_pay_subscription);
@@ -122,6 +127,7 @@ public function process(Request $request)
             // Include session id placeholder so we can retrieve PI on success as a fallback
             'success_url' => route('checkout.success', ['order' => $order->order_number]) . '&session_id={CHECKOUT_SESSION_ID}',
             'cancel_url' => route('checkout.cancel'),
+
             'customer_email' => Auth::user()->email,
             'metadata' => [
                 'order_number' => $order->order_number,
@@ -135,7 +141,11 @@ public function process(Request $request)
                 'card' => ['request_three_d_secure' => 'automatic']
             ];
         }
-
+        if ($request->save_payment_card) {
+             $sessionOptions['payment_intent_data'] = [
+                'setup_future_usage' => 'off_session',
+            ];
+        }
             $session = StripeSession::create(
             $sessionOptions,
             ['idempotency_key' => 'order_' . $order->id]
@@ -163,6 +173,29 @@ public function process(Request $request)
         ]);
 
         return redirect($session->url);
+    }
+
+    /**
+     * Ensure a Stripe customer exists for the given user and return its ID.
+     */
+    private function ensureStripeCustomer($user)
+    {
+        if (!$user) {
+            throw new \Exception('User not authenticated');
+        }
+        if (!empty($user->stripe_customer_id)) {
+            return $user->stripe_customer_id;
+        }
+        $customer = Customer::create([
+            'email' => $user->email,
+            'name' => $user->name,
+            'metadata' => [
+                'app_user_id' => $user->id,
+            ],
+        ]);
+        $user->stripe_customer_id = $customer->id;
+        $user->save();
+        return $customer->id;
     }
 
     private function buildStripeLineItems($cartItems, $is_pay_subscription)

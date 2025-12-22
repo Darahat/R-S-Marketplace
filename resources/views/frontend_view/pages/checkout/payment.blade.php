@@ -80,11 +80,11 @@
                                 </div>
                             </div>
                         </label>
-                         <input type="hidden" name="save_payment_method" value="0">
+                         <input type="hidden" name="save_payment_card" value="0">
 
-                        <label id="save_payment_method_option" class="flex items-center p-6 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-primary transition" style="display: none;">
+                        <label id="save_payment_card_option" class="flex items-center p-6 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-primary transition" style="display: none;">
 
-                            <input type="checkbox" name="save_payment_method"  value="1" id="save_payment_method" class="h-4 w-4 text-primary focus:ring-primary">
+                            <input type="checkbox" name="save_payment_card"  value="1" id="save_payment_card" class="h-4 w-4 text-primary focus:ring-primary">
                             <div class="ml-4 flex items-center flex-1">
                                  <div>
                                     <p class="font-semibold text-gray-900">Save Card</p>
@@ -186,13 +186,13 @@ $(document).ready(function() {
         // Show/hide subscription option based on Stripe selection
         if ($(this).val() === 'stripe') {
             $('#subscription-option').slideDown(300);
-            $('#save_payment_method_option').slideDown(300);
+            $('#save_payment_card_option').slideDown(300);
 
         } else {
             $('#subscription-option').slideUp(300);
             $('#pay_subscription').prop('checked', false);
-            $('#save_payment_method_option').slideUp(300);
-            $('#save_payment_method').prop('checked', false);
+            $('#save_payment_card_option').slideUp(300);
+            $('#save_payment_card').prop('checked', false);
 
 
         }

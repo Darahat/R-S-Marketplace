@@ -11,6 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // Consolidated in base create: guard to avoid altering schema if column exists
+        if (Schema::hasColumn('categories', 'image')) {
+            return; // already handled in base migration
+        }
         Schema::table('categories', function (Blueprint $table) {
             $table->string('image')->nullable()->after('description');
         });
@@ -21,6 +25,9 @@ return new class extends Migration
      */
     public function down(): void
     {
+        if (!Schema::hasColumn('categories', 'image')) {
+            return;
+        }
         Schema::table('categories', function (Blueprint $table) {
             $table->dropColumn('image');
         });

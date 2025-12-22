@@ -12,10 +12,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('orders', function (Blueprint $table) {
-            // Add 'to_pay' to the order_status enum
-            DB::statement("ALTER TABLE orders MODIFY order_status ENUM('to_pay','pending','confirmed','processing','shipped','delivered','cancelled','returned') DEFAULT 'to_pay'");
-        });
+        // Consolidated in base create: order_status already includes 'to_pay'
+        // Skip altering enum to avoid MySQL enum churn
+        return;
     }
 
     /**
@@ -23,9 +22,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('orders', function (Blueprint $table) {
-            // Remove 'to_pay' from enum if rolling back
-            DB::statement("ALTER TABLE orders MODIFY order_status ENUM('pending','confirmed','processing','shipped','delivered','cancelled','returned') DEFAULT 'pending'");
-        });
+        // Leave enum as defined in base migration
+        return;
     }
 };

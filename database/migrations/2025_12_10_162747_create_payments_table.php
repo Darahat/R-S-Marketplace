@@ -16,14 +16,18 @@ return new class extends Migration
             $table->unsignedBigInteger('order_id');
             $table->unsignedBigInteger('user_id');
             $table->string('transaction_id')->unique();
-            $table->enum('payment_method', ['cod', 'card', 'bkash', 'stripe'])->default('cod');
-            $table->enum('payment_status', ['pending', 'processing', 'completed', 'failed', 'refunded'])->default('pending');
+                $table->enum('payment_method', ['cod', 'cash', 'card', 'bkash', 'stripe'])->default('cod');
+                // Consolidated: include refund_pending and stripe fields
+                $table->enum('payment_status', ['pending', 'unpaid', 'paid', 'failed', 'refund_pending', 'refunded'])->default('pending');
             $table->decimal('amount', 10, 2);
             $table->decimal('fee', 10, 2)->default(0);
             $table->text('notes')->nullable();
             $table->text('response_data')->nullable();
             $table->timestamp('paid_at')->nullable();
             $table->timestamp('refunded_at')->nullable();
+                // Consolidated: Stripe intent and refund tracking
+                $table->string('stripe_payment_intent_id')->nullable();
+                $table->string('stripe_refund_id')->nullable();
             $table->timestamps();
 
             $table->foreign('order_id')->references('id')->on('orders')->onDelete('cascade');

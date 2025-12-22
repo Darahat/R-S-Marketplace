@@ -12,10 +12,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('orders', function (Blueprint $table) {
-            // Change status column definition to order_status
-            DB::statement("ALTER TABLE orders CHANGE COLUMN `status` `order_status` ENUM('pending','confirmed','processing','shipped','delivered','cancelled','returned') DEFAULT 'pending'");
-        });
+        // Base create already defines order_status; skip rename
+        return;
     }
 
     /**
@@ -23,8 +21,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('orders', function (Blueprint $table) {
-            DB::statement("ALTER TABLE orders CHANGE COLUMN `order_status` `status` ENUM('pending','confirmed','processing','shipped','delivered','cancelled','returned') DEFAULT 'pending'");
-        });
+        // No-op; keep base schema
+        return;
     }
 };
