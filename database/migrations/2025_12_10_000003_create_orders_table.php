@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('order_number')->unique();
             $table->unsignedBigInteger('address_id')->nullable();
             $table->enum('status', ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled', 'returned'])->default('pending');
-            $table->enum('payment_method', ['cod', 'card', 'bkash', 'nagad', 'rocket'])->default('cod');
+            $table->enum('payment_method', ['cod', 'card', 'bkash', 'stripe',])->default('cod');
             $table->enum('payment_status', ['unpaid', 'paid', 'failed'])->default('unpaid');
             $table->decimal('subtotal', 10, 2)->default(0);
             $table->decimal('shipping_cost', 10, 2)->default(0);

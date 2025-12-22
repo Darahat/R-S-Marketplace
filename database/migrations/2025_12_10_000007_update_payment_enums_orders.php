@@ -14,7 +14,7 @@ return new class extends Migration
     {
         Schema::table('orders', function (Blueprint $table) {
             // Update payment_method enum to include 'cash', 'bkash', 'card'
-            DB::statement("ALTER TABLE orders MODIFY payment_method ENUM('cash','bkash','card','cod','nagad','rocket') DEFAULT 'cash'");
+            DB::statement("ALTER TABLE orders MODIFY payment_method ENUM('cod', 'card', 'bkash', 'stripe') DEFAULT 'cod'");
 
             // Update payment_status enum to include 'pending'
             DB::statement("ALTER TABLE orders MODIFY payment_status ENUM('pending','unpaid','paid','failed') DEFAULT 'pending'");
@@ -28,7 +28,7 @@ return new class extends Migration
     {
         Schema::table('orders', function (Blueprint $table) {
             // Revert to original enums
-            DB::statement("ALTER TABLE orders MODIFY payment_method ENUM('cod','card','bkash','nagad','rocket') DEFAULT 'cod'");
+            DB::statement("ALTER TABLE orders MODIFY payment_method ENUM('cod','card','bkash','stripe') DEFAULT 'cod'");
             DB::statement("ALTER TABLE orders MODIFY payment_status ENUM('unpaid','paid','failed') DEFAULT 'unpaid'");
         });
     }

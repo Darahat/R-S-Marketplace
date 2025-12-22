@@ -9,7 +9,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
-
+use Stripe\Stripe;
+use Stripe\Refund;
 class PaymentController extends Controller
 {
     protected $page_title;
@@ -66,8 +67,8 @@ class PaymentController extends Controller
             'payments' => $payments,
             'page_title' => $this->page_title,
             'page_header' => 'Payments',
-            'paymentStatuses' => ['pending', 'processing', 'completed', 'failed', 'refunded'],
-            'paymentMethods' => ['cod', 'card', 'bkash', 'nagad', 'rocket'],
+            'paymentStatuses' => ['pending', 'processing', 'completed', 'failed', 'refund_pending', 'refunded'],
+            'paymentMethods' => ['cod', 'card', 'bkash', 'stripe'],
         ]);
     }
 
@@ -82,7 +83,7 @@ class PaymentController extends Controller
             'payment' => $payment,
             'page_title' => $this->page_title,
             'page_header' => 'Payment Details',
-            'paymentStatuses' => ['pending', 'processing', 'completed', 'failed', 'refunded'],
+            'paymentStatuses' => ['pending', 'processing', 'completed', 'failed', 'refund_pending', 'refunded'],
         ]);
     }
 
@@ -100,12 +101,18 @@ class PaymentController extends Controller
             ]);
         }
 
+        // Pull the related order first to sync identifiers
+        $order = $payment->order;
+
+        // Mark payment completed and sync Stripe PaymentIntent ID from order if available
         $payment->payment_status = 'completed';
         $payment->paid_at = now();
+        if ($order && empty($payment->stripe_payment_intent_id) && !empty($order->stripe_payment_intent_id)) {
+            $payment->stripe_payment_intent_id = $order->stripe_payment_intent_id;
+        }
         $payment->save();
 
         // Update order payment status
-        $order = $payment->order;
         if ($order) {
             $order->payment_status = 'paid';
             $order->save();
@@ -155,7 +162,7 @@ class PaymentController extends Controller
     public function refund(Request $request, $id)
     {
         $payment = Payment::findOrFail($id);
-
+        $order = $payment->order;
         if ($payment->payment_status != 'completed') {
             return response()->json([
                 'success' => false,
@@ -181,17 +188,23 @@ class PaymentController extends Controller
                 'message' => 'Refund amount cannot be greater than payment amount!'
             ]);
         }
-
-        $payment->payment_status = 'refunded';
-        $payment->refunded_at = now();
-        if ($request->notes) {
-            $payment->notes = $request->notes;
-        }
-        $payment->save();
+        Stripe::setApiKey(config('services.stripe.secret'));
+        try{
+             $refund = Refund::create([
+                'payment_intent' => $payment->stripe_payment_intent_id,
+                'amount' => (int) ($request->refund_amount * 100),
+            ]);
+            // Save refund id and mark status pending until finalized
+            $payment->stripe_refund_id = $refund->id ?? null;
+           $payment->update([
+            'payment_status' => 'refund_pending',
+            'stripe_refund_id' => $refund->id,
+            'notes' => $request->notes,
+        ]);
 
         // Update order payment status if fully refunded
         if ($request->refund_amount == $payment->amount) {
-            $order = $payment->order;
+
             if ($order) {
                 $order->payment_status = 'unpaid';
                 $order->save();
@@ -203,6 +216,15 @@ class PaymentController extends Controller
             'message' => 'Payment refunded successfully',
             'payment_status' => $payment->payment_status,
         ]);
+
+        }catch(\Exception $e){
+            return response()->json([
+            'success' => false,
+            'message' => 'Stripe refund failed: ' . $e->getMessage()
+            ]);
+        }
+
+
     }
 
     /**
@@ -295,7 +317,7 @@ class PaymentController extends Controller
      */
     public function getMethodBreakdown()
     {
-        $methods = ['cod', 'card', 'bkash', 'nagad', 'rocket'];
+        $methods = ['cod', 'card', 'bkash', 'stripe'];
         $breakdown = [];
 
         foreach ($methods as $method) {
@@ -312,4 +334,3 @@ class PaymentController extends Controller
         return response()->json($breakdown);
     }
 }
-

@@ -70,7 +70,7 @@ class OrderController extends Controller
             'page_header' => 'Orders',
             'statuses' => ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled', 'returned'],
             'paymentStatuses' => ['unpaid', 'paid', 'failed'],
-            'paymentMethods' => ['cod', 'card', 'bkash', 'nagad', 'rocket'],
+            'paymentMethods' => ['cod', 'card', 'bkash', 'stripe'],
         ]);
     }
 
@@ -80,14 +80,13 @@ class OrderController extends Controller
     public function show($id)
     {
         $order = Order::with(['user', 'address', 'items.product'])->findOrFail($id);
-
         return view('backend_panel_view.pages.orders.show', [
             'order' => $order,
             'page_title' => $this->page_title,
             'page_header' => 'Order Details',
             'statuses' => ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled', 'returned'],
             'paymentStatuses' => ['unpaid', 'paid', 'failed'],
-            'paymentMethods' => ['cod', 'card', 'bkash', 'nagad', 'rocket'],
+            'paymentMethods' => ['cod', 'card', 'bkash', 'stripe'],
         ]);
     }
 

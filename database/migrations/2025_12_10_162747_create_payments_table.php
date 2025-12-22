@@ -16,7 +16,7 @@ return new class extends Migration
             $table->unsignedBigInteger('order_id');
             $table->unsignedBigInteger('user_id');
             $table->string('transaction_id')->unique();
-            $table->enum('payment_method', ['cod', 'card', 'bkash', 'nagad', 'rocket'])->default('cod');
+            $table->enum('payment_method', ['cod', 'card', 'bkash', 'stripe'])->default('cod');
             $table->enum('payment_status', ['pending', 'processing', 'completed', 'failed', 'refunded'])->default('pending');
             $table->decimal('amount', 10, 2);
             $table->decimal('fee', 10, 2)->default(0);
