@@ -12,6 +12,7 @@ use App\Http\Controllers\AddressController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\StripeWebhookController;
 use App\Http\Controllers\PaymentProcessController;
+use App\Http\Controllers\PaymentMethodController;
 
 
 // Route::get('/', function () {
@@ -165,6 +166,14 @@ Route::group(['prefix' => 'customer', 'middleware' => 'auth:web'], function () {
     Route::put('/addresses/{address_id}/update/{user_id}', [AddressController::class, 'update'])->name('customer.addresses.update');
     Route::delete('/addresses/destory/{address_id}', [AddressController::class, 'destroy'])->name('customer.addresses.destroy');
     Route::post('/addresses/{address_id}/set-default/{user_id}', [AddressController::class, 'setDefault'])->name('customer.addresses.set-default');
+
+    // Payment Methods Management (Saved Cards)
+    Route::prefix('payment-methods')->group(function () {
+        Route::get('/', [PaymentMethodController::class, 'index'])->name('customer.payment_methods.index');
+        Route::get('/saved', [PaymentMethodController::class, 'getSavedMethods'])->name('customer.payment_methods.saved');
+        Route::post('/{id}/set-default', [PaymentMethodController::class, 'setDefault'])->name('customer.payment_methods.set_default');
+        Route::delete('/{id}', [PaymentMethodController::class, 'destroy'])->name('customer.payment_methods.destroy');
+    });
 });
 
 
