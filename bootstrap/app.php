@@ -16,8 +16,12 @@ return Application::configure(basePath: dirname(__DIR__))
             'stripe/webhook',
         ]);
 
+        // Apply metrics collection to all requests
+        $middleware->append(\App\Http\Middleware\CollectMetrics::class);
+
         $middleware->alias([
             'isAdmin' => \App\Http\Middleware\IsAdmin::class,
+            'collectMetrics' => \App\Http\Middleware\CollectMetrics::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
