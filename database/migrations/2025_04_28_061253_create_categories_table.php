@@ -21,6 +21,8 @@ return new class extends Migration
             $table->boolean('is_featured')->default(false);
             $table->boolean('is_new')->default(false);
             $table->decimal('discount_price', 10, 2)->default(0);
+            // Consolidated: image column for category thumbnails/icons
+            $table->string('image')->nullable();
 
             $table->unsignedBigInteger('created_by'); // user who created
             $table->unsignedBigInteger('updated_by')->nullable(); // user who last updated

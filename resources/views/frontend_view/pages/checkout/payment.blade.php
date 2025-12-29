@@ -80,11 +80,51 @@
                                 </div>
                             </div>
                         </label>
-                         <input type="hidden" name="save_payment_method" value="0">
 
-                        <label id="save_payment_method_option" class="flex items-center p-6 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-primary transition" style="display: none;">
+                        <!-- Saved Cards Section (shown when Stripe is selected) -->
+                        <div id="saved-cards-section" class="hidden ml-8 space-y-3 mt-2">
+                            @if(isset($savedPaymentMethods) && $savedPaymentMethods->count() > 0)
+                                <p class="text-sm font-semibold text-gray-700 mb-2">Saved Cards:</p>
+                                @foreach($savedPaymentMethods as $method)
+                                    <label class="flex items-center p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-primary transition {{ $method->is_default ? 'border-blue-300 bg-blue-50' : '' }}">
+                                        <input type="radio" name="saved_payment_method_id" value="{{ $method->stripe_payment_method_id }}"
+                                               class="h-4 w-4 text-primary focus:ring-primary" {{ $method->is_default ? 'checked' : '' }}>
+                                        <div class="ml-3 flex items-center flex-1">
+                                            @if($method->card_brand == 'visa')
+                                                <i class="fab fa-cc-visa text-blue-600 text-2xl mr-3"></i>
+                                            @elseif($method->card_brand == 'mastercard')
+                                                <i class="fab fa-cc-mastercard text-red-600 text-2xl mr-3"></i>
+                                            @elseif($method->card_brand == 'amex')
+                                                <i class="fab fa-cc-amex text-blue-500 text-2xl mr-3"></i>
+                                            @else
+                                                <i class="fas fa-credit-card text-gray-600 text-2xl mr-3"></i>
+                                            @endif
+                                            <div>
+                                                <p class="font-medium text-gray-900">{{ ucfirst($method->card_brand) }} ••••{{ $method->card_last4 }}</p>
+                                                <p class="text-xs text-gray-500">Expires {{ str_pad($method->card_exp_month, 2, '0', STR_PAD_LEFT) }}/{{ $method->card_exp_year }}</p>
+                                            </div>
+                                            @if($method->is_default)
+                                                <span class="ml-auto bg-green-100 text-green-800 text-xs font-semibold px-2 py-1 rounded">Default</span>
+                                            @endif
+                                        </div>
+                                    </label>
+                                @endforeach
 
-                            <input type="checkbox" name="save_payment_method"  value="1" id="save_payment_method" class="h-4 w-4 text-primary focus:ring-primary">
+                                <label class="flex items-center p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-primary transition">
+                                    <input type="radio" name="saved_payment_method_id" value="new"
+                                           class="h-4 w-4 text-primary focus:ring-primary">
+                                    <div class="ml-3">
+                                        <p class="font-medium text-gray-900"><i class="fas fa-plus-circle mr-2"></i>Use a new card</p>
+                                    </div>
+                                </label>
+                            @endif
+                        </div>
+
+                         <input type="hidden" name="save_payment_card" value="0">
+
+                        <label id="save_payment_card_option" class="flex items-center p-6 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-primary transition" style="display: none;">
+
+                            <input type="checkbox" name="save_payment_card"  value="1" id="save_payment_card" class="h-4 w-4 text-primary focus:ring-primary">
                             <div class="ml-4 flex items-center flex-1">
                                  <div>
                                     <p class="font-semibold text-gray-900">Save Card</p>
@@ -186,13 +226,13 @@ $(document).ready(function() {
         // Show/hide subscription option based on Stripe selection
         if ($(this).val() === 'stripe') {
             $('#subscription-option').slideDown(300);
-            $('#save_payment_method_option').slideDown(300);
+            $('#save_payment_card_option').slideDown(300);
 
         } else {
             $('#subscription-option').slideUp(300);
             $('#pay_subscription').prop('checked', false);
-            $('#save_payment_method_option').slideUp(300);
-            $('#save_payment_method').prop('checked', false);
+            $('#save_payment_card_option').slideUp(300);
+            $('#save_payment_card').prop('checked', false);
 
 
         }

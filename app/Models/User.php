@@ -24,6 +24,7 @@ class User extends Authenticatable
         'password',
         'mobile',
         'user_type',
+        'stripe_customer_id',
     ];
 
     /**
@@ -79,5 +80,13 @@ class User extends Authenticatable
     public function orders()
     {
         return $this->hasMany(Order::class);
+    }
+
+    /**
+     * Get the user's saved payment methods.
+     */
+    public function paymentMethods()
+    {
+        return $this->hasMany(UserPaymentMethod::class);
     }
 }

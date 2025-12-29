@@ -2,9 +2,11 @@
 namespace App\Http\Controllers;
 use App\Models\Order;
 use App\Models\Payment;
+use App\Models\UserPaymentMethod;
 use Illuminate\Support\Facades\Log;
 use Stripe\Stripe;
 use Stripe\Webhook;
+use Stripe\PaymentMethod as StripePaymentMethod;
 use Illuminate\Http\Request;
 
 class StripeWebhookController extends Controller
@@ -81,7 +83,7 @@ class StripeWebhookController extends Controller
 
                     if ($payment) {
                         $payment->update([
-                            'payment_status' => 'completed',
+                            'payment_status' => 'paid',  // Changed from 'completed' to match enum
                             'transaction_id' => $paymentIntentId ?? $session->id,
                             'stripe_payment_intent_id' => $paymentIntentId,
                             'paid_at' => now(),
@@ -100,7 +102,7 @@ class StripeWebhookController extends Controller
                             'transaction_id' => $paymentIntentId ?? $session->id,
                             'stripe_payment_intent_id' => $paymentIntentId,
                             'payment_method' => 'stripe',
-                            'payment_status' => 'completed',
+                            'payment_status' => 'paid',  // Changed from 'completed' to match enum
                             'amount' => $session->amount_total / 100,
                             'fee' => 0,
                             'paid_at' => now(),
@@ -112,6 +114,9 @@ class StripeWebhookController extends Controller
                             ]),
                         ]);
                     }
+
+                    // Save payment method if setup_intent is present or PaymentIntent has a payment_method
+                    $this->savePaymentMethodIfPresent($paymentIntentId, $order->user_id);
 
                     Log::info('Stripe payment completed', [
                         'order_number' => $orderNumber,
@@ -127,6 +132,89 @@ class StripeWebhookController extends Controller
                 'raw_payload_sample' => substr($payload, 0, 500),
             ]);
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 400);
+        }
+    }
+
+    /**
+     * Save payment method if setup_future_usage was enabled
+     */
+    private function savePaymentMethodIfPresent($paymentIntentId, $userId)
+    {
+        if (!$paymentIntentId || !$userId) {
+            Log::warning('savePaymentMethodIfPresent: Missing parameters', [
+                'payment_intent_id' => $paymentIntentId,
+                'user_id' => $userId
+            ]);
+            return;
+        }
+
+        try {
+            // Retrieve the PaymentIntent to get the payment method
+            $paymentIntent = \Stripe\PaymentIntent::retrieve($paymentIntentId);
+
+            Log::info('PaymentIntent retrieved for saving method', [
+                'payment_intent_id' => $paymentIntentId,
+                'has_payment_method' => !empty($paymentIntent->payment_method),
+                'payment_method_id' => $paymentIntent->payment_method ?? 'NULL',
+                'setup_future_usage' => $paymentIntent->setup_future_usage ?? 'NULL',
+            ]);
+
+            if (!$paymentIntent->payment_method) {
+                Log::warning('No payment method attached to PaymentIntent', [
+                    'payment_intent_id' => $paymentIntentId
+                ]);
+                return;
+            }
+
+            $paymentMethodId = $paymentIntent->payment_method;
+
+            // Check if already saved
+            $exists = UserPaymentMethod::where('user_id', $userId)
+                ->where('stripe_payment_method_id', $paymentMethodId)
+                ->exists();
+
+            if ($exists) {
+                Log::info('Payment method already saved', [
+                    'user_id' => $userId,
+                    'payment_method_id' => $paymentMethodId
+                ]);
+                return; // Already saved
+            }
+
+            // Retrieve payment method details from Stripe
+            $stripePaymentMethod = StripePaymentMethod::retrieve($paymentMethodId);
+
+            if ($stripePaymentMethod->type === 'card') {
+                // Check if this is the first payment method for this user
+                $isFirstMethod = UserPaymentMethod::where('user_id', $userId)->count() === 0;
+
+                UserPaymentMethod::create([
+                    'user_id' => $userId,
+                    'stripe_payment_method_id' => $paymentMethodId,
+                    'card_brand' => $stripePaymentMethod->card->brand,
+                    'card_last4' => $stripePaymentMethod->card->last4,
+                    'card_exp_month' => $stripePaymentMethod->card->exp_month,
+                    'card_exp_year' => $stripePaymentMethod->card->exp_year,
+                    'is_default' => $isFirstMethod, // First card becomes default
+                ]);
+
+                Log::info('Payment method saved successfully', [
+                    'user_id' => $userId,
+                    'payment_method_id' => $paymentMethodId,
+                    'brand' => $stripePaymentMethod->card->brand,
+                    'last4' => $stripePaymentMethod->card->last4,
+                ]);
+            } else {
+                Log::warning('Payment method type not supported', [
+                    'type' => $stripePaymentMethod->type
+                ]);
+            }
+        } catch (\Exception $e) {
+            Log::error('Failed to save payment method: ' . $e->getMessage(), [
+                'payment_intent_id' => $paymentIntentId,
+                'user_id' => $userId,
+                'trace' => $e->getTraceAsString()
+            ]);
         }
     }
 }

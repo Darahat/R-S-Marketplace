@@ -12,6 +12,7 @@ use App\Models\CartItem;
 use App\Models\Product;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\UserPaymentMethod;
 use Stripe\Stripe;
 use Stripe\Checkout\Session as StripeSession;
 class CheckoutController extends Controller
@@ -229,12 +230,19 @@ class CheckoutController extends Controller
             return redirect()->route('checkout')->with('error', 'Address not found');
         }
 
+        // Load saved payment methods for authenticated users
+        $savedPaymentMethods = UserPaymentMethod::where('user_id', Auth::id())
+            ->orderBy('is_default', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
         return view('frontend_view.pages.checkout.payment', [
             'total' => $total,
             'subtotal' => $total,
             'shipping' => 0,
             'address' => $address,
             'cartItems' => $cartItems,
+            'savedPaymentMethods' => $savedPaymentMethods,
             'data' => $data,
         ]);
     }

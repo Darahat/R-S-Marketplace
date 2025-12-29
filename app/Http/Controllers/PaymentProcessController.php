@@ -15,6 +15,7 @@ use App\Models\OrderItem;
 use App\Models\Payment;
 use Stripe\Stripe;
 use Stripe\Checkout\Session as StripeSession;
+use Stripe\Customer;
 use App\Http\Controllers\CheckoutController;
 
 class PaymentProcessController extends CheckoutController
@@ -105,10 +106,14 @@ public function process(Request $request)
     private function processStripePayment($request, $address, $cartItems, $total, $is_pay_subscription)
     {
         // Create order FIRST
+
         $order = $this->createOrder($request, $address, $cartItems, $total, 'stripe');
         $this->updateProductStock($cartItems);
 
         Stripe::setApiKey(config('services.stripe.secret'));
+
+        // Ensure Stripe customer exists for the user
+        $stripeCustomerId = $this->ensureStripeCustomer(Auth::user());
 
         // Build line items
         $lineItems = $this->buildStripeLineItems($cartItems, $is_pay_subscription);
@@ -119,16 +124,31 @@ public function process(Request $request)
             'payment_method_types' => ['card'],
             'line_items' => $lineItems,
             'mode' => $mode,
+            'customer' => $stripeCustomerId, // Attach customer to session
             // Include session id placeholder so we can retrieve PI on success as a fallback
             'success_url' => route('checkout.success', ['order' => $order->order_number]) . '&session_id={CHECKOUT_SESSION_ID}',
             'cancel_url' => route('checkout.cancel'),
-            'customer_email' => Auth::user()->email,
-            'metadata' => [
+             'metadata' => [
                 'order_number' => $order->order_number,
                 'user_id' => Auth::id(),
                 'subscription_interval_count' => $is_pay_subscription ? 3 : null,
             ],
         ];
+
+        // NOTE: Stripe Checkout Sessions have a limitation - you cannot pre-select a specific
+        // saved payment method via the API. When you attach the customer, Stripe will
+        // automatically display all their saved payment methods in the checkout UI,
+        // but the user must manually select which one to use.
+
+        // Log if user selected a saved payment method (for tracking purposes)
+        if ($request->saved_payment_method_id && $request->saved_payment_method_id !== 'new') {
+            Log::info('User wants to use saved payment method', [
+                'payment_method_id' => $request->saved_payment_method_id,
+                'order_id' => $order->id,
+                'customer_id' => $stripeCustomerId,
+                'note' => 'Stripe Checkout will display all saved cards; user must select in Stripe UI'
+            ]);
+        }
 
         if ($is_pay_subscription) {
             $sessionOptions['payment_method_options'] = [
@@ -136,6 +156,15 @@ public function process(Request $request)
             ];
         }
 
+        // Save card for future use if checkbox was checked and not using saved card
+        // Note: Payment method will be automatically saved via webhook after successful payment
+        // See StripeWebhookController::savePaymentMethodIfPresent()
+        if ($request->save_payment_card && (!$request->saved_payment_method_id || $request->saved_payment_method_id === 'new')) {
+            if (!isset($sessionOptions['payment_intent_data'])) {
+                $sessionOptions['payment_intent_data'] = [];
+            }
+            $sessionOptions['payment_intent_data']['setup_future_usage'] = 'off_session';
+        }
             $session = StripeSession::create(
             $sessionOptions,
             ['idempotency_key' => 'order_' . $order->id]
@@ -163,6 +192,29 @@ public function process(Request $request)
         ]);
 
         return redirect($session->url);
+    }
+
+    /**
+     * Ensure a Stripe customer exists for the given user and return its ID.
+     */
+    private function ensureStripeCustomer($user)
+    {
+        if (!$user) {
+            throw new \Exception('User not authenticated');
+        }
+        if (!empty($user->stripe_customer_id)) {
+            return $user->stripe_customer_id;
+        }
+        $customer = Customer::create([
+            'email' => $user->email,
+            'name' => $user->name,
+            'metadata' => [
+                'app_user_id' => $user->id,
+            ],
+        ]);
+        $user->stripe_customer_id = $customer->id;
+        $user->save();
+        return $customer->id;
     }
 
     private function buildStripeLineItems($cartItems, $is_pay_subscription)
