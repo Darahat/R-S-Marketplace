@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Log;
 
 class PaymentMethodController extends Controller
 {
+    protected $paymentMethodExists = null;
     /**
      * Display user's saved payment methods
      */
