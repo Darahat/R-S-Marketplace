@@ -8,11 +8,13 @@ use Stripe\PaymentMethod as StripePaymentMethod;
 use App\Models\UserPaymentMethod;
 class SetDefaultPaymentMethodRequest extends FormRequest
 {
+    protected $paymentMethodExists = null;
     /**
      * Determine if the user is authorized to make this request.
      */
     public function authorize(): bool
     {
+
     /*
     Check if authenticated user owns the payment method
      */
@@ -28,10 +30,10 @@ class SetDefaultPaymentMethodRequest extends FormRequest
     Check if the payment method exists and belongs to the authenticated user
 
     */
-  $paymentMethod = UserPaymentMethod::where('user_id', Auth::id())
+   $this->paymentMethodExists= UserPaymentMethod::where('user_id', Auth::id())
             ->where('id', $id)
-            ->firstOrFail();
-    return $paymentMethod;
+            ->exists();
+    return  $this->paymentMethodExists;
     }
 
     /**
@@ -42,7 +44,16 @@ class SetDefaultPaymentMethodRequest extends FormRequest
     public function rules(): array
     {
         return [
-            //
+            'id' => [
+                'required','integer',
+                function($fail){
+                    // Use Cached result from authorize()
+                    if($this->paymentMethodExists === false){
+                        $fail('You do not own this payment method or it does not exist');
+                    }
+                }
+                ]
+
         ];
     }
 }
