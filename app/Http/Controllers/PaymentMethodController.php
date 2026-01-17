@@ -2,75 +2,54 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\UserPaymentMethod;
-use Illuminate\Http\Request;
+use App\Http\Requests\ManagePaymentMethodRequest;
+use App\Repositories\UserPaymentMethodRepository;
+use App\Services\PaymentMethodService;
+use App\Policies\PaymentMethodPolicy;
 use Illuminate\Support\Facades\Auth;
-use Stripe\Stripe;
-use Stripe\PaymentMethod as StripePaymentMethod;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
 class PaymentMethodController extends Controller
 {
+    use AuthorizesRequests;
+
     protected $paymentMethodExists = null;
     /**
      * Display user's saved payment methods
      */
+    public function __construct(private PaymentMethodService $service, private UserPaymentMethodRepository $repo){}
     public function index()
     {
-        $paymentMethods = UserPaymentMethod::where('user_id', Auth::id())
-            ->orderBy('is_default', 'desc')
-            ->orderBy('created_at', 'desc')
-            ->get();
+
 
         return view('frontend_view.pages.payment_methods.index', [
             'data' => [
                 'title' => 'Saved Payment Methods',
             ],
-            'paymentMethods' => $paymentMethods,
+            'paymentMethods' => $this->repo->listForUser(Auth::id()),
         ]);
     }
 
+    private function handle(string $action, ManagePaymentMethodRequest $request){
+        $method = $this->repo->findForUser(Auth::id(),$request->payment_method_id);
+        $this->authorize('manage', $method);
+        $this->service->handle($action,Auth::id(), $method);
+ return back()->with('success', 'Payment method updated successfully.');
+    }
     /**
      * Set a payment method as default
      */
-    public function setDefault($id)
+    public function setDefault(ManagePaymentMethodRequest $request)
     {
-        // Remove default from all user's payment methods
-        UserPaymentMethod::where('user_id', Auth::id())->update(['is_default' => false]);
-
-        // Set this one as default
-        $paymentMethod = UserPaymentMethod::where('user_id', Auth::id())
-            ->where('id', $id)
-            ->firstOrFail();
-
-        $paymentMethod->is_default = true;
-        $paymentMethod->save();
-
-        return back()->with('success', 'Default payment method updated successfully.');
+         return $this->handle('delete', $request);
     }
 
     /**
      * Delete a saved payment method
      */
-    public function destroy($id)
+    public function destroy(ManagePaymentMethodRequest $request)
     {
-        $paymentMethod = UserPaymentMethod::where('user_id', Auth::id())
-            ->where('id', $id)
-            ->firstOrFail();
-
-        // Also delete from Stripe
-        try {
-            Stripe::setApiKey(config('services.stripe.secret'));
-            StripePaymentMethod::retrieve($paymentMethod->stripe_payment_method_id)
-                ->detach();
-        } catch (\Exception $e) {
-            // Log but continue if Stripe deletion fails
-            Log::warning('Failed to detach payment method from Stripe: ' . $e->getMessage());
-        }
-
-        $paymentMethod->delete();
-
-        return back()->with('success', 'Payment method removed successfully.');
+       return $this->handle('delete', $request);
     }
 
     /**
@@ -78,24 +57,10 @@ class PaymentMethodController extends Controller
      */
     public function getSavedMethods()
     {
-        $paymentMethods = UserPaymentMethod::where('user_id', Auth::id())
-            ->orderBy('is_default', 'desc')
-            ->orderBy('created_at', 'desc')
-            ->get()
-            ->map(function($pm) {
-                return [
-                    'id' => $pm->id,
-                    'stripe_payment_method_id' => $pm->stripe_payment_method_id,
-                    'display' => $pm->card_display,
-                    'brand' => $pm->card_brand,
-                    'last4' => $pm->card_last4,
-                    'exp_month' => $pm->card_exp_month,
-                    'exp_year' => $pm->card_exp_year,
-                    'is_default' => $pm->is_default,
-                    'is_expired' => $pm->isExpired(),
-                ];
-            });
+        $methods = $this->repo->listForUser(Auth::id());
 
-        return response()->json($paymentMethods);
+
+
+        return response()->json($this->service->formatForCheckout($methods));
     }
 }

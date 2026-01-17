@@ -37,7 +37,7 @@ class PaymentMethodPolicy
      */
     public function update(User $user, UserPaymentMethod $userPaymentMethod): bool
     {
-        return false;
+         return $userPaymentMethod->user_id === $user->id;
     }
 
     /**
@@ -45,7 +45,7 @@ class PaymentMethodPolicy
      */
     public function delete(User $user, UserPaymentMethod $userPaymentMethod): bool
     {
-        return false;
+         return $userPaymentMethod->user_id === $user->id;
     }
 
     /**
