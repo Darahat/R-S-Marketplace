@@ -8,6 +8,7 @@ class AuthServiceProvider extends ServiceProvider
 {
     protected $policies =[
         \App\Models\UserPaymentMethod::class => \App\Policies\PaymentMethodPolicy::class,
+        \App\Models\Address::class => \App\Policies\UserAddressPolicy::class,
     ];
     /**
      * Register services.
