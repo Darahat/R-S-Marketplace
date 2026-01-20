@@ -6,46 +6,30 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use App\Models\District;
+use App\Repositories\UserAddressRepository;
+use App\Http\Requests\UserAddressRequests;
+use Illuminate\Support\Facades\Log;
+use function PHPUnit\Framework\throwException;
 
 class AddressController extends Controller
 {
+
+    public function __construct( private UserAddressRepository $repo){}
+
     /**
      * Display a listing of the addresses.
      */
     public function index()
     {
         $user = Auth::user();
-
-         $shippingAddresses = DB::table('addresses')
-        ->leftJoin('districts', 'addresses.district_id', '=', 'districts.id')
-        ->leftJoin('upazilas', 'addresses.upazila_id', '=', 'upazilas.id')
-        ->leftJoin('unions', 'addresses.union_id', '=', 'unions.id')
-        ->where('addresses.address_type', 'shipping')
-        ->where('addresses.user_id', $user->id)
-        ->orderBy('addresses.is_default', 'desc')
-        ->select(
-            'addresses.*',
-            'districts.name as district_name',
-            'upazilas.name as upazila_name',
-            'unions.name as union_name'
-        )
-        ->get();
-
-    $billingAddresses = DB::table('addresses')
-        ->leftJoin('districts', 'addresses.district_id', '=', 'districts.id')
-        ->leftJoin('upazilas', 'addresses.upazila_id', '=', 'upazilas.id')
-        ->leftJoin('unions', 'addresses.union_id', '=', 'unions.id')
-        ->where('addresses.address_type', 'billing')
-        ->where('addresses.user_id', $user->id)
-        ->orderBy('addresses.is_default', 'desc')
-        ->select(
-            'addresses.*',
-            'districts.name as district_name',
-            'upazilas.name as upazila_name',
-            'unions.name as union_name'
-        )
-        ->get();
-
+        $shippingAddresses =$this->repo->getUserShippingAddress($user->id,['addresses.*',
+             'districts.name as district_name',
+             'upazilas.name as upazila_name',
+             'unions.name as union_name']);
+        $billingAddresses = $this->repo->getUserBillingAddress($user->id,['addresses.*',
+             'districts.name as district_name',
+             'upazilas.name as upazila_name',
+             'unions.name as union_name']);
         return view('backend_panel_view_customer.pages.address_list', compact('shippingAddresses', 'billingAddresses'));
     }
 
@@ -54,58 +38,43 @@ class AddressController extends Controller
      */
     public function create()
     {
-        $districts = District::with(['upazilas' => function ($q) {
-            $q->orderBy('name');
-        }, 'upazilas.unions' => function ($q) {
-            $q->orderBy('name');
-        }])->orderBy('name')->get();
+        $districts = $this->repo->getDistricts();
         return view('backend_panel_view_customer.pages.create_edit_address', compact('districts'));
     }
 
     /**
      * Store a newly created address in storage.
      */
-    public function store(Request $request)
+    public function store(UserAddressRequests $request)
     {
         $user = Auth::user();
         // return $request->all();
-        $validated = $request->validate([
-            'address_type' => 'required|in:shipping,billing',
-            'full_name' => 'required|string|max:255',
-            'phone' => 'required|string|max:20',
-            'street_address' => 'required|string|max:255',
-            'district_id' => 'required',
-            'upazila_id' => 'required',
-            'union_id' => 'required',
-            'postal_code' => 'required|string|max:20',
-            'country' => 'required|string|max:100',
-            'is_default' => 'nullable|boolean',
-        ]);
+       $validated = $request->validated();
 
         // If setting as default, remove default status from other addresses of same type
         if ($request->has('is_default') && $request->is_default) {
-            DB::table('addresses')
-    ->where('user_id', $user->id)
-                ->where('address_type', $validated['address_type'])
-                ->update(['is_default' => false]);
+            $this->repo->unsetOtherDefaults($user->id,$validated->address_type,$validated->id,true);
+
         }
-
-        $validated['user_id'] = $user->id;
-        $address = DB::table('addresses')->insert($validated);
-
+        try{
+        $this->repo->createAddress($validated);
         return redirect()->route('customer.addresses.index')
             ->with('success', 'Address added successfully!');
+        }catch (\Exception $e) {
+            Log::error('Checkout error: ' . $e->getMessage());
+            return redirect()->back()
+                ->with('error', 'There was an error processing your order: ' . $e->getMessage())
+                ->withInput();
+        }
     }
 
-    /**
-     * Show the form for editing the specified address.
-     */
+
 
 
     /**
      * Update the specified address in storage.
      */
-    public function update(Request $request, $address_id, $user_id)
+    public function update(UserAddressRequests $request, $address_id, $user_id)
     {
         $user = Auth::user();
 
@@ -113,23 +82,12 @@ class AddressController extends Controller
             abort(403);
         }
 
-        $address = DB::table('addresses')->where('id', $address_id)->first();
+        $address = $this->repo->findAddress($address_id);
         if (!$address) {
             abort(404);
         }
 
-        $validated = $request->validate([
-            'address_type' => 'required|in:shipping,billing',
-            'full_name' => 'required|string|max:255',
-            'phone' => 'required|string|max:20',
-            'street_address' => 'required|string|max:255',
-            'district_id' => 'required',
-            'upazila_id' => 'required',
-            'union_id' => 'required',
-            'postal_code' => 'required|string|max:20',
-            'country' => 'required|string|max:100',
-            'is_default' => 'required|in:1,0',
-        ]);
+        $validated = $request->validated();
 
         // Cast values
         $newType = $validated['address_type'];
@@ -138,26 +96,17 @@ class AddressController extends Controller
         // If setting this address as default
         if ($isDefault) {
             // Clear other defaults for this user & type
-            DB::table('addresses')
-                ->where('user_id', $user->id)
-                ->where('address_type', $newType)
-                ->where('id', '!=', $address_id)
-                ->update(['is_default' => false]);
+
+            $this->repo->updateAddress($address_id,$validated);
         }
 
         // If this address is no longer default, and it was default before
         if (!$isDefault && $address->is_default) {
             // Find another address to promote as default
-            $newDefault = DB::table('addresses')
-                ->where('user_id', $user->id)
-                ->where('address_type', $address->address_type)
-                ->where('id', '!=', $address_id)
-                ->first();
+            $newDefault = $this->repo->findAddress($address_id);
 
             if ($newDefault) {
-                DB::table('addresses')
-                    ->where('id', $newDefault->id)
-                    ->update(['is_default' => true]);
+            $this->repo->unsetOtherDefaults($user->id,$newType,$address_id,true);
             } else {
                 // Prevent removal of default if no fallback exists
                 return redirect()->back()->with('error', 'Cannot unset default. No other address available to promote.');
@@ -165,7 +114,7 @@ class AddressController extends Controller
         }
 
         // Perform update
-        $success = DB::table('addresses')->where('id', $address_id)->update($validated);
+        $success = $this->repo->updateAddress($address_id,$validated);
 
         if (!$success) {
             return redirect()->back()->with('error', 'Failed to update address.');
@@ -199,20 +148,20 @@ class AddressController extends Controller
 
         // If this was the default address, set another one as default
         if ($address->is_default) {
-            $newDefault = DB::table('addresses')
-                ->where('user_id', $user->id)
-                ->where('address_type', $address->address_type)
-                ->where('id', '!=', $address->id)
-                ->first();
-
+            $newDefault = $this->repo->findAddress($address_id);
+$data = ['is_default' => true];
             if ($newDefault) {
-                DB::table('addresses')
-                    ->where('id', $newDefault->id)
-                    ->update(['is_default' => true]);
+            $this->repo->updateAddress($address_id,$data);
+
             }
         }
 
-        DB::table('addresses')->where('id', $address_id)->delete();
+         try {
+            $this->repo->deleteAddress($address_id);
+         } catch (\Throwable $th) {
+            throw new \Exception("Error Processing Request", 0, $th);
+
+         }
 
         return redirect()->route('customer.addresses.index')
             ->with('success', 'Address deleted successfully!');
@@ -256,6 +205,7 @@ class AddressController extends Controller
             ->update(['is_default' => false]);
 
         // Then set the new address as default
+        $data =
         DB::table('addresses')
             ->where('id', $address_id)
             ->update(['is_default' => true]);
@@ -270,12 +220,8 @@ class AddressController extends Controller
         if ( intval($user_id) !== $user->id) {
             abort(403);
         }else{
-            $districts = District::with(['upazilas' => function ($q) {
-                $q->orderBy('name');
-            }, 'upazilas.unions' => function ($q) {
-                $q->orderBy('name');
-            }])->orderBy('name')->get();
-            $address = DB::table('addresses')->where('id', $address_id)->first();
+            $districts =  $this->repo->getDistricts();
+            $address = $this->repo->findAddress($address_id);
             if (!$address) {
                 abort(404);
             }
