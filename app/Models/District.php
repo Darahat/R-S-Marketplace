@@ -6,8 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class District extends Model
 {
-    public function upazilas()
+    public function upazila()
     {
         return $this->hasMany(Upazila::class);
+    }
+    public function union(){
+        return $this->hasMany(Union::class);
     }
 }

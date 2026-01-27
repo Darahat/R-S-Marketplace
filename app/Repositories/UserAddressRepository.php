@@ -34,7 +34,7 @@ class UserAddressRepository{
     public function getDistricts(): Collection{
     return District::with(['upazila' => fn ($q) =>
             $q->orderBy('name'),
-         'upazila.unions' => fn ($q) =>$q->orderBy('name')])
+         'upazila.union' => fn ($q) =>$q->orderBy('name')])
          ->orderBy('name')
          ->get();
 

@@ -26,12 +26,25 @@ class UserAddressRequests extends FormRequest
             'full_name' => 'required|string|max:255',
             'phone' => 'required|string|max:20',
             'street_address' => 'required|string|max:255',
-            'district_id' => 'required',
-            'upazila_id' => 'required',
-            'union_id' => 'required',
+            ///exists means that it will check to database that is the value is exist
+            'district_id' => 'required|exists:districts,id',
+            'upazila_id' => 'required|exists:upazilas,id',
+            'union_id' => 'required|exists:unions,id',
             'postal_code' => 'required|string|max:20',
             'country' => 'required|string|max:100',
+            /// in checks is the incoming value 1 or 0
             'is_default' => 'required|in:1,0',
         ];
     }
+    /*
+    Prepare data for validation
+    */
+    protected function prepareForValidation()
+    {
+        /// Convert checkbox value to boolean
+        $this->merge([
+            'is_default' => $this->has('is_default') ? (bool) $this->is_default:false,
+        ]);
+     }
+
 }

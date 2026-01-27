@@ -79,8 +79,8 @@
                     <div class="sm:col-span-3">
                         <label for="full_name" class="block text-sm font-medium text-gray-700 mb-1">Full Name <span class="text-red-500">*</span></label>
                         <div class="mt-1 relative rounded-md shadow-sm">
-                            <input type="text" name="full_name" id="full_name" value="{{ old('full_name', isset($address) ? $address->full_name : '') }}" 
-                                   class="form-input block w-full px-4 py-3 border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-lg transition-all duration-150" 
+                            <input type="text" name="full_name" id="full_name" value="{{ old('full_name', isset($address) ? $address->full_name : '') }}"
+                                   class="form-input block w-full px-4 py-3 border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-lg transition-all duration-150"
                                    placeholder="John Doe" required>
                             <div class="absolute inset-y-0 right-0 flex items-center pr-3">
                                 <i class="fas fa-user text-gray-400"></i>
@@ -94,8 +94,8 @@
                     <div class="sm:col-span-3">
                         <label for="phone" class="block text-sm font-medium text-gray-700 mb-1">Phone Number <span class="text-red-500">*</span></label>
                         <div class="mt-1 relative rounded-md shadow-sm">
-                            <input type="text" name="phone" id="phone" value="{{ old('phone', isset($address) ? $address->phone : '') }}" 
-                                   class="form-input block w-full px-4 py-3 border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-lg transition-all duration-150" 
+                            <input type="text" name="phone" id="phone" value="{{ old('phone', isset($address) ? $address->phone : '') }}"
+                                   class="form-input block w-full px-4 py-3 border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-lg transition-all duration-150"
                                    placeholder="01700123456" required>
                             <div class="absolute inset-y-0 right-0 flex items-center pr-3">
                                 <i class="fas fa-phone text-gray-400"></i>
@@ -112,8 +112,8 @@
                     <div class="sm:col-span-6">
                         <label for="street_address" class="block text-sm font-medium text-gray-700 mb-1">Street Address <span class="text-red-500">*</span></label>
                         <div class="mt-1 relative rounded-md shadow-sm">
-                            <input type="text" name="street_address" id="street_address" value="{{ old('street_address', isset($address) ? $address->street_address : '') }}" 
-                                   class="form-input block w-full px-4 py-3 border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-lg transition-all duration-150" 
+                            <input type="text" name="street_address" id="street_address" value="{{ old('street_address', isset($address) ? $address->street_address : '') }}"
+                                   class="form-input block w-full px-4 py-3 border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-lg transition-all duration-150"
                                    placeholder="123 Main Road">
                             <div class="absolute inset-y-0 right-0 flex items-center pr-3">
                                 <i class="fas fa-map-marked-alt text-gray-400"></i>
@@ -133,7 +133,7 @@
                         <div class="mt-1 relative rounded-md shadow-sm">
                                 <select id="district_id" name="district_id" class="form-select appearance-none block w-full pl-3 pr-10 py-3 text-base border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-lg transition-all duration-150">
                                 <option value="">--Select District--</option>
-                                @foreach($districts as $district)
+                                @foreach($district as $district)
                                     <option value="{{ $district->id }}" @if(old('district_id', isset($address) ? $address->district_id : '') == $district->id) selected @endif>{{ $district->name }}</option>
                                 @endforeach
                             </select>
@@ -179,13 +179,13 @@
 
                     <!-- end district, upazilla, union -->
 
-                    
+
 
                     <div class="sm:col-span-2">
                         <label for="postal_code" class="block text-sm font-medium text-gray-700 mb-1">Postal Code <span class="text-red-500">*</span></label>
                         <div class="mt-1 relative rounded-md shadow-sm">
-                            <input type="text" name="postal_code" id="postal_code" value="{{ old('postal_code', isset($address) ? $address->postal_code : '') }}" 
-                                   class="form-input block w-full px-4 py-3 border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-lg transition-all duration-150" 
+                            <input type="text" name="postal_code" id="postal_code" value="{{ old('postal_code', isset($address) ? $address->postal_code : '') }}"
+                                   class="form-input block w-full px-4 py-3 border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-lg transition-all duration-150"
                                    placeholder="10001">
                             <div class="absolute inset-y-0 right-0 flex items-center pr-3">
                                 <i class="fas fa-mail-bulk text-gray-400"></i>
@@ -196,7 +196,7 @@
                         @enderror
                     </div>
 
-                   
+
                 </div>
 
                 <!-- Country and Default -->
@@ -222,9 +222,9 @@
                         <div class="flex items-center h-10 mt-1">
                             <!-- Hidden input to ensure a value is always sent -->
                             <input type="hidden" name="is_default" value="0">
-                    
-                            <input id="is_default" name="is_default" type="checkbox" 
-                                   class="focus:ring-primary-500 h-5 w-5 text-primary-600 border-gray-300 rounded transition-all duration-150" 
+
+                            <input id="is_default" name="is_default" type="checkbox"
+                                   class="focus:ring-primary-500 h-5 w-5 text-primary-600 border-gray-300 rounded transition-all duration-150"
                                    value="1"
                                    {{ old('is_default', isset($address) ? $address->is_default : false) ? 'checked' : '' }}>
                             <label for="is_default" class="ml-3 block text-sm text-gray-700">
@@ -232,7 +232,7 @@
                             </label>
                         </div>
                     </div>
-                    
+
                 </div>
             </div>
 
@@ -241,7 +241,7 @@
                     <i class="fas fa-times mr-2"></i>
                     Cancel
                 </a>
- 
+
                 <button type="submit" class="inline-flex items-center px-4 py-2.5 border border-transparent text-sm font-medium rounded-lg shadow-sm text-black bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-150">
                     <i class="fas fa-save mr-2"></i>
                     {{ isset($address) ? 'Update Address' : 'Save Address' }}
@@ -267,55 +267,79 @@
 </style>
 @endpush
 <script>
-    const districts = @json($districts);
+    $(document).ready(function() {
+        // Data already loaded from server
+        const districts = @json($district);
+        console.log('Districts loaded:', districts);
 
-    const selectedDistrictId = "{{ old('district_id', isset($address) ? $address->district_id : '') }}";
-    const selectedUpazilaId = "{{ old('upazila_id', isset($address) ? $address->upazila_id : '') }}";
-    const selectedUnionId = "{{ old('union_id', isset($address) ? $address->union_id : '') }}";
+        const selectedDistrictId = "{{ old('district_id', isset($address) ? $address->district_id : '') }}";
+        const selectedUpazilaId = "{{ old('upazila_id', isset($address) ? $address->upazila_id : '') }}";
+        const selectedUnionId = "{{ old('union_id', isset($address) ? $address->union_id : '') }}";
 
-    const districtSelect = document.getElementById('district_id');
-    const upazilaSelect = document.getElementById('upazila_id');
-    const unionSelect = document.getElementById('union_id');
+        const $districtSelect = $('#district_id');
+        const $upazilaSelect = $('#upazila_id');
+        const $unionSelect = $('#union_id');
 
-    function populateUpazilas(districtId, selectedUpazila = null) {
-        const upazilas = districts.find(d => d.id == districtId)?.upazilas || [];
-        upazilaSelect.innerHTML = '<option value="">--Select Upazila--</option>';
-        unionSelect.innerHTML = '<option value="">--Select Union--</option>';
+        function populateUpazilas(districtId, selectedUpazila = null) {
+            console.log('populateUpazilas called with:', districtId, selectedUpazila);
 
-        upazilas.forEach(u => {
-            const selected = (u.id == selectedUpazila) ? 'selected' : '';
-            upazilaSelect.innerHTML += `<option value="${u.id}" ${selected}>${u.name}</option>`;
+            const district = districts.find(d => d.id == districtId);
+            console.log('Found district:', district);
+
+            const upazilas = district ? district.upazila : [];
+            console.log('Upazilas:', upazilas);
+
+            $upazilaSelect.html('<option value="">--Select Upazila--</option>');
+            $unionSelect.html('<option value="">--Select Union--</option>');
+
+            upazilas.forEach(upazila => {
+                const selected = (upazila.id == selectedUpazila) ? 'selected' : '';
+                $upazilaSelect.append(`<option value="${upazila.id}" ${selected}>${upazila.name}</option>`);
+            });
+
+            // If there's a selected upazila, trigger load unions
+            if (selectedUpazila) {
+                populateUnions(districtId, selectedUpazila, selectedUnionId);
+            }
+        }
+
+        function populateUnions(districtId, upazilaId, selectedUnion = null) {
+            console.log('populateUnions called with:', districtId, upazilaId, selectedUnion);
+
+            const district = districts.find(d => d.id == districtId);
+            const upazila = district?.upazila?.find(u => u.id == upazilaId);
+            const unions = upazila ? upazila.union : [];
+
+            console.log('Unions:', unions);
+
+            $unionSelect.html('<option value="">--Select Union--</option>');
+
+            unions.forEach(union => {
+                const selected = (union.id == selectedUnion) ? 'selected' : '';
+                $unionSelect.append(`<option value="${union.id}" ${selected}>${union.name}</option>`);
+            });
+        }
+
+        // Event handlers
+        $districtSelect.on('change', function() {
+            const districtId = $(this).val();
+            console.log('District changed to:', districtId);
+            populateUpazilas(districtId);
         });
-    }
 
-    function populateUnions(districtId, upazilaId, selectedUnion = null) {
-        const upazilas = districts.find(d => d.id == districtId)?.upazilas || [];
-        const selectedUpazila = upazilas.find(u => u.id == upazilaId);
-        const unions = selectedUpazila?.unions || [];
-        unionSelect.innerHTML = '<option value="">--Select Union--</option>';
-
-        unions.forEach(u => {
-            const selected = (u.id == selectedUnion) ? 'selected' : '';
-            unionSelect.innerHTML += `<option value="${u.id}" ${selected}>${u.name}</option>`;
+        $upazilaSelect.on('change', function() {
+            const districtId = $districtSelect.val();
+            const upazilaId = $(this).val();
+            console.log('Upazila changed to:', upazilaId);
+            populateUnions(districtId, upazilaId);
         });
-    }
 
-    // Populate on change
-    districtSelect.addEventListener('change', function () {
-        populateUpazilas(this.value);
+        // Initial population (for edit or old input)
+        if (selectedDistrictId) {
+            console.log('Initial population with:', selectedDistrictId, selectedUpazilaId);
+            populateUpazilas(selectedDistrictId, selectedUpazilaId);
+        }
     });
-
-    upazilaSelect.addEventListener('change', function () {
-        populateUnions(districtSelect.value, this.value);
-    });
-
-    // Initial population (for edit or old input)
-    if (selectedDistrictId) {
-        populateUpazilas(selectedDistrictId, selectedUpazilaId);
-    }
-    if (selectedDistrictId && selectedUpazilaId) {
-        populateUnions(selectedDistrictId, selectedUpazilaId, selectedUnionId);
-    }
 </script>
 
 @endsection
