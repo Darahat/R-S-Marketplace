@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Http\Requests;
-
+use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
 
 class BrandRequest extends FormRequest
@@ -11,10 +11,16 @@ class BrandRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true;
+        if($this->isMethod('get')){
+            return true;
+        }
+        $user = $this->user();
+        //For POST, PUT, PATCH, Delete
+        return $user && $user->isAdmin();
     }
 
     /**
+     *
      * Get the validation rules that apply to the request.
      *
      * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
