@@ -2,12 +2,19 @@
 
 namespace App\Providers;
 use Illuminate\Support\Facades\View;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 use App\Models\Cart;
 use App\Models\Wishlist;
+use App\Models\UserPaymentMethod;
+use App\Models\Address;
+use App\Models\Brand;
+use App\Models\Category;
+use App\Policies\PaymentMethodPolicy;
+use App\Policies\UserAddressPolicy;
+use App\Policies\BrandPolicy;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -25,15 +32,21 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Register Policies
+        Gate::policy(UserPaymentMethod::class, PaymentMethodPolicy::class);
+        Gate::policy(Address::class, UserAddressPolicy::class);
+        Gate::policy(Brand::class, BrandPolicy::class);
+
+        // Register API Routes
         Route::middleware('api')
         ->prefix('api')
         ->group(base_path('routes/api.php'));
+
+        // Share data with navigation view
         View::composer('frontend_view.components.shared.navigation_bar', function ($view) {
             $categories = Cache::remember('nav_categories', 60, function () {
-                $allCategories = DB::table('categories')
-                    ->where('status', true)
-                    ->orderBy('name', 'asc')
-                    ->get();
+                $allCategories = Category::where('status',true)->orderBy('name', 'asc')->get();
+
 
                 $categories = $allCategories->whereNull('parent_id')->values();
                 $subcategories = $allCategories->whereNotNull('parent_id');

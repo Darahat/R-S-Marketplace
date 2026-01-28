@@ -18,6 +18,9 @@ class User extends Authenticatable
      *
      * @var list<string>
      */
+    const ADMIN = 'ADMIN';
+    const CUSTOMER = 'CUSTOMER';
+
     protected $fillable = [
         'name',
         'email',
@@ -89,4 +92,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(UserPaymentMethod::class);
     }
+
+    public function isAdmin():bool{
+        return $this->user_type === self::ADMIN;
+    }
+
 }

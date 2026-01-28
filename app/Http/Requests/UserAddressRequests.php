@@ -33,7 +33,7 @@ class UserAddressRequests extends FormRequest
             'postal_code' => 'required|string|max:20',
             'country' => 'required|string|max:100',
             /// in checks is the incoming value 1 or 0
-            'is_default' => 'required|in:1,0',
+            'is_default' => 'sometimes|boolean',
         ];
     }
     /*
