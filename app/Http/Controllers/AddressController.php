@@ -1,18 +1,13 @@
 <?php
 
 namespace App\Http\Controllers;
-
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
-use App\Models\District;
 use App\Repositories\UserAddressRepository;
 use App\Http\Requests\UserAddressRequests;
 use App\Services\AddressService;
 use Illuminate\Support\Facades\Log;
-use function PHPUnit\Framework\throwException;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
-
+use App\Models\Address;
 class AddressController extends Controller
 {
     use AuthorizesRequests;
@@ -24,9 +19,9 @@ class AddressController extends Controller
      */
     public function index()
     {
-        $user = Auth::user();
-        $shippingAddresses =$this->repo->getUserShippingAddress($user->id);
-        $billingAddresses = $this->repo->getUserBillingAddress($user->id);
+        $userId = Auth::id();
+        $shippingAddresses =$this->repo->getUserShippingAddress($userId);
+        $billingAddresses = $this->repo->getUserBillingAddress($userId);
         return view('backend_panel_view_customer.pages.address_list', compact('shippingAddresses', 'billingAddresses'));
     }
 
@@ -35,7 +30,9 @@ class AddressController extends Controller
      */
     public function create()
     {
-        return view('backend_panel_view_customer.pages.create_edit_address', ['district' => $this->repo->getDistricts()]);
+        $this->authorize('create', Address::class);
+        $district =  $this->repo->getDistricts();
+        return view('backend_panel_view_customer.pages.create_edit_address', ['district' => $district]);
     }
 
     /**
@@ -43,36 +40,33 @@ class AddressController extends Controller
      */
     public function store(UserAddressRequests $request)
     {
-        $user = Auth::user();
-        // return $request->all();
-       $validated = $request->validated();
-
-        // If setting as default, remove default status from other addresses of same type
-        if ($request->has('is_default') && $request->is_default) {
-            $this->repo->unsetOtherDefaults($user->id,$validated->address_type,$validated->id,true);
-
-        }
-        try{
-        $this->repo->createAddress($validated);
+        $this->authorize('create', Address::class);
+        $validated = $request->validated();
+        $this->service->createAddress(Auth::id(),$validated);
         return redirect()->route('customer.addresses.index')
             ->with('success', 'Address added successfully!');
-        }catch (\Exception $e) {
-            Log::error('Checkout error: ' . $e->getMessage());
-            return redirect()->back()
-                ->with('error', 'There was an error processing your order: ' . $e->getMessage())
-                ->withInput();
-        }
     }
-    /**
-     * Update the specified address in storage.
-     */
+
+   public function edit($address_id,$user_id){
+        $address = $this->repo->findAddress($address_id);
+        abort_if(!$address,404,'Address Not found');
+        $district = $this->repo->getDistricts();
+        return view('backend_panel_view_customer.pages.create_edit_address', compact('address', 'district'));
+
+    }
+
     public function update(UserAddressRequests $request, $address_id, $user_id)
     {
         $address = $this->repo->findAddress($address_id);
         abort_if(!$address, 404);
         $this->authorize('update', $address);
         $validated = $request->validated();
-        $this->service->updateAddress($address, $request->validate());
+        $success = $this->service->updateAddress($address_id, $user_id, $validated);
+         if (!$success) {
+            return redirect()->back()
+                ->with('error', 'Failed to update address.')
+                ->withInput();
+        }
         return redirect()->route('customer.addresses.index')
             ->with('success', 'Address updated successfully!');
     }
@@ -81,8 +75,14 @@ class AddressController extends Controller
      */
     public function destroy($address_id, $user_id)
     {
-
-        $this->service->destroyAddress($address_id, $user_id);
+        $address = $this->repo->findAddress($address_id);
+        $this->authorize('delete', $address);
+        abort_if(!$address, 404, 'Address not found');
+       $success = $this->service->destroyAddress($address_id, Auth::id());
+        if (!$success) {
+            return redirect()->back()
+                ->with('error', 'Failed to delete address.');
+        }
         return redirect()->route('customer.addresses.index')
             ->with('success', 'Address deleted successfully!');
     }
@@ -91,25 +91,19 @@ class AddressController extends Controller
      * Set an address as default for its type.
      */
     public function setDefault($address_id, $user_id)
-    {
-       $this->service->setDefault($address_id, $user_id);
+    { $address = $this->repo->findAddress($address_id);
+
+        abort_if(!$address, 404, 'Address not found');
+
+        $this->authorize('update', $address);
+
+       $success = $this->service->toggleDefault($address_id, $user_id);
+        if (!$success) {
+            return redirect()->back()
+                ->with('error', 'Failed to update default address.');
+        }
         return redirect()->route('customer.addresses.index')
             ->with('success', 'Default address updated successfully!');
     }
-    public function edit($address_id,$user_id)
-    {
-         $user = Auth::user();
-          // Verify the address belongs to the authenticated user
-        if ( intval($user_id) !== $user->id) {
-            abort(403);
-        }else{
-            $district =  $this->repo->getDistricts();
-            $address = $this->repo->findAddress($address_id);
-            if (!$address) {
-                abort(404);
-            }
-        }
 
-        return view('backend_panel_view_customer.pages.create_edit_address', compact('address','district'));
-    }
 }

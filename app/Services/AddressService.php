@@ -4,7 +4,7 @@ namespace App\Services;
 use App\Repositories\UserAddressRepository;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
-use App\Model\Address;
+use App\Models\Address;
 class AddressService{
       use AuthorizesRequests;
     public function __construct(private UserAddressRepository $repo)
@@ -31,22 +31,18 @@ class AddressService{
     $newIsDefault = $data['is_default'] ?? false;
     $oldIsDefault = $address->is_default;
 
-    if($newIsDefault && !$oldIsDefault){
-        $this->repo->unsetOtherDefaults($userId,$address->addressType,$addressId,false);
-    }elseif(!$newIsDefault && $oldIsDefault){
-        $fallbackAddress =$this->findFallbackAddress($userId, $address->address_type, $addressId);
-        if($fallbackAddress){
-            $this->repo->updateAddress($fallbackAddress->id, ['is_default' => true]);
-        }
-    }
+    if ($newIsDefault !== $oldIsDefault) {
+    $this->handleDefaultChange(
+        $userId,
+        $address->address_type,
+        $addressId,
+        $newIsDefault
+    );
+}
+
     return $this->repo->updateAddress($addressId,$data);
     }
-$this->handleDefaultChange(
-        $userId,
-        $data['address_type'],
-        0,
-        true
-    );
+
     public function destroyAddress($address_id, $user_id){
          $user = Auth::user();
 
@@ -65,12 +61,12 @@ $this->handleDefaultChange(
 
         // If this was the default address, set another one as default
         if ($address->is_default) {
-            $newDefault = $this->repo->findAddress($address_id);
-$data = ['is_default' => true];
-            if ($newDefault) {
-            $this->repo->updateAddress($address_id,$data);
-
-            }
+               $this->handleDefaultChange(
+        $user_id,
+        $address->address_type,
+        $address_id,
+        false
+    );
         }
 
          try {
@@ -94,7 +90,21 @@ $data = ['is_default' => true];
             }
         }
     }
-
+    public function toggleDefault(int $address_id, int $user_id):bool{
+ $address = $this->repo->findAddress($address_id);
+    if(!$address){
+        return false;
+    }
+     if ($address->is_default) {
+           $this->handleDefaultChange(
+        $user_id,
+        $address->address_type,
+        $address_id,
+        false
+    );
+     }
+     return $this->repo->updateAddress($address_id,['is_default'=> !$address->is_default]);
+    }
 
     private function findFallbackAddress(int $userId, String $address_type, int $excludeId): ?Address{
         // Get all addresses of same type except the one we're excluding
