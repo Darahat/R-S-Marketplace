@@ -16,5 +16,5 @@ Route::group(['prefix' => 'customer', 'middleware' => 'auth:sanctum', 'web'], fu
 Route::group(['prefix' => 'customer', 'middleware' => ['auth:sanctum', 'web']], function () {
     Route::post('/profile/update', [CustomerProfileApiController::class, 'update'])->name('customer.profile.update');
     Route::get('/profile/photo', [CustomerProfileApiController::class, 'instant_photo_view'])->name('customer.profile.photo');
- 
+
 });

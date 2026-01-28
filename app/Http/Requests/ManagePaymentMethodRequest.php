@@ -21,8 +21,7 @@ class ManagePaymentMethodRequest extends FormRequest
     public function rules(): array
     {
         return [
-             'payment_method_id' => ['required','integer'],
-
+            'payment_method_id' => ['required','integer'],
         ];
     }
 }

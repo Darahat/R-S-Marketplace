@@ -6,7 +6,10 @@ use Illuminate\Database\Eloquent\Model;
 
 class Upazila extends Model
 {
-    public function unions() {
+    public function union() {
         return $this->hasMany(Union::class);
+    }
+    public function district() {
+        return $this->belongsTo(District::class);
     }
 }
