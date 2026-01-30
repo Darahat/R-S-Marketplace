@@ -5,25 +5,29 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Brand;
 use App\Models\Category;
+use App\Services\BrandService;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Validator;
-
+use App\Repositories\BrandRepository;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 class BrandController extends Controller
 {
+    use AuthorizesRequests;
     protected $page_title;
 
-    public function __construct()
-    {
-        $this->page_title = "Brand Management";
-    }
 
+public function __construct(private BrandRepository $repo, private BrandService $service)
+    {
+              $this->page_title = "Brand Management";
+    }
     /**
      * Display a listing of brands
      */
     public function index()
     {
-        $brands = Brand::orderBy('created_at', 'desc')->paginate(15);
-        $categories = Category::where('status', true)->orderBy('name')->get();
+        $this->authorize('view', Brand::class);
+        $brands = $this->repo->getAllBrands();
+        $categories =  $this->repo->getAllCategory();
 
         return view('backend_panel_view.pages.brands.index', [
             'brands' => $brands,
@@ -38,7 +42,8 @@ class BrandController extends Controller
      */
     public function create()
     {
-        $categories = Category::where('status', true)->orderBy('name')->get();
+        $this->authorize('create', Brand::class);
+        $categories = $this->repo->getAllCategory();
 
         return view('backend_panel_view.pages.brands.create', [
             'categories' => $categories,
