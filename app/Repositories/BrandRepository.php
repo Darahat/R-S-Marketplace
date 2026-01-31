@@ -7,19 +7,16 @@ use Illuminate\Support\Collection;
 
 class BrandRepository{
     public function getAllBrands():Collection{
-        $brands = Brand::where('status', true)->orderBy('name')->get();
-        return $brands;
+        return Brand::where('status', true)->orderBy('name')->get();
     }
     public function getAllCategory():Collection{
-        $category =  Category::where('status', true)->orderBy('name')->get();
-        return $category;
+        return Category::where('status', true)->orderBy('name')->get();
     }
     public function createBrand(array $data):?Brand{
         return Brand::create($data);
     }
     public function findBrand(int $id):?Brand{
-        $brand = Brand::findOrFail($id);
-        return $brand;
+        return Brand::find($id);
     }
     public function updateBrand(array $data,int $brandId):bool{
         return Brand::where('id',$brandId)->update($data);

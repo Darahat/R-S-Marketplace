@@ -1,7 +1,6 @@
 <?php
 
 namespace App\Http\Requests;
-use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
 
 class BrandRequest extends FormRequest
@@ -11,12 +10,7 @@ class BrandRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        if($this->isMethod('get')){
-            return true;
-        }
-        $user = $this->user();
-        //For POST, PUT, PATCH, Delete
-        return $user && $user->isAdmin();
+        return true;
     }
 
     /**
@@ -27,10 +21,22 @@ class BrandRequest extends FormRequest
      */
     public function rules(): array
     {
+        $brandId = $this->route('id');
         return [
-            'name' => 'required|string|max:255|unique:brands',
-            'category_id' => 'nullable|array|exists:categories,id',
-            'status' => 'nullable|in:1',
+            'name' => 'required|string|max:255|unique:brands,name,' . ($brandId ?? 'NULL'),
+            'category_id' => 'nullable|array',
+            'category_id.*' => 'exists:categories,id',
+            'status' => 'required|boolean',
         ];
     }
+     protected function prepareForValidation(): void
+    {
+        // Convert checkbox to boolean
+        if ($this->has('status')) {
+            $this->merge([
+                'status' => filter_var($this->status, FILTER_VALIDATE_BOOLEAN),
+            ]);
+        }
+    }
+
 }
