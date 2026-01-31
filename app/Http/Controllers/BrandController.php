@@ -4,26 +4,28 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Brand;
-use App\Models\Category;
-use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Validator;
-
+use App\Services\BrandService;
+use App\Repositories\BrandRepository;
+use App\Http\Requests\BrandRequest;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 class BrandController extends Controller
 {
+    use AuthorizesRequests;
     protected $page_title;
 
-    public function __construct()
-    {
-        $this->page_title = "Brand Management";
-    }
 
+public function __construct(private BrandRepository $repo, private BrandService $service)
+    {
+              $this->page_title = "Brand Management";
+    }
     /**
      * Display a listing of brands
      */
     public function index()
     {
-        $brands = Brand::orderBy('created_at', 'desc')->paginate(15);
-        $categories = Category::where('status', true)->orderBy('name')->get();
+        $this->authorize('viewAny', Brand::class);
+        $brands = $this->repo->getAllBrands();
+        $categories =  $this->repo->getAllCategory();
 
         return view('backend_panel_view.pages.brands.index', [
             'brands' => $brands,
@@ -38,7 +40,8 @@ class BrandController extends Controller
      */
     public function create()
     {
-        $categories = Category::where('status', true)->orderBy('name')->get();
+        $this->authorize('create', Brand::class);
+        $categories = $this->repo->getAllCategory();
 
         return view('backend_panel_view.pages.brands.create', [
             'categories' => $categories,
@@ -50,27 +53,19 @@ class BrandController extends Controller
     /**
      * Store a newly created brand
      */
-    public function store(Request $request)
+    public function store(BrandRequest $request)
     {
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255|unique:brands',
-            'category_id' => 'nullable|array',
-            'status' => 'required|boolean',
-        ]);
-
-        if ($validator->fails()) {
-            return redirect()->back()
-                ->withErrors($validator)
-                ->withInput();
+        ///authorize
+        $this->authorize('create', Brand::class);
+        /// validate data
+        $validated = $request->validated();
+        /// create brand
+        $brand = $this->service->createBrand($validated);
+        ///Return message
+        if(!$brand){
+             return redirect()->back()
+            ->with('error', 'Failed to create brand.')->withInput();
         }
-
-        $brand = new Brand();
-        $brand->name = $request->name;
-        $brand->slug = Str::slug($request->name);
-        $brand->category_id = $request->category_id ? implode(',', $request->category_id) : null;
-        $brand->status = $request->status;
-        $brand->save();
-
         return redirect()->route('admin.brands.index')
             ->with('success', 'Brand created successfully!');
     }
@@ -79,10 +74,13 @@ class BrandController extends Controller
      * Show the form for editing a brand
      */
     public function edit($id)
-    {
-        $brand = Brand::findOrFail($id);
-        $categories = Category::where('status', true)->orderBy('name')->get();
-        $selectedCategories = $brand->category_id ? explode(',', $brand->category_id) : [];
+    {   $brand = $this->repo->findBrand($id);
+        $this->authorize('update', $brand);
+         $categories =  $this->repo->getAllCategory();
+
+        ///Business Logic: Format category_id array to comma-separated string
+        $selectedCategories = $this->service->getSelectedCategories($brand);
+
 
         return view('backend_panel_view.pages.brands.edit', [
             'brand' => $brand,
@@ -96,27 +94,18 @@ class BrandController extends Controller
     /**
      * Update the specified brand
      */
-    public function update(Request $request, $id)
+    public function update(BrandRequest $request, $id)
     {
-        $brand = Brand::findOrFail($id);
+        $brand = $this->repo->findBrand($id);
+        $this->authorize('update', $brand);
+        /// validate data
+        $validated = $request->validated();
 
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255|unique:brands,name,' . $id,
-            'category_id' => 'nullable|array',
-            'status' => 'required|boolean',
-        ]);
-
-        if ($validator->fails()) {
+        $brandUpdate = $this->service->updateBrand($validated, $id);
+        if(!$brandUpdate){
             return redirect()->back()
-                ->withErrors($validator)
-                ->withInput();
+            ->with('error', 'Brand update failed!')->withInput();
         }
-
-        $brand->name = $request->name;
-        $brand->slug = Str::slug($request->name);
-        $brand->category_id = $request->category_id ? implode(',', $request->category_id) : null;
-        $brand->status = $request->status;
-        $brand->save();
 
         return redirect()->route('admin.brands.index')
             ->with('success', 'Brand updated successfully!');
@@ -127,16 +116,14 @@ class BrandController extends Controller
      */
     public function destroy($id)
     {
-        $brand = Brand::findOrFail($id);
-
-        // Check if brand has products
-        if ($brand->products()->count() > 0) {
-            return redirect()->back()
+        $brand = $this->repo->findBrand($id);
+        $this->authorize('delete', $brand);
+         /// delete brand
+        $success = $this->service->destroy($id);
+        if($success == false){
+        return redirect()->back()
                 ->with('error', 'Cannot delete brand with associated products!');
         }
-
-        $brand->delete();
-
         return redirect()->route('admin.brands.index')
             ->with('success', 'Brand deleted successfully!');
     }
@@ -146,13 +133,13 @@ class BrandController extends Controller
      */
     public function toggleStatus($id)
     {
-        $brand = Brand::findOrFail($id);
-        $brand->status = !$brand->status;
-        $brand->save();
+        $brand = $this->repo->findBrand($id);
+        $this->authorize('update', $brand);
+        $newStatus = $this->service->toggleStatus($id);
 
         return response()->json([
             'success' => true,
-            'status' => $brand->status,
+            'status' => $newStatus,
             'message' => 'Brand status updated successfully!'
         ]);
     }
