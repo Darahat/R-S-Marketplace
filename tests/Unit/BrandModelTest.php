@@ -36,7 +36,8 @@ class BrandModelTest extends TestCase{
 
     $this->assertEquals('Nike', $brand->name);
     }
-    public function test_brand_has_many_products(){
+    public function test_brand_has_many_products()
+    {
         /// Arrange: create a brand
         $brand = Brand::factory()->create();
 
@@ -45,8 +46,8 @@ class BrandModelTest extends TestCase{
             'brand_id' => $brand->id,
         ]);
 
-        // Assert: Check the Relatinoship
+        // Assert: Check the Relationship
         $this->assertCount(3, $brand->products);
-        $this->assertInstanceOf(Product::class, $brand->products);
+        $this->assertInstanceOf(Product::class, $brand->products->first());
     }
 }

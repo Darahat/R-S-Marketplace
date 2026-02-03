@@ -24,15 +24,15 @@ return new class extends Migration
             // Consolidated: image column for category thumbnails/icons
             $table->string('image')->nullable();
 
-            $table->unsignedBigInteger('created_by')->nullable(); // user who created
+            $table->unsignedBigInteger('created_by'); // user who created
             $table->unsignedBigInteger('updated_by')->nullable(); // user who last updated
 
             $table->timestamps();
 
             // Foreign keys
             $table->foreign('parent_id')->references('id')->on('categories')->onDelete('cascade');
-            $table->foreign('created_by')->references('id')->on('users')->onDelete('set null');
-            $table->foreign('updated_by')->references('id')->on('users')->onDelete('set null');
+            $table->foreign('created_by')->references('id')->on('users')->onDelete('cascade');
+            $table->foreign('updated_by')->references('id')->on('users')->onDelete('cascade');
         });
     }
 

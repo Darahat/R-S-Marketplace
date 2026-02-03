@@ -29,12 +29,7 @@ return new class extends Migration
             $table->string('image')->nullable();
             $table->unsignedBigInteger('category_id')->nullable();
             $table->unsignedBigInteger('brand_id')->nullable();
-            $table->decimal('purchase_price', 10, 2)->nullable();
             $table->timestamps();
-
-            // Foreign keys
-            $table->foreign('category_id')->references('id')->on('categories')->onDelete('set null');
-            $table->foreign('brand_id')->references('id')->on('brands')->onDelete('set null');
         });
     }
 

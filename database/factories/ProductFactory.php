@@ -26,13 +26,11 @@ class ProductFactory extends Factory
             'slug' => Str::slug($name),
             'description' => fake()->paragraphs(3, true),
             'price' => fake()->randomFloat(2, 100, 1000),
-            'purchase_price' => fake()->optional()->randomFloat(2, 50, 500),
-            'discount_price' => fake()->randomFloat(2, 0, 300), // Always set, default 0 in migration
+            'discount_price' => fake()->boolean(30) ? fake()->randomFloat(2, 10, 300) : 0, // 30% chance of discount
             'sold_count' => fake()->numberBetween(0, 5000),
             'featured' => fake()->boolean(20), // 20% chance
             'image' => fake()->optional()->imageUrl(640, 480, 'product'),
             'category_id' => Category::factory(),
-            'brand_id' => Brand::factory(),
             'stock' => fake()->numberBetween(0, 1000),
             'is_best_selling' => fake()->boolean(15),
             'is_latest' => fake()->boolean(30),

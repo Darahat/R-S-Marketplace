@@ -29,10 +29,10 @@ class CategoryFactory extends Factory
             'status' => fake()->boolean(90), // 90% active
             'is_featured' => fake()->boolean(30), // 30% featured
             'is_new' => fake()->boolean(20), // 20% new
-            'discount_price' => fake()->randomFloat(2, 0, 50), // Always set, default 0 in migration
+            'discount_price' => fake()->boolean(40) ? fake()->randomFloat(2, 5, 50) : 0, // 40% chance of discount
             'parent_id' => null, // Default to top-level
-            'created_by' => null, // Nullable in migration, set when needed
-            'updated_by' => null, // Nullable in migration
+            'created_by' => User::factory(),
+            'updated_by' => User::factory(),
         ];
     }
 
