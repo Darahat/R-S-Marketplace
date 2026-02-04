@@ -50,4 +50,21 @@ class BrandModelTest extends TestCase{
         $this->assertCount(3, $brand->products);
         $this->assertInstanceOf(Product::class, $brand->products->first());
     }
+    public function test_brand_returns_correct_categories(){
+        // Arrange: Create Categories
+        $category1 = Category::factory()->create(['id' => 5]);
+        $category2 = Category::factory()->create(['id' => 10]);
+
+        // Create brand with those category IDs
+        $brand = Brand::factory()->create([
+            'category_id' => '5,10',
+        ]);
+        // Act: Get categories
+        $categories = $brand->categories();
+
+        //Assert: Should have 2 categories
+        $this->assertCount(2, $categories);
+        $this->assertTrue($categories->contains('id', 5));
+        $this->assertTrue($categories->contains('id', 10));
+    }
 }
