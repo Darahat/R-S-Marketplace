@@ -28,6 +28,7 @@ return new class extends Migration
             $table->boolean('is_todays_deal')->default(false);
             $table->string('image')->nullable();
             $table->unsignedBigInteger('category_id')->nullable();
+            $table->unsignedBigInteger('brand_id')->nullable();
             $table->timestamps();
         });
     }

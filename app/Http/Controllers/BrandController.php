@@ -118,10 +118,10 @@ public function __construct(private BrandRepository $repo, private BrandService 
     {
         $brand = $this->repo->findBrand($id);
         $this->authorize('delete', $brand);
-         /// delete brand
+
         $success = $this->service->destroy($id);
-        if($success == false){
-        return redirect()->back()
+        if (!$success) {
+            return redirect()->back()
                 ->with('error', 'Cannot delete brand with associated products!');
         }
         return redirect()->route('admin.brands.index')
