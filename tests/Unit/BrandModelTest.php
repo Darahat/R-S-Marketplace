@@ -67,4 +67,15 @@ class BrandModelTest extends TestCase{
         $this->assertTrue($categories->contains('id', 5));
         $this->assertTrue($categories->contains('id', 10));
     }
+    public function test_brand_without_categories_returns_empty(){
+        // Arrange: Create brand with null category_id
+        $brand = Brand::factory()->create([
+            'category_id' => null,
+        ]);
+        // Act
+        $categories = $brand->categories();
+
+        // Assert
+        $this->assertCount(0, $categories);
+    }
 }
