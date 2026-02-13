@@ -89,7 +89,7 @@ Route::prefix('wishlist')->group(function () {
 // Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::get('/login', function () {
     return view('errors.page-not-found');
-});
+})->name('login');
 Route::post('/login', [AuthController::class, 'login'])->name('checklogin');
 
 // Admin Login

@@ -18,7 +18,7 @@ class IsAdmin
     {
         // Check if user is authenticated and is an admin
         if (!Auth::check()) {
-            return redirect()->route('admin.login');
+            return redirect()->route('login');
         }
 
         $user = Auth::user();

@@ -1,0 +1,216 @@
+<?php
+
+namespace Tests\Feature;
+
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\WithFaker;
+use Tests\TestCase;
+use App\Models\Brand;
+use App\Models\Category;
+use App\Models\User;
+
+class BrandTest extends TestCase
+{
+     use RefreshDatabase;
+     protected User $admin;
+     protected User $regularUser;
+
+     protected function setUp(): void{
+        parent::setUp();
+
+        // Create test users for every test
+        $this->admin =  User::factory()->create(['user_type' => User::ADMIN]);
+        $this->regularUser = User::factory()->create(['user_type' => User::CUSTOMER]);
+     }
+
+     public function test_setup_works(){
+        $this->assertNotNull($this->admin);
+        $this->assertNotNull($this->regularUser);
+     }
+
+     public function test_admin_can_view_brands_index_page(){
+        // Arrange: Create some brands
+        Brand::factory()->count(3)->create(['status' => true]);
+
+        $this->admin->assignRole('admin');
+        // Act: Visit the brands page as admin
+        $response =  $this->actingAs($this->admin)->get(route('admin.brands.index'));
+        // Assert: Check response
+
+        $response->assertStatus(200);
+        $response->assertViewIs('backend_panel_view.pages.brands.index');
+        $response->assertViewHas('brands');
+
+     }
+     public function test_regular_user_cannot_view_brands_index(){
+        // Act: Try to visit as regular user
+        $response = $this->actingAs($this->regularUser)->get(route('admin.brands.index'));
+        // Assert: Should be denied
+        $response->assertStatus(302); /// HTTP 403 Forbidden
+        $response->assertRedirect();
+     }
+
+     public function test_guest_is_redirected_to_login(){
+        // Act: Visit without logging in
+        $response = $this->get(route('admin.brands.index'));
+        // Assert: Redirected to login
+        $response->assertRedirect();
+     }
+     public function test_admin_can_create_brand(){
+        // Arrange: Create categories first
+        $category1 = Category::factory()->create(['status' => true]);
+        $category2 = Category::factory()->create(['status' => true]);
+
+        // Prepare brand data
+        $brandData = [
+            'name' => 'Nike',
+            'slug' => 'nike',
+            'category_id' => [$category1->id, $category2->id],
+            'status' => true,
+        ];
+
+        // Act: Submit form as admin
+        $response = $this->actingAs($this->admin)->post(route('admin.brands.store'), $brandData);
+        // Assert: Redirected to index with success message
+        $response->assertRedirect(route('admin.brands.index'));
+        $response->assertSessionHas('success', 'Brand created successfully!');
+        // Check Database
+        $this->assertDatabaseHas('brands', [
+            'name' => 'Nike',
+            'slug' => 'nike',
+        ]);
+     }
+
+     public function test_create_brand_requires_name(){
+        // Arrange: Data without name
+        $invalidData = [
+            'slug' => 'nike',
+            'status' => true,
+        ];
+        $this->admin->assignRole('admin');
+        // Act: Try to create
+        $response = $this->actingAs($this->admin)->post(route('admin.brands.store'),$invalidData);
+
+        // Assert: Validation error
+        $response->assertSessionHasErrors('name');
+
+        // Brand should Not be in database
+        $this->assertDatabaseMissing('brands',[
+            'slug' => 'nike',
+        ]);
+
+     }
+
+     public function test_cannot_create_brand_with_duplicate_slug(){
+        // Arrange: Create existing brand
+        Brand::factory()->create(['slug' => 'nike']);
+         $this->admin->assignRole('admin');
+        // Act: Try to create another with same slug
+        $response = $this->actingAs($this->admin)->post(route('admin.brands.store'),[
+                         'name' => 'Nike 2',
+                         'slug' => 'nike', // Duplicate!
+                         'status' => true,
+                     ]);
+
+        // Assert: Should have validation error
+        $response->assertSessionHasErrors('slug');
+     }
+    public function test_admin_can_update_brand(){
+        // Arrange: Create categories first
+        $category1 = Category::factory()->create(['status' => true]);
+        $category2 = Category::factory()->create(['status' => true]);
+
+        // Create a brand
+        $brand = Brand::factory()->create([
+            'name' => 'Old Name',
+            'slug' => 'old-name',
+        ]);
+        $this->admin->assignRole('admin');
+        // Act: Update it
+        $response = $this->actingAs($this->admin)->put(route('admin.brands.update', $brand->id),[
+            'name' => 'New Name',
+            'slug' => 'new-name',
+            'category_id' => [$category1->id, $category2->id],
+            'status' => true,
+        ]);
+        // Assert: Success
+        $response->assertRedirect(route('admin.brands.index'));
+        $response->assertSessionHas('success');
+        //Check database updated
+        $this->assertDatabaseHas('brands', [
+            'id' => $brand->id,
+            'name' => 'New Name',
+        ]);
+    }
+    public function test_admin_can_delete_brand(){
+        // Arrange: Create a brand
+        $brand =  Brand::factory()->create(['name' =>'To Delete']);
+        // Act: Delete it
+        $response = $this->actingAs($this->admin)->delete(route('admin.brands.destroy', $brand->id));
+
+        // Assert: Success
+        $response->assertRedirect(route('admin.brands.index'));
+        $response->assertSessionHas('success');
+
+        // Check database
+        $this->assertDatabaseMissing('brands',[
+            'id' => $brand->id,
+        ]);
+    }
+    public function test_regular_user_cannot_create_brand(){
+
+        // Act: Try to create as regular user
+        $response = $this->actingAs($this->regularUser)->post(route('admin.brands.store'),[
+            'name' => 'Nike',
+            'slug' => 'nike',
+            'status' => true
+        ]);
+
+        // Assert: Redirected (middleware blocks non-admin users)
+        $response->assertStatus(302);
+        $response->assertRedirect(route('home'));
+
+        //Should Not be in database
+        $this->assertDatabaseMissing('brands',[
+            'name'=> 'Nike',
+        ]);
+    }
+    public function test_complete_brand_management_workflow(){
+        // 1. View empty list
+        $response = $this->actingAs($this->admin)->get(route('admin.brands.index'));
+        $response->assertStatus(200);
+
+        // 2. Create brand
+        $response = $this->actingAs($this->admin)->post(route('admin.brands.store'),[
+            'name' => 'Nike',
+            'slug' => 'nike',
+            'category_id' => '1',
+            'status' => true,
+        ]);
+    $response->assertRedirect(route('admin.brands.index'));
+
+    // 3. Verify it exists
+
+    $brand = Brand::where('slug', 'nike')->first();
+    $this->assertNotNull($brand);
+
+    // 4. Update it
+    $response = $this->actingAs($this->admin)->put(route('admin.brands.update', $brand->id),[
+        'name' => 'Nike Updated',
+        'slug' => 'nike-updated',
+        'category_id' => '2',
+        'status' => true,
+    ]);
+    $response->assertRedirect();
+    // 5. Verify update
+    $brand->refresh();
+    $this->assertEquals('Nike Updated', $brand->name);
+
+    // 6. Delete it
+    $response = $this->actingAs($this->admin)->delete(route('admin.brands.destroy', $brand->id));
+    $response->assertRedirect();
+
+    // 7. Verify deletion
+    $this->assertDatabaseEmpty('brands', ['id' => $brand->id]);
+    }
+}

@@ -24,7 +24,7 @@ public function __construct(private BrandRepository $repo, private BrandService 
     public function index()
     {
         $this->authorize('viewAny', Brand::class);
-        $brands = $this->repo->getAllBrands();
+        $brands = Brand::where('status', true)->orderBy('name')->paginate(10);
         $categories =  $this->repo->getAllCategory();
 
         return view('backend_panel_view.pages.brands.index', [
