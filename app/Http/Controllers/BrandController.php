@@ -135,12 +135,18 @@ public function __construct(private BrandRepository $repo, private BrandService 
     {
         $brand = $this->repo->findBrand($id);
         $this->authorize('update', $brand);
-        $newStatus = $this->service->toggleStatus($id);
 
-        return response()->json([
-            'success' => true,
-            'status' => $newStatus,
-            'message' => 'Brand status updated successfully!'
-        ]);
+        $newStatus = $this->service->toggleStatus($brand);
+
+
+        if($newStatus){
+                return redirect()->back()
+        ->with('success', 'Brand status updated successfully!');
+        }else{
+             return redirect()->back()
+        ->with('Error', 'Brand status updated successfully!');
+        }
     }
-}
+
+
+ }

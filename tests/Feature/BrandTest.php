@@ -2,22 +2,26 @@
 
 namespace Tests\Feature;
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
+
 use Illuminate\Foundation\Testing\WithFaker;
+use App\Repositories\BrandRepository;
 use Tests\TestCase;
 use App\Models\Brand;
 use App\Models\Category;
 use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 
 class BrandTest extends TestCase
 {
      use RefreshDatabase;
+     protected BrandRepository $repository;
      protected User $admin;
      protected User $regularUser;
 
+
      protected function setUp(): void{
         parent::setUp();
-
+$this->repository = new BrandRepository();
         // Create test users for every test
         $this->admin =  User::factory()->create(['user_type' => User::ADMIN]);
         $this->regularUser = User::factory()->create(['user_type' => User::CUSTOMER]);
@@ -212,5 +216,47 @@ class BrandTest extends TestCase
 
     // 7. Verify deletion
     $this->assertDatabaseEmpty('brands', ['id' => $brand->id]);
+    }
+
+    public function test_admin_can_toggle_brand_status(){
+        // Arrange: Create an active brand
+        $brand = Brand::factory()->create([
+            'name' => 'Nike',
+            'status' => true,
+        ]);
+        $this->admin->assignRole('admin');
+        $response = $this->actingAs($this->admin)->patch(route('admin.brands.toggle-status', $brand->id));
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+
+        // Check status changed from true to false
+        $brand->refresh();
+        $this->assertFalse($brand->status);
+    }
+    public function test_toggle_status_works_from_inactive_to_active(){
+        // Arrange: Create INACTIVE brand
+        $brand = Brand::factory()->create([
+            'status' => false,
+        ]);
+        // Act: Toggle it
+        $response = $this->actingAs($this->admin)->patch(route('admin.brands.toggle-status',$brand->id));
+
+        // assert: Should now be active
+        $brand->refresh();
+        $this->assertTrue($brand->status);
+    }
+    public function test_get_brands_by_status(){
+        // Arrange
+        Brand::factory()->count(3)->create(['status' => true]);
+        Brand::factory()->count(2)->create(['status' => false]);
+
+        // Act: Get only active brands
+        $activeBrands = $this->repository->getBrandByStatus(true);
+        // Assert
+        $this->assertCount(3, $activeBrands);
+
+        // Act: Get Inactive brands
+         $activeBrands = $this->repository->getBrandByStatus(false);
+          $this->assertCount(2, $activeBrands);
     }
 }

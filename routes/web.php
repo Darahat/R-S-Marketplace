@@ -9,6 +9,7 @@ use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProductSettingController;
 use Illuminate\Support\Facades\Artisan;
 use App\Http\Controllers\AddressController;
+use App\Http\Controllers\BrandController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\StripeWebhookController;
 use App\Http\Controllers\PaymentProcessController;
@@ -119,7 +120,7 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth:web', 'isAdmin']], fun
     Route::get('/brands/{id}/edit', [\App\Http\Controllers\BrandController::class, 'edit'])->name('admin.brands.edit');
     Route::put('/brands/{id}', [\App\Http\Controllers\BrandController::class, 'update'])->name('admin.brands.update');
     Route::delete('/brands/{id}', [\App\Http\Controllers\BrandController::class, 'destroy'])->name('admin.brands.destroy');
-    Route::post('/brands/{id}/toggle-status', [\App\Http\Controllers\BrandController::class, 'toggleStatus'])->name('admin.brands.toggleStatus');
+    Route::patch('/brands/{id}/toggle-status',[BrandController::class, 'toggleStatus'])->name('admin.brands.toggle-status');
 
     // Category Management
     Route::get('/categories', [\App\Http\Controllers\CategoryController::class, 'index'])->name('admin.categories.index');
@@ -167,7 +168,6 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth:web', 'isAdmin']], fun
     // Hero Section
     Route::get('/hero', [\App\Http\Controllers\Admin\HeroSectionController::class, 'edit'])->name('admin.hero.edit');
     Route::post('/hero', [\App\Http\Controllers\Admin\HeroSectionController::class, 'update'])->name('admin.hero.update');
-
 });
 Route::group(['prefix' => 'customer', 'middleware' => 'auth:web'], function () {
     Route::get('/dashboard', [DashboardController::class, 'customer_dashboard'])->name('customer.dashboard');
