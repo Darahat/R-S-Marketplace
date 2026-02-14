@@ -45,4 +45,7 @@ protected $fillable = [
     {
         return $this->hasMany(Product::class);
     }
+    public function getProductsCountAttribute(){
+        return $this->products()->count();
+    }
 }

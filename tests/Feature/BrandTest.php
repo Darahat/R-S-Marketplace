@@ -8,8 +8,11 @@ use App\Repositories\BrandRepository;
 use Tests\TestCase;
 use App\Models\Brand;
 use App\Models\Category;
+use App\Models\Product;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\BrandCreatedNotification; // We'll create this
 
 class BrandTest extends TestCase
 {
@@ -50,15 +53,16 @@ $this->repository = new BrandRepository();
         // Act: Try to visit as regular user
         $response = $this->actingAs($this->regularUser)->get(route('admin.brands.index'));
         // Assert: Should be denied
-        $response->assertStatus(302); /// HTTP 403 Forbidden
-        $response->assertRedirect();
+        $response->assertStatus(403); /// HTTP 403 Forbidden
+
      }
 
      public function test_guest_is_redirected_to_login(){
         // Act: Visit without logging in
         $response = $this->get(route('admin.brands.index'));
         // Assert: Redirected to login
-        $response->assertRedirect();
+        // Assert: Forbidden
+        $response->assertStatus(403);
      }
      public function test_admin_can_create_brand(){
         // Arrange: Create categories first
@@ -170,9 +174,8 @@ $this->repository = new BrandRepository();
             'status' => true
         ]);
 
-        // Assert: Redirected (middleware blocks non-admin users)
-        $response->assertStatus(302);
-        $response->assertRedirect(route('home'));
+        // Assert: Forbidden (policy denies access)
+        $response->assertStatus(403);
 
         //Should Not be in database
         $this->assertDatabaseMissing('brands',[
@@ -183,13 +186,14 @@ $this->repository = new BrandRepository();
         // 1. View empty list
         $response = $this->actingAs($this->admin)->get(route('admin.brands.index'));
         $response->assertStatus(200);
-
+  $category1 = Category::factory()->create(['status' => true]);
+        $category2 = Category::factory()->create(['status' => true]);
         // 2. Create brand
         $response = $this->actingAs($this->admin)->post(route('admin.brands.store'),[
             'name' => 'Nike',
             'slug' => 'nike',
-            'category_id' => '1',
-            'status' => true,
+            'category_id' => [$category1->id,],
+            'status' => true
         ]);
     $response->assertRedirect(route('admin.brands.index'));
 
@@ -202,7 +206,7 @@ $this->repository = new BrandRepository();
     $response = $this->actingAs($this->admin)->put(route('admin.brands.update', $brand->id),[
         'name' => 'Nike Updated',
         'slug' => 'nike-updated',
-        'category_id' => '2',
+        'category_id' => [$category1->id],
         'status' => true,
     ]);
     $response->assertRedirect();
@@ -215,7 +219,7 @@ $this->repository = new BrandRepository();
     $response->assertRedirect();
 
     // 7. Verify deletion
-    $this->assertDatabaseEmpty('brands', ['id' => $brand->id]);
+    $this->assertDatabaseMissing('brands', ['id' => $brand->id]);
     }
 
     public function test_admin_can_toggle_brand_status(){
@@ -256,7 +260,49 @@ $this->repository = new BrandRepository();
         $this->assertCount(3, $activeBrands);
 
         // Act: Get Inactive brands
-         $activeBrands = $this->repository->getBrandByStatus(false);
-          $this->assertCount(2, $activeBrands);
+        $activeBrands = $this->repository->getBrandByStatus(false);
+        $this->assertCount(2, $activeBrands);
+    }
+    public function test_regular_user_cannot_toggle_brand_status(){
+        // Arrange
+        $brand = Brand::factory()->create(['status' => true]);
+
+        // Act: Try to toggle as regular user
+        $response = $this->actingAs($this->regularUser)->patch(route('admin.brands.toggle-status', $brand->id));
+
+        // Assert: Forbidden
+        $response->assertStatus(403);
+
+        // Status should Not have changed
+        $brand->refresh();
+        $this->assertTrue($brand->status); // Still true
+    }
+    public function test_brand_can_load_products_count(){
+        // Arrange: Create brand with products
+        $brand = Brand::factory()->create();
+        Product::factory()->count(5)->create(['brand_id' => $brand->id]);
+
+        // Act: Load with count
+        $brand->loadCount('products');
+        // Act & Assert
+        $this->assertEquals(5, $brand->products_count);
+    }
+
+    public function test_email_notification_sent_when_brand_created(){
+        // Arrange: Fake the mail system (no real emails sent!)
+        Mail::fake();
+  $category1 = Category::factory()->create(['status' => true]);
+
+        //Act: Create a brand
+        $this->actingAs($this->admin)->post(route('admin.brands.store'),[
+             'name' => 'Nike',
+             'slug' => 'nike',
+             'category_id' => [$category1->id],
+             'status' => true,
+        ]);
+    // Assert: Check email was "sent"
+    Mail::assertSent(BrandCreatedNotification::class, function($mail){
+        return $mail->hasTo('admin@example.com');
+    });
     }
 }
