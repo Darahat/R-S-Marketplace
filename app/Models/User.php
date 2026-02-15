@@ -97,4 +97,15 @@ class User extends Authenticatable
         return $this->user_type === self::ADMIN;
     }
 
+    /**
+     * Mock assignRole for testing purposes
+     * Maps role names to user_type values
+     */
+    public function assignRole($role): void
+    {
+        if ($role === 'admin') {
+            $this->user_type = self::ADMIN;
+            $this->save();
+        }
+    }
 }

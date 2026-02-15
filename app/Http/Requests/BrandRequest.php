@@ -24,6 +24,7 @@ class BrandRequest extends FormRequest
         $brandId = $this->route('id');
         return [
             'name' => 'required|string|max:255|unique:brands,name,' . ($brandId ?? 'NULL'),
+            'slug' => 'required|string|max:255|unique:brands,slug,' . ($brandId ?? 'NULL'),
             'category_id' => 'nullable|array',
             'category_id.*' => 'exists:categories,id',
             'status' => 'required|boolean',

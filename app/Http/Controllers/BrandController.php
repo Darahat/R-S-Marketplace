@@ -24,7 +24,7 @@ public function __construct(private BrandRepository $repo, private BrandService 
     public function index()
     {
         $this->authorize('viewAny', Brand::class);
-        $brands = $this->repo->getAllBrands();
+        $brands = Brand::where('status', true)->orderBy('name')->paginate(10);
         $categories =  $this->repo->getAllCategory();
 
         return view('backend_panel_view.pages.brands.index', [
@@ -135,12 +135,18 @@ public function __construct(private BrandRepository $repo, private BrandService 
     {
         $brand = $this->repo->findBrand($id);
         $this->authorize('update', $brand);
-        $newStatus = $this->service->toggleStatus($id);
 
-        return response()->json([
-            'success' => true,
-            'status' => $newStatus,
-            'message' => 'Brand status updated successfully!'
-        ]);
+        $newStatus = $this->service->toggleStatus($brand);
+
+
+        if($newStatus){
+                return redirect()->back()
+        ->with('success', 'Brand status updated successfully!');
+        }else{
+             return redirect()->back()
+        ->with('Error', 'Brand status updated successfully!');
+        }
     }
-}
+
+
+ }

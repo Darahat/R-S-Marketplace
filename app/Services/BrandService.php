@@ -3,6 +3,7 @@ namespace App\Services;
 use Illuminate\Support\Str;
 use App\Repositories\BrandRepository;
 use App\Models\Brand;
+
 class BrandService{
   public function __construct(private BrandRepository $repo)
     {
@@ -49,18 +50,16 @@ class BrandService{
      * Toggle brand status
      * Business Logic: Flip boolean status
      */
-    public function toggleStatus(int $id): ?bool
+    public function toggleStatus( object $brand): ?bool
     {
-        $brand = $this->repo->findBrand($id);
-
-        if (!$brand) {
+          if (!$brand) {
             return null;
         }
 
         $newStatus = !$brand->status;
-        $this->repo->updateBrand(['status' => $newStatus], $id);
+       $success =  $this->repo->updateBrand(['status' => $newStatus], $brand->id);
 
-        return $newStatus;
+        return $success;
     }
 
  public function getSelectedCategories(Brand $brand): array

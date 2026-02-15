@@ -9,6 +9,7 @@ use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProductSettingController;
 use Illuminate\Support\Facades\Artisan;
 use App\Http\Controllers\AddressController;
+use App\Http\Controllers\BrandController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\StripeWebhookController;
 use App\Http\Controllers\PaymentProcessController;
@@ -89,7 +90,7 @@ Route::prefix('wishlist')->group(function () {
 // Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::get('/login', function () {
     return view('errors.page-not-found');
-});
+})->name('login');
 Route::post('/login', [AuthController::class, 'login'])->name('checklogin');
 
 // Admin Login
@@ -111,16 +112,6 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth:web', 'isAdmin']], fun
     // Product Management
     Route::get('/viewProduct', [ProductController::class, 'viewProduct'])->name('admin.viewproduct');
     Route::delete('/products/{id}', [ProductController::class, 'destroy'])->name('products.destroy');
-
-    // Brand Management
-    Route::get('/brands', [\App\Http\Controllers\BrandController::class, 'index'])->name('admin.brands.index');
-    Route::get('/brands/create', [\App\Http\Controllers\BrandController::class, 'create'])->name('admin.brands.create');
-    Route::post('/brands', [\App\Http\Controllers\BrandController::class, 'store'])->name('admin.brands.store');
-    Route::get('/brands/{id}/edit', [\App\Http\Controllers\BrandController::class, 'edit'])->name('admin.brands.edit');
-    Route::put('/brands/{id}', [\App\Http\Controllers\BrandController::class, 'update'])->name('admin.brands.update');
-    Route::delete('/brands/{id}', [\App\Http\Controllers\BrandController::class, 'destroy'])->name('admin.brands.destroy');
-    Route::post('/brands/{id}/toggle-status', [\App\Http\Controllers\BrandController::class, 'toggleStatus'])->name('admin.brands.toggleStatus');
-
     // Category Management
     Route::get('/categories', [\App\Http\Controllers\CategoryController::class, 'index'])->name('admin.categories.index');
     Route::get('/categories/create', [\App\Http\Controllers\CategoryController::class, 'create'])->name('admin.categories.create');
@@ -167,8 +158,25 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth:web', 'isAdmin']], fun
     // Hero Section
     Route::get('/hero', [\App\Http\Controllers\Admin\HeroSectionController::class, 'edit'])->name('admin.hero.edit');
     Route::post('/hero', [\App\Http\Controllers\Admin\HeroSectionController::class, 'update'])->name('admin.hero.update');
-
 });
+
+
+/// These routes user role managed by policy
+// TODO: Every route should be here whoes role managed by policy
+   // Brand Management
+    Route::get('/brands', [\App\Http\Controllers\BrandController::class, 'index'])->name('admin.brands.index');
+    Route::get('/brands/create', [\App\Http\Controllers\BrandController::class, 'create'])->name('admin.brands.create');
+    Route::post('/brands', [\App\Http\Controllers\BrandController::class, 'store'])->name('admin.brands.store');
+    Route::get('/brands/{id}/edit', [\App\Http\Controllers\BrandController::class, 'edit'])->name('admin.brands.edit');
+    Route::put('/brands/{id}', [\App\Http\Controllers\BrandController::class, 'update'])->name('admin.brands.update');
+    Route::delete('/brands/{id}', [\App\Http\Controllers\BrandController::class, 'destroy'])->name('admin.brands.destroy');
+    Route::patch('/brands/{id}/toggle-status',[BrandController::class, 'toggleStatus'])->name('admin.brands.toggle-status');
+
+
+
+
+
+
 Route::group(['prefix' => 'customer', 'middleware' => 'auth:web'], function () {
     Route::get('/dashboard', [DashboardController::class, 'customer_dashboard'])->name('customer.dashboard');
     Route::get('/profile-setting', [DashboardController::class, 'customer_profile_setting'])->name('customer.profile_setting');
