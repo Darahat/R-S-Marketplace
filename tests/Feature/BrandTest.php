@@ -294,12 +294,15 @@ $this->repository = new BrandRepository();
   $category1 = Category::factory()->create(['status' => true]);
 
         //Act: Create a brand
-        $this->actingAs($this->admin)->post(route('admin.brands.store'),[
+        $response = $this->actingAs($this->admin)->post(route('admin.brands.store'),[
              'name' => 'Nike',
              'slug' => 'nike',
              'category_id' => [$category1->id],
              'status' => true,
         ]);
+        dump('Response Status:', $response->status());
+    dump('Response Content:', $response->getContent());
+    dump('Session Errors:', session('errors'));
     // Assert: Check email was "sent"
     Mail::assertSent(BrandCreatedNotification::class, function($mail){
         return $mail->hasTo('admin@example.com');
