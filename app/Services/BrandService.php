@@ -5,6 +5,7 @@ use App\Repositories\BrandRepository;
 use App\Models\Brand;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\BrandCreatedNotification;
+use Illuminate\Support\Facades\Log;
 class BrandService{
   public function __construct(private BrandRepository $repo)
     {

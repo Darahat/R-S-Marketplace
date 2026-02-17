@@ -13,7 +13,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\BrandCreatedNotification; // We'll create this
-
+use Illuminate\Support\Facades\Log;
 class BrandTest extends TestCase
 {
      use RefreshDatabase;
@@ -291,8 +291,8 @@ $this->repository = new BrandRepository();
     public function test_email_notification_sent_when_brand_created(){
         // Arrange: Fake the mail system (no real emails sent!)
         Mail::fake();
-  $category1 = Category::factory()->create(['status' => true]);
-
+        $category1 = Category::factory()->create(['status' => true]);
+        Log::notice($category1);
         //Act: Create a brand
         $response = $this->actingAs($this->admin)->post(route('admin.brands.store'),[
              'name' => 'Nike',
