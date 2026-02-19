@@ -17,6 +17,7 @@ protected $fillable = [
         'slug',
         'category_id',
         'status',
+        'logo',
     ];
 
     protected $casts = [

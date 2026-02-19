@@ -6,27 +6,35 @@ use App\Models\Brand;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\BrandCreatedNotification;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Http\UploadedFile;
 class BrandService{
   public function __construct(private BrandRepository $repo)
     {
     }
-      public function createBrand(array $data): ?Brand{
-        Log::info('Creating brand with data:', $data);
-        /// Business Logic: Generate Slug
-        $data['slug'] = Str::slug($data['name']);
+      public function createBrand(array $data): ?Brand
+{
+    Log::info('Creating brand with data:', $data);
 
-        ///Business Logic: Format category_id array to comma-separated string
-        if(isset($data['category_id']) && is_array($data['category_id'])){
-            $data['category_id'] = implode(',', $data['category_id']);
-        }
+    // Generate slug
+    $data['slug'] = Str::slug($data['name']);
 
-        $brand = $this->repo->createBrand($data);
-
-        // Send email notification
-        Mail::to('admin@example.com')->send(new BrandCreatedNotification($brand));
-
-        return $brand;
+    // Format category_id
+    if (isset($data['category_id']) && is_array($data['category_id'])) {
+        $data['category_id'] = implode(',', $data['category_id']);
     }
+
+    // Store logo if present
+    if (isset($data['logo']) && $data['logo']) {
+        $data['logo'] = $data['logo']->store('brands', 'public');
+    }
+
+    $brand = $this->repo->createBrand($data);
+
+    Mail::to('admin@example.com')->send(new BrandCreatedNotification($brand));
+
+    return $brand;
+}
+
     public function updateBrand(array $data, $id):bool{
         $brand = $this->repo->findBrand($id);
          /// Business Logic: Generate Slug

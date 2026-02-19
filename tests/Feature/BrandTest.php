@@ -14,6 +14,8 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\BrandCreatedNotification; // We'll create this
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Http\UploadedFile;
 class BrandTest extends TestCase
 {
      use RefreshDatabase;
@@ -308,4 +310,25 @@ $this->repository = new BrandRepository();
         return $mail->hasTo('admin@example.com');
     });
     }
+
+public function test_can_upload_brand_logo()
+{
+    // Arrange: Fake the storage system
+    Storage::fake('public');
+
+    // Create a fake image
+    $file = UploadedFile::fake()->image('logo.jpg', 600, 400);
+
+    // Act: Upload brand with logo
+    $response = $this->actingAs($this->admin)
+                     ->post(route('admin.brands.store'), [
+                         'name' => 'Nike',
+                         'slug' => 'nike',
+                         'logo' => $file,
+                         'status' => true,
+                     ]);
+
+    // Assert: File was stored
+    Storage::disk('public')->assertExists('brands/' . $file->hashName());
+}
 }
