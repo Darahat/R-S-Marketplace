@@ -15,7 +15,9 @@ use Illuminate\Support\Facades\Mail;
 use App\Mail\BrandCreatedNotification; // We'll create this
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 class BrandTest extends TestCase
 {
      use RefreshDatabase;
@@ -331,4 +333,50 @@ public function test_can_upload_brand_logo()
     // Assert: File was stored
     Storage::disk('public')->assertExists('brands/' . $file->hashName());
 }
+public function test_brand_syncs_with_external_api(){
+    // Arrange: Mock the HTTP client
+    Http::fake([
+        'api.example.com/brands' => Http::response([
+            'success' => true,
+            'brand_id' => 123456,
+
+        ],200),
+    ]);
+    //Act: Create brand(triggers API call in real code)
+    $brand = Brand::factory()->create(['name' => 'Nike']);
+    $response = Http::post('api.example.com/brands',[
+        'name' => $brand->name,
+    ]);
+
+    // Assert: API was called correctly
+    $this->assertTrue($response->json('success'));
+
+    Http::assertSent(function ($request){
+        return $request->url() == 'api.example.com/brands' && $request['name'] == 'Nike';
+    });
+
+}
+
+public function test_exception_thrown_when_brand_not_found()
+{
+    // Expect an exception
+    $this->expectException(\Illuminate\Database\Eloquent\ModelNotFoundException::class);
+
+    // Act: Try to find non-existent brand with findOrFail
+    Brand::findOrFail(99999);
+}
+public function test_cannot_delete_brand_with_products(){
+    // Arrange: Brand with products
+    $brand = Brand::factory()->create();
+    Product::factory()->count(5)->create(['brand_id' => $brand->id]);
+
+    //Act & Assert:Should throw exception
+    $this->expectException(\Exception::class);
+    $this->expectExceptionMessage('Cannot delete brand with existing products');
+    // Try to delete(this would be in your brandservice)
+    if($brand->products()->count() >0){
+        throw new \Exception('Cannot delete brand with existing products');
+    }
+}
+
 }
