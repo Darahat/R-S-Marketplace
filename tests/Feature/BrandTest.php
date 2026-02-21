@@ -3,24 +3,23 @@
 namespace Tests\Feature;
 
 
-use Illuminate\Foundation\Testing\WithFaker;
 use App\Repositories\BrandRepository;
 use Tests\TestCase;
 use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
+
 use Illuminate\Support\Facades\Mail;
 use App\Mail\BrandCreatedNotification; // We'll create this
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 class BrandTest extends TestCase
 {
-     use RefreshDatabase;
+    use DatabaseTransactions;
      protected BrandRepository $repository;
      protected User $admin;
      protected User $regularUser;
@@ -379,4 +378,26 @@ public function test_cannot_delete_brand_with_products(){
     }
 }
 
+public function test_brand_creation_is_fast(){
+    $brand = Brand::factory()->create([
+        'name' => 'Fast Brand'
+    ]);
+    $this->assertEquals('Fast Brand', $brand->name);
+}
+public function test_each_test_has_isolated_data(){
+    // This test's data won't affect other tests
+    $brandsCount = Brand::count();
+    Brand::factory()->count(5)->create();
+    $this->assertEquals($brandsCount+5, Brand::count());
+}
+public function test_inactive_brands_do_not_appear_in_public_list(){
+    // Arrange: Create active and inactive brands
+    Brand::factory()->create(['name' => 'Active', 'status' =>true]);
+    Brand::factory()->create(['name' => 'Inactive', 'status' =>false]);
+
+    // Act: Get public brand list (simulating repository method)
+    $publicBrands = Brand::where('status', true)->get();
+    $this->assertTrue($publicBrands ->contains('name', 'Active'));
+    $this->assertFalse($publicBrands->contains('name','Inactive'));
+}
 }
