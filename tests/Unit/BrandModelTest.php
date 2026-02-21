@@ -6,7 +6,7 @@ use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Product;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-
+use Illuminate\Support\Facades\Mail;
 class BrandModelTest extends TestCase{
     // it will auto remove all data created on db
     use RefreshDatabase;
@@ -21,7 +21,8 @@ class BrandModelTest extends TestCase{
         ['name',
         'slug',
         'category_id',
-        'status'], $fillable
+        'status',
+        'logo'], $fillable
     );
     }
     public function test_can_create_brand_using_factory(){
@@ -77,5 +78,45 @@ class BrandModelTest extends TestCase{
 
         // Assert
         $this->assertCount(0, $categories);
+    }
+    public function test_brand_complete_lifecycle_with_all_best_practices(){
+        /// Descriptive test name
+        /// Arrange-Act-Assert patter
+        /// Test isolation(RefreshDatabase)
+        // Using factories, not row data
+
+        // Arrange: Set up initial state
+        $categoryIds = Category::factory()->count(2)->create()->pluck('id')->implode(',');
+        Mail::fake(); // Using fakes
+
+        //Act: Perform the action
+        $brand = Brand::factory()->create([
+            'name' => 'Premium Brand',
+            'category_id' => $categoryIds,
+            'status' => true,
+        ]);
+
+        // Assert: Multiple meaningful assertions
+        $this->assertInstanceOf(Brand::class, $brand);
+        $this->assertTrue($brand->status);
+        $this->assertCount(2, $brand->categories());
+
+        // Act: Test state change
+        $brand->status = false;
+        $brand->save();
+
+        //  Assert: verify change
+        $this->assertFalse($brand->fresh()->status);
+
+        // Act: Test deletion
+        $brandId = $brand->id;
+        $brand->delete();
+
+        // Assert: Verify deletion
+        $this->assertDatabaseMissing('brands',['id' => $brandId]);
+
+        /// Test is self-contained
+        /// Test is readable
+        /// Test is maintainable
     }
 }

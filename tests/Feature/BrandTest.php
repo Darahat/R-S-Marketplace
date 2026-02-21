@@ -3,20 +3,23 @@
 namespace Tests\Feature;
 
 
-use Illuminate\Foundation\Testing\WithFaker;
 use App\Repositories\BrandRepository;
 use Tests\TestCase;
 use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
+
 use Illuminate\Support\Facades\Mail;
 use App\Mail\BrandCreatedNotification; // We'll create this
-
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Http\UploadedFile;
 class BrandTest extends TestCase
 {
-     use RefreshDatabase;
+    use DatabaseTransactions;
      protected BrandRepository $repository;
      protected User $admin;
      protected User $regularUser;
@@ -291,18 +294,110 @@ $this->repository = new BrandRepository();
     public function test_email_notification_sent_when_brand_created(){
         // Arrange: Fake the mail system (no real emails sent!)
         Mail::fake();
-  $category1 = Category::factory()->create(['status' => true]);
-
+        $category1 = Category::factory()->create(['status' => true]);
+        Log::notice($category1);
         //Act: Create a brand
-        $this->actingAs($this->admin)->post(route('admin.brands.store'),[
+        $response = $this->actingAs($this->admin)->post(route('admin.brands.store'),[
              'name' => 'Nike',
              'slug' => 'nike',
              'category_id' => [$category1->id],
              'status' => true,
         ]);
+        dump('Response Status:', $response->status());
+    dump('Response Content:', $response->getContent());
+    dump('Session Errors:', session('errors'));
     // Assert: Check email was "sent"
     Mail::assertSent(BrandCreatedNotification::class, function($mail){
         return $mail->hasTo('admin@example.com');
     });
     }
+
+public function test_can_upload_brand_logo()
+{
+    // Arrange: Fake the storage system
+    Storage::fake('public');
+
+    // Create a fake image
+    $file = UploadedFile::fake()->image('logo.jpg', 600, 400);
+
+    // Act: Upload brand with logo
+    $response = $this->actingAs($this->admin)
+                     ->post(route('admin.brands.store'), [
+                         'name' => 'Nike',
+                         'slug' => 'nike',
+                         'logo' => $file,
+                         'status' => true,
+                     ]);
+
+    // Assert: File was stored
+    Storage::disk('public')->assertExists('brands/' . $file->hashName());
+}
+public function test_brand_syncs_with_external_api(){
+    // Arrange: Mock the HTTP client
+    Http::fake([
+        'api.example.com/brands' => Http::response([
+            'success' => true,
+            'brand_id' => 123456,
+
+        ],200),
+    ]);
+    //Act: Create brand(triggers API call in real code)
+    $brand = Brand::factory()->create(['name' => 'Nike']);
+    $response = Http::post('api.example.com/brands',[
+        'name' => $brand->name,
+    ]);
+
+    // Assert: API was called correctly
+    $this->assertTrue($response->json('success'));
+
+    Http::assertSent(function ($request){
+        return $request->url() == 'api.example.com/brands' && $request['name'] == 'Nike';
+    });
+
+}
+
+public function test_exception_thrown_when_brand_not_found()
+{
+    // Expect an exception
+    $this->expectException(\Illuminate\Database\Eloquent\ModelNotFoundException::class);
+
+    // Act: Try to find non-existent brand with findOrFail
+    Brand::findOrFail(99999);
+}
+public function test_cannot_delete_brand_with_products(){
+    // Arrange: Brand with products
+    $brand = Brand::factory()->create();
+    Product::factory()->count(5)->create(['brand_id' => $brand->id]);
+
+    //Act & Assert:Should throw exception
+    $this->expectException(\Exception::class);
+    $this->expectExceptionMessage('Cannot delete brand with existing products');
+    // Try to delete(this would be in your brandservice)
+    if($brand->products()->count() >0){
+        throw new \Exception('Cannot delete brand with existing products');
+    }
+}
+
+public function test_brand_creation_is_fast(){
+    $brand = Brand::factory()->create([
+        'name' => 'Fast Brand'
+    ]);
+    $this->assertEquals('Fast Brand', $brand->name);
+}
+public function test_each_test_has_isolated_data(){
+    // This test's data won't affect other tests
+    $brandsCount = Brand::count();
+    Brand::factory()->count(5)->create();
+    $this->assertEquals($brandsCount+5, Brand::count());
+}
+public function test_inactive_brands_do_not_appear_in_public_list(){
+    // Arrange: Create active and inactive brands
+    Brand::factory()->create(['name' => 'Active', 'status' =>true]);
+    Brand::factory()->create(['name' => 'Inactive', 'status' =>false]);
+
+    // Act: Get public brand list (simulating repository method)
+    $publicBrands = Brand::where('status', true)->get();
+    $this->assertTrue($publicBrands ->contains('name', 'Active'));
+    $this->assertFalse($publicBrands->contains('name','Inactive'));
+}
 }

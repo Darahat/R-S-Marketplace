@@ -59,7 +59,8 @@ public function __construct(private BrandRepository $repo, private BrandService 
         $this->authorize('create', Brand::class);
         /// validate data
         $validated = $request->validated();
-        /// create brand
+        $validated['logo'] = $request->file('logo');
+
         $brand = $this->service->createBrand($validated);
         ///Return message
         if(!$brand){
