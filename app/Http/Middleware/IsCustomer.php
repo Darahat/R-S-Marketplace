@@ -7,7 +7,7 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Support\Facades\Auth;
 
-class IsAdmin
+class IsCustomer
 {
     /**
      * Handle an incoming request.
@@ -16,17 +16,17 @@ class IsAdmin
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // Check if user is authenticated and is an admin
+        // Check if user is authenticated and is an customer
         if (!Auth::check()) {
             return redirect()->route('home');
         }
 
         $user = Auth::user();
 
-        if ($user->user_type !== 'ADMIN') {
+        if ($user->user_type !== 'CUSTOMER') {
             Auth::logout();
             return redirect()->route('home')->withErrors([
-                'message' => 'You do not have permission to access the admin panel.',
+                'message' => 'You do not have permission to access the customer panel.',
             ]);
         }
 

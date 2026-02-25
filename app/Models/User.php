@@ -96,6 +96,9 @@ class User extends Authenticatable
     public function isAdmin():bool{
         return $this->user_type === self::ADMIN;
     }
+     public function isCustomer():bool{
+        return $this->user_type === self::CUSTOMER;
+    }
 
     /**
      * Mock assignRole for testing purposes
@@ -105,6 +108,9 @@ class User extends Authenticatable
     {
         if ($role === 'admin') {
             $this->user_type = self::ADMIN;
+            $this->save();
+        }elseif($role === 'customer'){
+             $this->user_type = self::CUSTOMER;
             $this->save();
         }
     }
