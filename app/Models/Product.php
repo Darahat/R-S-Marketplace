@@ -53,21 +53,11 @@ class Product extends Model
         return $this->belongsTo(Brand::class);
     }
 
-    public function getDiscountPercentageAttribute()
-    {
-        if ($this->discount_price > 0) {
-            return round((($this->price - $this->discount_price) / $this->price) * 100);
-        }
-        return 0;
-    }
-
-    public function getFinalPriceAttribute()
-    {
-        return $this->discount_price > 0 ? $this->discount_price : $this->price;
-    }
-
-    public function getImageUrlAttribute()
-    {
-        return $this->image ?? 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500';
+    public function scopeSearch($query, string $term){
+            $query->where(function($q) use ($term) {
+                $q->where('name', 'like', "%$term%")
+                  ->orWhere('slug', 'like', "%$term%")
+                  ->orWhere('description', 'like', "%$term%");
+            });
     }
 }

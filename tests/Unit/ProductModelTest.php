@@ -45,8 +45,8 @@ class ProductModelTest extends TestCase{
 
         $this->assertInstanceOf(Category::class,$product->category);
         $this->assertTrue($product->category->is($category));
-     }
-     function test_product_belongs_to_brand(){
+    }
+    function test_product_belongs_to_brand(){
         // Arrange
         $brand = Brand::factory()->create();
         $product = Product::factory()->create([
@@ -55,6 +55,15 @@ class ProductModelTest extends TestCase{
 
         $this->assertInstanceOf(Brand::class,$product->brand);
         $this->assertTrue($product->brand->is($brand));
+    }
 
-     }
+    function test_product_scope_search(){
+        Product::factory()->create(['name'=>'Alpha']);
+        Product::factory()->create(['description' => 'Beta']);
+        Product::factory()->create(['slug' => 'Test']);
+
+        $result = Product::search('Alpha')->get();
+        $this->assertCount(1,$result);
+    }
+
 }
