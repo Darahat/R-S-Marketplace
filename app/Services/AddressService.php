@@ -47,7 +47,7 @@ class AddressService{
          $user = Auth::user();
 
         // Verify the address belongs to the authenticated user
-        if (intval($user_id) !== Auth::id()) {
+        if ($user?->user_type !== 'ADMIN' && intval($user_id) !== Auth::id()) {
             abort(403);
         }
 

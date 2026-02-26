@@ -19,6 +19,13 @@ class AddressController extends Controller
      */
     public function index()
     {
+        if (Auth::user()?->user_type === 'ADMIN') {
+            $addresses = $this->repo->getAllUsersAddress(15);
+            $page_title = "All User Address";
+            $page_header = "All User Address";
+            return view('backend_panel_view_admin.pages.address.address_list', compact('addresses','page_title','page_header'));
+        }
+
         $userId = Auth::id();
         $shippingAddresses =$this->repo->getUserShippingAddress($userId);
         $billingAddresses = $this->repo->getUserBillingAddress($userId);
@@ -27,10 +34,9 @@ class AddressController extends Controller
 
      public function AllAddressList()
     {
+        $addresses = $this->repo->getAllUsersAddress(15);
 
-        $getAllAddress =$this->repo->getAllUsersAddress();
-
-        return view('backend_panel_view_customer.pages.address_list', compact('shippingAddresses', 'billingAddresses'));
+        return view('backend_panel_view_admin.pages.address.address_list', compact('addresses'));
     }
 
     /**
@@ -55,43 +61,50 @@ class AddressController extends Controller
             ->with('success', 'Address added successfully!');
     }
 
-   public function edit($address_id,$user_id){
+   public function edit($address_id, $user_id = null){
         $address = $this->repo->findAddress($address_id);
         abort_if(!$address,404,'Address Not found');
+        $this->authorize('update', $address);
         $district = $this->repo->getDistricts();
         return view('backend_panel_view_customer.pages.create_edit_address', compact('address', 'district'));
 
     }
 
-    public function update(UserAddressRequests $request, $address_id, $user_id)
+    public function update(UserAddressRequests $request, $address_id, $user_id = null)
     {
         $address = $this->repo->findAddress($address_id);
         abort_if(!$address, 404);
         $this->authorize('update', $address);
         $validated = $request->validated();
-        $success = $this->service->updateAddress($address_id, $user_id, $validated);
+        $targetUserId = $user_id ?? $address->user_id;
+        $success = $this->service->updateAddress($address_id, $targetUserId, $validated);
          if (!$success) {
             return redirect()->back()
                 ->with('error', 'Failed to update address.')
                 ->withInput();
         }
-        return redirect()->route('addresses.index')
+        $redirectUrl = Auth::user()?->user_type === 'ADMIN' ? url('/admin/addresses') : route('addresses.index');
+
+        return redirect()->to($redirectUrl)
             ->with('success', 'Address updated successfully!');
     }
     /**
      * Remove the specified address from storage.
      */
-    public function destroy($address_id, $user_id)
+    public function destroy($address_id, $user_id = null)
     {
         $address = $this->repo->findAddress($address_id);
-        $this->authorize('delete', $address);
         abort_if(!$address, 404, 'Address not found');
-       $success = $this->service->destroyAddress($address_id, Auth::id());
+        $this->authorize('delete', $address);
+
+       $success = $this->service->destroyAddress($address_id, $user_id ?? $address->user_id);
         if (!$success) {
             return redirect()->back()
                 ->with('error', 'Failed to delete address.');
         }
-        return redirect()->route('addresses.index')
+        $redirectUrl = Auth::user()?->user_type === 'ADMIN' ? url('/admin/addresses') : route('addresses.index');
+
+        return redirect()->to($redirectUrl)
             ->with('success', 'Address deleted successfully!');
     }
 
