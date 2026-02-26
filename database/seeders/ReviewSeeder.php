@@ -1,20 +1,26 @@
 <?php
 
 namespace Database\Seeders;
+use Database\Seeders\Concerns\ColumnSafeSeeder;
 use Illuminate\Support\Facades\DB;
 
 use Illuminate\Database\Seeder;
 use App\Models\Product;
 use App\Models\User;
-use Illuminate\Support\Str;
 use Illuminate\Support\Arr;
 
 class ReviewSeeder extends Seeder
 {
+    use ColumnSafeSeeder;
+
     public function run(): void
     {
         $users = User::take(3)->pluck('id')->toArray();
         $products = Product::pluck('id')->toArray();
+
+        if (empty($users) || empty($products)) {
+            return;
+        }
 
         $comments = [
             'Fantastic product, exceeded my expectations!',
@@ -39,6 +45,10 @@ class ReviewSeeder extends Seeder
             ];
         }
 
-        DB::table('reviews')->insert($data);
+        $safeData = $this->filterRowsByTable('reviews', $data);
+
+        if (!empty($safeData)) {
+            DB::table('reviews')->insert($safeData);
+        }
     }
 }

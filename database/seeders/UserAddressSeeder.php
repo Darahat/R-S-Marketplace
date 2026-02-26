@@ -2,54 +2,78 @@
 
 namespace Database\Seeders;
 
+use App\Models\User;
+use Database\Seeders\Concerns\ColumnSafeSeeder;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 class UserAddressSeeder extends Seeder
 {
-    public function run()
+    use ColumnSafeSeeder;
+
+    public function run(): void
     {
-        DB::table('addresses')->insert([
-            [
-                'user_id' => 1,
-                'address_type' => 'billing',
-                'full_name' => 'John Doe',
-                'phone' => '01700000001',
-                'street_address' => '123 Main Street',
-                'city' => 'Dhaka',
-                'state' => 'Dhaka',
+        $now = Carbon::now();
+
+        $customers = User::query()
+            ->where('user_type', 'CUSTOMER')
+            ->select('id', 'name', 'email', 'mobile')
+            ->get();
+
+        if ($customers->isEmpty()) {
+            return;
+        }
+
+        $rows = [];
+
+        foreach ($customers as $customer) {
+            $rows[] = [
+                'user_id' => $customer->id,
+                'address_type' => 'shipping',
+                'full_name' => $customer->name,
+                'phone' => $customer->mobile,
+                'email' => $customer->email,
+                'district_id' => null,
+                'upazila_id' => null,
+                'union_id' => null,
+                'street_address' => 'House 10, Road 5',
                 'postal_code' => '1207',
                 'country' => 'Bangladesh',
                 'is_default' => true,
-                'created_at' => Carbon::now(),
-            ],
-            [
-                'user_id' => 1,
-                'address_type' => 'shipping',
-                'full_name' => 'John Doe',
-                'phone' => '01700000002',
-                'street_address' => '456 Office Road',
-                'city' => 'Dhaka',
-                'state' => 'Dhaka',
+                'created_at' => $now,
+                'updated_at' => $now,
+            ];
+
+            $rows[] = [
+                'user_id' => $customer->id,
+                'address_type' => 'billing',
+                'full_name' => $customer->name,
+                'phone' => $customer->mobile,
+                'email' => $customer->email,
+                'district_id' => null,
+                'upazila_id' => null,
+                'union_id' => null,
+                'street_address' => 'Office 2B, Avenue 1',
                 'postal_code' => '1212',
                 'country' => 'Bangladesh',
                 'is_default' => false,
-                'created_at' => Carbon::now(),
-            ],
-            [
-                'user_id' => 1,
-                'address_type' => 'billing',
-                'full_name' => 'John Doe',
-                'phone' => '01700000003',
-                'street_address' => '789 Vacation Ave',
-                'city' => 'Chittagong',
-                'state' => 'Chittagong',
-                'postal_code' => '4000',
-                'country' => 'Bangladesh',
-                'is_default' => false,
-                'created_at' => Carbon::now(),
-            ],
-        ]);
+                'created_at' => $now,
+                'updated_at' => $now,
+            ];
+        }
+
+        $safeRows = $this->filterRowsByTable('addresses', $rows);
+
+        foreach ($safeRows as $row) {
+            DB::table('addresses')->updateOrInsert(
+                [
+                    'user_id' => $row['user_id'],
+                    'address_type' => $row['address_type'],
+                    'street_address' => $row['street_address'],
+                ],
+                $row
+            );
+        }
     }
 }

@@ -48,7 +48,7 @@ $this->repository = new BrandRepository();
         // Assert: Check response
 
         $response->assertStatus(200);
-        $response->assertViewIs('backend_panel_view.pages.brands.index');
+        $response->assertViewIs('backend_panel_view_admin.pages.brands.index');
         $response->assertViewHas('brands');
 
      }

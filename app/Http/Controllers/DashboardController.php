@@ -137,12 +137,21 @@ class DashboardController extends Controller
                 'profit' => $profit
             ];
         }
-
-        return view('backend_panel_view.pages.dashboard', [
+     if(Auth::user()->user_type == 'ADMIN'){
+                return view('backend_panel_view_admin.pages.dashboard', [
             'page_title' =>  $this->page_title,
             'page_header' => 'Dashboard',
             'analytics' => $analytics,
         ]);
+            }
+            elseif(Auth::user()->user_type == 'CUSTOMER'){
+                   return view('backend_panel_view_customer.pages.dashboard', [
+            'page_title' =>  $this->page_title,
+            'page_header' => 'Dashboard',
+         ]);
+            }
+
+
 
     }
     public function customer_dashboard()

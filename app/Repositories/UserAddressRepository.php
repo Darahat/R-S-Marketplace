@@ -4,6 +4,7 @@ namespace App\Repositories;
 use App\Models\Address;
 use App\Models\District;
 use Illuminate\Support\Collection;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class UserAddressRepository{
     /**
@@ -27,6 +28,12 @@ class UserAddressRepository{
         ->orderByDesc('is_default')
         ->get($columns);
 
+    }
+
+    public function getAllUsersAddress(int $perPage = 15): LengthAwarePaginator{
+    return Address::with(['user', 'district', 'upazila', 'union'])
+        ->orderByDesc('id')
+        ->paginate($perPage);
     }
     /**
      * Get all Districts, upzilla, unions.
@@ -73,6 +80,7 @@ class UserAddressRepository{
     public function deleteAddress(int $address_id): bool{
     return Address::where('id',$address_id)->delete() > 0;
     }
+
 
 }
 

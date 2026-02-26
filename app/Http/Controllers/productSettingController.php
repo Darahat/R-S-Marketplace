@@ -29,7 +29,7 @@ class ProductSettingController extends Controller
     public function viewBrand(){
 
         $brands = DB::table('brands')->paginate(10);
-        return view('backend_panel_view.pages.addBrand', compact('brands')+ [
+        return view('backend_panel_view_admin.pages.addBrand', compact('brands')+ [
             'page_title' =>  $this->page_title,
             'page_header' => 'Brand List',
 

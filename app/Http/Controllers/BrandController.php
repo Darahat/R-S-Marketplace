@@ -27,7 +27,7 @@ public function __construct(private BrandRepository $repo, private BrandService 
         $brands = Brand::where('status', true)->orderBy('name')->paginate(10);
         $categories =  $this->repo->getAllCategory();
 
-        return view('backend_panel_view.pages.brands.index', [
+        return view('backend_panel_view_admin.pages.brands.index', [
             'brands' => $brands,
             'categories' => $categories,
             'page_title' => $this->page_title,
@@ -43,7 +43,7 @@ public function __construct(private BrandRepository $repo, private BrandService 
         $this->authorize('create', Brand::class);
         $categories = $this->repo->getAllCategory();
 
-        return view('backend_panel_view.pages.brands.create', [
+        return view('backend_panel_view_admin.pages.brands.create', [
             'categories' => $categories,
             'page_title' => $this->page_title,
             'page_header' => 'Add New Brand',
@@ -83,7 +83,7 @@ public function __construct(private BrandRepository $repo, private BrandService 
         $selectedCategories = $this->service->getSelectedCategories($brand);
 
 
-        return view('backend_panel_view.pages.brands.edit', [
+        return view('backend_panel_view_admin.pages.brands.edit', [
             'brand' => $brand,
             'categories' => $categories,
             'selectedCategories' => $selectedCategories,

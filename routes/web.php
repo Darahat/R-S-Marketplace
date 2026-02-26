@@ -158,7 +158,10 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth:web', 'isAdmin']], fun
     // Hero Section
     Route::get('/hero', [\App\Http\Controllers\Admin\HeroSectionController::class, 'edit'])->name('admin.hero.edit');
     Route::post('/hero', [\App\Http\Controllers\Admin\HeroSectionController::class, 'update'])->name('admin.hero.update');
-});
+    // ADMIN ROUTES - Resource except create/store/setDefault
+    Route::resource('addresses', AddressController::class)->except(['create', 'store','setDefault']);
+
+    });
 
 
 /// These routes user role managed by policy
@@ -177,7 +180,7 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth:web', 'isAdmin']], fun
 
 
 
-Route::group(['prefix' => 'customer', 'middleware' => 'auth:web'], function () {
+Route::group(['prefix' => 'customer', 'middleware' => ['auth:web', 'isCustomer']], function () {
     Route::get('/dashboard', [DashboardController::class, 'customer_dashboard'])->name('customer.dashboard');
     Route::get('/profile-setting', [DashboardController::class, 'customer_profile_setting'])->name('customer.profile_setting');
     Route::post('/profile/update', [\App\Http\Controllers\Api\CustomerProfileApiController::class, 'update'])->name('customer.profile.update');
@@ -185,15 +188,8 @@ Route::group(['prefix' => 'customer', 'middleware' => 'auth:web'], function () {
     Route::get('/order-details/{id}', [DashboardController::class, 'customer_order_details'])->name('customer.order_details');
     Route::get('/order-history', [DashboardController::class, 'customer_order_history'])->name('customer.orders');
 
-    // Address routes
-    Route::get('/addresses', [AddressController::class, 'index'])->name('customer.address');
-    Route::get('/addresses/list', [AddressController::class, 'index'])->name('customer.addresses.index');
-    Route::get('/addresses/create', [AddressController::class, 'create'])->name('customer.addresses.create');
-    Route::post('/addresses/store', [AddressController::class, 'store'])->name('customer.addresses.store');
-    Route::get('/addresses/{address_id}/edit/{user_id}', [AddressController::class, 'edit'])->name('customer.addresses.edit');
-    Route::put('/addresses/{address_id}/update/{user_id}', [AddressController::class, 'update'])->name('customer.addresses.update');
-    Route::delete('/addresses/destory/{address_id}', [AddressController::class, 'destroy'])->name('customer.addresses.destroy');
-    Route::post('/addresses/{address_id}/set-default/{user_id}', [AddressController::class, 'setDefault'])->name('customer.addresses.set-default');
+    // CUSTOMER ROUTES - Full resource routes
+    Route::resource('addresses', AddressController::class);
 
     // Payment Methods Management (Saved Cards)
     Route::prefix('payment-methods')->group(function () {

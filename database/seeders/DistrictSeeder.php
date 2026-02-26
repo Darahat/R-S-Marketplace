@@ -2,13 +2,15 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use Database\Seeders\Concerns\ColumnSafeSeeder;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 
 class DistrictSeeder extends Seeder
 {
+    use ColumnSafeSeeder;
+
     /**
      * Run the database seeds.
      */
@@ -23,15 +25,17 @@ class DistrictSeeder extends Seeder
                 $districts = $data['data'];
 
                 foreach ($districts as $district) {
+                    $row = $this->filterRowByTable('districts', [
+                        'id' => $district['id'],
+                        'name' => $district['name'],
+                        'bn_name' => $district['bn_name'] ?? null,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+
                     DB::table('districts')->updateOrInsert(
                         ['id' => $district['id']],
-                        [
-                            'id' => $district['id'],
-                            'name' => $district['name'],
-                            'bn_name' => $district['bn_name'] ?? null,
-                            'created_at' => now(),
-                            'updated_at' => now(),
-                        ]
+                        $row
                     );
                 }
 

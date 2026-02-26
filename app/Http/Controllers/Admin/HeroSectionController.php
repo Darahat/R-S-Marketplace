@@ -39,7 +39,7 @@ class HeroSectionController extends Controller
             $hero = HeroSection::create($data);
         }
 
-        return view('backend_panel_view.pages.hero.edit', [
+        return view('backend_panel_view_admin.pages.hero.edit', [
             'page_title' => $this->pageTitle,
             'page_header' => 'Hero Section',
             'hero' => $hero->toArray(),

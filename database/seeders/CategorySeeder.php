@@ -2,13 +2,15 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use Carbon\Carbon;
+use Database\Seeders\Concerns\ColumnSafeSeeder;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Str;
-use App\Models\Category;
+use Illuminate\Support\Facades\DB;
 
 class CategorySeeder extends Seeder
 {
+    use ColumnSafeSeeder;
+
     /**
      * Run the database seeds.
      */
@@ -114,8 +116,23 @@ class CategorySeeder extends Seeder
             ],
         ];
 
-        foreach ($categories as $category) {
-            Category::create($category);
+        $now = Carbon::now();
+
+        foreach ($categories as $index => $category) {
+            $category['updated_by'] = $category['created_by'] ?? null;
+            $category['created_at'] = $now;
+            $category['updated_at'] = $now;
+
+            $safeRow = $this->filterRowByTable('categories', $category);
+
+            if (empty($safeRow)) {
+                continue;
+            }
+
+            DB::table('categories')->updateOrInsert(
+                ['slug' => $categories[$index]['slug']],
+                $safeRow
+            );
         }
     }
 }

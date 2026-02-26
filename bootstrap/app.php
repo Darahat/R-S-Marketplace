@@ -21,6 +21,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'isAdmin' => \App\Http\Middleware\IsAdmin::class,
+            'isCustomer' => \App\Http\Middleware\IsCustomer::class,
             'collectMetrics' => \App\Http\Middleware\CollectMetrics::class,
         ]);
     })

@@ -29,7 +29,7 @@ class ProductController extends Controller
     public function viewProduct(){
 
         $products = DB::table('products')->paginate(10);
-        return view('backend_panel_view.pages.findProduct', compact('products')+ [
+        return view('backend_panel_view_admin.pages.findProduct', compact('products')+ [
             'page_title' =>  $this->page_title,
             'page_header' => 'Product List',
 

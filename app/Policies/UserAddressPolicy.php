@@ -13,7 +13,15 @@ class UserAddressPolicy
      */
     public function viewAny(User $user): bool
     {
-        return true;
+        return $user->isCustomer();
+    }
+
+     /**
+     * Determine whether admin can view all addresses (admin panel).
+     */
+    public function viewAllAsAdmin(User $user): bool
+    {
+        return $user->isAdmin();
     }
 
     /**
@@ -21,7 +29,7 @@ class UserAddressPolicy
      */
     public function view(User $user, Address $address): bool
     {
-        return $address->user_id === $user->id;
+        return $user->isAdmin() || $address->user_id === $user->id;
     }
 
     /**
@@ -29,7 +37,7 @@ class UserAddressPolicy
      */
     public function create(User $user): bool
     {
-        return true;
+       return $user->isCustomer();
     }
 
     /**
@@ -37,7 +45,7 @@ class UserAddressPolicy
      */
     public function update(User $user, Address $address): bool
     {
-        return $address->user_id === $user->id;
+        return $user->isAdmin() || $address->user_id === $user->id;
     }
 
     /**
@@ -45,7 +53,7 @@ class UserAddressPolicy
      */
     public function delete(User $user, Address $address): bool
     {
-         return $address->user_id === $user->id;
+        return $user->isAdmin() || $address->user_id === $user->id;
     }
 
     /**
@@ -53,7 +61,7 @@ class UserAddressPolicy
      */
     public function restore(User $user, Address $address): bool
     {
-         return $address->user_id === $user->id;
+        return $user->isAdmin() || $address->user_id === $user->id;
     }
 
     /**
@@ -61,6 +69,6 @@ class UserAddressPolicy
      */
     public function forceDelete(User $user, Address $address): bool
     {
-        return $address->user_id === $user->id && $user->role === 'admin';
+        return $user->isAdmin();
     }
 }

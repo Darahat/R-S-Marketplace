@@ -47,7 +47,7 @@ class AddressService{
          $user = Auth::user();
 
         // Verify the address belongs to the authenticated user
-        if (intval($user_id) !== Auth::id()) {
+        if ($user?->user_type !== 'ADMIN' && intval($user_id) !== Auth::id()) {
             abort(403);
         }
 
@@ -55,7 +55,7 @@ class AddressService{
         $address = $this->repo->findAddress($address_id);
 
         if (!$address) {
-            return redirect()->route('customer.addresses.index')
+            return redirect()->route('addresses.index')
                 ->with('error', 'Address not found!');
         }
 

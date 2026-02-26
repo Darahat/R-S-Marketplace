@@ -63,7 +63,7 @@ class PaymentController extends Controller
 
         $payments = $query->orderBy('created_at', 'desc')->paginate(20);
 
-        return view('backend_panel_view.pages.payments.index', [
+        return view('backend_panel_view_admin.pages.payments.index', [
             'payments' => $payments,
             'page_title' => $this->page_title,
             'page_header' => 'Payments',
@@ -79,7 +79,7 @@ class PaymentController extends Controller
     {
         $payment = Payment::with(['order', 'user'])->findOrFail($id);
 
-        return view('backend_panel_view.pages.payments.show', [
+        return view('backend_panel_view_admin.pages.payments.show', [
             'payment' => $payment,
             'page_title' => $this->page_title,
             'page_header' => 'Payment Details',

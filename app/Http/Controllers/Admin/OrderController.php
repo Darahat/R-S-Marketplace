@@ -64,7 +64,7 @@ class OrderController extends Controller
 
         $orders = $query->orderBy('created_at', 'desc')->paginate(20);
 
-        return view('backend_panel_view.pages.orders.index', [
+        return view('backend_panel_view_admin.pages.orders.index', [
             'orders' => $orders,
             'page_title' => $this->page_title,
             'page_header' => 'Orders',
@@ -80,7 +80,7 @@ class OrderController extends Controller
     public function show($id)
     {
         $order = Order::with(['user', 'address', 'items.product'])->findOrFail($id);
-        return view('backend_panel_view.pages.orders.show', [
+        return view('backend_panel_view_admin.pages.orders.show', [
             'order' => $order,
             'page_title' => $this->page_title,
             'page_header' => 'Order Details',
@@ -192,7 +192,7 @@ class OrderController extends Controller
     {
         $order = Order::with(['user', 'address', 'items.product'])->findOrFail($id);
 
-        return view('backend_panel_view.pages.orders.invoice', [
+        return view('backend_panel_view_admin.pages.orders.invoice', [
             'order' => $order,
         ]);
     }
