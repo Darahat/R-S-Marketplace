@@ -180,7 +180,7 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth:web', 'isAdmin']], fun
 
 
 
-Route::group(['prefix' => 'customer', 'middleware' => 'auth:web'], function () {
+Route::group(['prefix' => 'customer', 'middleware' => ['auth:web', 'isCustomer']], function () {
     Route::get('/dashboard', [DashboardController::class, 'customer_dashboard'])->name('customer.dashboard');
     Route::get('/profile-setting', [DashboardController::class, 'customer_profile_setting'])->name('customer.profile_setting');
     Route::post('/profile/update', [\App\Http\Controllers\Api\CustomerProfileApiController::class, 'update'])->name('customer.profile.update');

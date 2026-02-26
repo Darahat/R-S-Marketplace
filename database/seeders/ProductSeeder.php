@@ -2,12 +2,14 @@
 
 namespace Database\Seeders;
 
+use Database\Seeders\Concerns\ColumnSafeSeeder;
 use Illuminate\Database\Seeder;
-use App\Models\Product;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
 
 class ProductSeeder extends Seeder
 {
+    use ColumnSafeSeeder;
+
     public function run(): void
     {
         $products = [
@@ -617,7 +619,19 @@ class ProductSeeder extends Seeder
         ];
 
         foreach ($products as $product) {
-            Product::create($product);
+            $product['created_at'] = now();
+            $product['updated_at'] = now();
+
+            $safeRow = $this->filterRowByTable('products', $product);
+
+            if (empty($safeRow)) {
+                continue;
+            }
+
+            DB::table('products')->updateOrInsert(
+                ['slug' => $product['slug']],
+                $safeRow
+            );
         }
     }
 }

@@ -2,13 +2,15 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use Database\Seeders\Concerns\ColumnSafeSeeder;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 
 class UnionSeeder extends Seeder
 {
+    use ColumnSafeSeeder;
+
     /**
      * Run the database seeds.
      */
@@ -28,16 +30,18 @@ class UnionSeeder extends Seeder
 
                     if (is_array($unions)) {
                         foreach ($unions as $union) {
+                            $row = $this->filterRowByTable('unions', [
+                                'id' => $union['id'],
+                                'upazila_id' => $upazila->id,
+                                'name' => $union['name'],
+                                'bn_name' => $union['bn_name'] ?? null,
+                                'created_at' => now(),
+                                'updated_at' => now(),
+                            ]);
+
                             DB::table('unions')->updateOrInsert(
                                 ['id' => $union['id']],
-                                [
-                                    'id' => $union['id'],
-                                    'upazila_id' => $upazila->id,
-                                    'name' => $union['name'],
-                                    'bn_name' => $union['bn_name'] ?? null,
-                                    'created_at' => now(),
-                                    'updated_at' => now(),
-                                ]
+                                $row
                             );
                         }
                     }
@@ -46,6 +50,8 @@ class UnionSeeder extends Seeder
 
             // Small delay to avoid rate limiting
             usleep(100000); // 0.1 second
-        }        $this->command->info('Unions seeded successfully!');
+        }
+
+        $this->command->info('Unions seeded successfully!');
     }
 }

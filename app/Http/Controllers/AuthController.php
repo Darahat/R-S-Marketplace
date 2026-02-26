@@ -24,7 +24,7 @@ class AuthController extends Controller
     {
         // Show admin login form on GET
         if ($request->isMethod('get')) {
-            return view('backend_panel_view.pages.auth.admin_login');
+            return view('backend_panel_view_admin.pages.auth.admin_login');
         }
 
         // Handle admin login on POST
@@ -102,7 +102,12 @@ class AuthController extends Controller
 
             if(Auth::user()->user_type == 'ADMIN'){
                 return redirect()->intended(route('admin.dashboard'));
-            } else {
+            }
+            elseif(Auth::user()->user_type == 'CUSTOMER'){
+                return redirect()->intended(route('home'));
+            }
+
+            else {
                 return redirect()->intended(route('home'));
             }
 

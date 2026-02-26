@@ -34,7 +34,7 @@ class CategoryController extends Controller
             ->orderBy('name')
             ->get();
 
-        return view('backend_panel_view.pages.categories.index', [
+        return view('backend_panel_view_admin.pages.categories.index', [
             'categories' => $categories,
             'rootCategories' => $rootCategories,
             'page_title' => $this->page_title,
@@ -49,7 +49,7 @@ class CategoryController extends Controller
     {
         $categories = $this->getCategoriesWithLevel();
 
-        return view('backend_panel_view.pages.categories.create', [
+        return view('backend_panel_view_admin.pages.categories.create', [
             'categories' => $categories,
             'page_title' => $this->page_title,
             'page_header' => 'Add New Category',
@@ -163,7 +163,7 @@ class CategoryController extends Controller
         // Get all categories with level excluding current category
         $categories = $this->getCategoriesWithLevel($id);
 
-        return view('backend_panel_view.pages.categories.edit', [
+        return view('backend_panel_view_admin.pages.categories.edit', [
             'category' => $category,
             'categories' => $categories,
             'page_title' => $this->page_title,

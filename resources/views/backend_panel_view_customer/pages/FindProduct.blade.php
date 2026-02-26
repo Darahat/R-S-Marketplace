@@ -1,4 +1,4 @@
-@extends('backend_panel_view.layouts.admin')
+@extends('backend_panel_view_admin.layouts.admin')
 @section('content')
 
 <div class="content-wrapper">

@@ -73,7 +73,7 @@ class ProductController extends Controller
         $categories = Category::where('status', true)->orderBy('name')->get();
         $brands = Brand::where('status', true)->orderBy('name')->get();
 
-        return view('backend_panel_view.pages.products.index', [
+        return view('backend_panel_view_admin.pages.products.index', [
             'products' => $products,
             'categories' => $categories,
             'brands' => $brands,
@@ -90,7 +90,7 @@ class ProductController extends Controller
         $categories = Category::where('status', true)->orderBy('name')->get();
         $brands = Brand::where('status', true)->orderBy('name')->get();
 
-        return view('backend_panel_view.pages.products.create', [
+        return view('backend_panel_view_admin.pages.products.create', [
             'categories' => $categories,
             'brands' => $brands,
             'page_title' => $this->page_title,
@@ -195,7 +195,7 @@ class ProductController extends Controller
     {
         $product = Product::with(['category', 'brand'])->findOrFail($id);
 
-        return view('backend_panel_view.pages.products.show', [
+        return view('backend_panel_view_admin.pages.products.show', [
             'product' => $product,
             'page_title' => $this->page_title,
             'page_header' => 'Product Details',
@@ -211,7 +211,7 @@ class ProductController extends Controller
         $categories = Category::where('status', true)->orderBy('name')->get();
         $brands = Brand::where('status', true)->orderBy('name')->get();
 
-        return view('backend_panel_view.pages.products.edit', [
+        return view('backend_panel_view_admin.pages.products.edit', [
             'product' => $product,
             'categories' => $categories,
             'brands' => $brands,

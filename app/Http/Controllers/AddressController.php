@@ -25,6 +25,14 @@ class AddressController extends Controller
         return view('backend_panel_view_customer.pages.address_list', compact('shippingAddresses', 'billingAddresses'));
     }
 
+     public function AllAddressList()
+    {
+
+        $getAllAddress =$this->repo->getAllUsersAddress();
+
+        return view('backend_panel_view_customer.pages.address_list', compact('shippingAddresses', 'billingAddresses'));
+    }
+
     /**
      * Show the form for creating a new address.
      */
@@ -43,7 +51,7 @@ class AddressController extends Controller
         $this->authorize('create', Address::class);
         $validated = $request->validated();
         $this->service->createAddress(Auth::id(),$validated);
-        return redirect()->route('customer.addresses.index')
+        return redirect()->route('addresses.index')
             ->with('success', 'Address added successfully!');
     }
 
@@ -67,7 +75,7 @@ class AddressController extends Controller
                 ->with('error', 'Failed to update address.')
                 ->withInput();
         }
-        return redirect()->route('customer.addresses.index')
+        return redirect()->route('addresses.index')
             ->with('success', 'Address updated successfully!');
     }
     /**
@@ -83,7 +91,7 @@ class AddressController extends Controller
             return redirect()->back()
                 ->with('error', 'Failed to delete address.');
         }
-        return redirect()->route('customer.addresses.index')
+        return redirect()->route('addresses.index')
             ->with('success', 'Address deleted successfully!');
     }
 
@@ -102,7 +110,7 @@ class AddressController extends Controller
             return redirect()->back()
                 ->with('error', 'Failed to update default address.');
         }
-        return redirect()->route('customer.addresses.index')
+        return redirect()->route('addresses.index')
             ->with('success', 'Default address updated successfully!');
     }
 

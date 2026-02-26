@@ -12,7 +12,7 @@
                 </a>
             </li>
             <li class="inline-flex items-center">
-                <a href="{{ route('customer.addresses.index') }}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-primary-600 transition-colors duration-200">
+                <a href="{{ route('addresses.index') }}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-primary-600 transition-colors duration-200">
                     <i class="fas fa-address-book mr-2"></i>
                     Address Book
                 </a>
@@ -47,7 +47,7 @@
         </div>
 
         <!-- Form Content -->
-        <form action="{{ isset($address) ? route('customer.addresses.update', ['address_id' => $address->id, 'user_id' => $address->user_id]) : route('customer.addresses.store') }}" method="POST" class="divide-y divide-gray-200">
+        <form action="{{ isset($address) ? route('addresses.update', ['address_id' => $address->id, 'user_id' => $address->user_id]) : route('addresses.store') }}" method="POST" class="divide-y divide-gray-200">
             @csrf
             @if(isset($address))
                 @method('PUT')
@@ -237,7 +237,7 @@
             </div>
 
             <div class="px-6 py-4 bg-gray-50 flex justify-end space-x-3">
-                <a href="{{ route('customer.addresses.index') }}" class="inline-flex items-center px-4 py-2.5 border border-gray-300 shadow-sm text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-150">
+                <a href="{{ route('addresses.index') }}" class="inline-flex items-center px-4 py-2.5 border border-gray-300 shadow-sm text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-150">
                     <i class="fas fa-times mr-2"></i>
                     Cancel
                 </a>
