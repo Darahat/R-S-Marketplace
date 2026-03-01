@@ -5,7 +5,7 @@ use App\Http\Controllers\CartController;
 use App\Http\Controllers\WishlistController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\ProductController;
+use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\ProductSettingController;
 use Illuminate\Support\Facades\Artisan;
 use App\Http\Controllers\AddressController;
@@ -110,8 +110,7 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth:web', 'isAdmin']], fun
     Route::get('/dashboard', [DashboardController::class, 'dashboard'])->name('admin.dashboard');
 
     // Product Management
-    Route::get('/viewProduct', [ProductController::class, 'viewProduct'])->name('admin.viewproduct');
-    Route::delete('/products/{id}', [ProductController::class, 'destroy'])->name('products.destroy');
+     Route::delete('/products/{id}', [ProductController::class, 'destroy'])->name('products.destroy');
     // Category Management
     Route::get('/categories', [\App\Http\Controllers\CategoryController::class, 'index'])->name('admin.categories.index');
     Route::get('/categories/create', [\App\Http\Controllers\CategoryController::class, 'create'])->name('admin.categories.create');
@@ -159,9 +158,11 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth:web', 'isAdmin']], fun
     Route::get('/hero', [\App\Http\Controllers\Admin\HeroSectionController::class, 'edit'])->name('admin.hero.edit');
     Route::post('/hero', [\App\Http\Controllers\Admin\HeroSectionController::class, 'update'])->name('admin.hero.update');
     // ADMIN ROUTES - Resource except create/store/setDefault
-    Route::resource('addresses', AddressController::class)->except(['create', 'store','setDefault']);
-
+    Route::resource('addresses', AddressController::class)
+        ->names('admin.addresses')
+        ->except(['index','create', 'store','setDefault']);
     });
+        Route::get('addresses/getAll', [AddressController::class, 'allAddressList'])->name('addresses.getAll');
 
 
 /// These routes user role managed by policy
@@ -189,7 +190,7 @@ Route::group(['prefix' => 'customer', 'middleware' => ['auth:web', 'isCustomer']
     Route::get('/order-history', [DashboardController::class, 'customer_order_history'])->name('customer.orders');
 
     // CUSTOMER ROUTES - Full resource routes
-    Route::resource('addresses', AddressController::class);
+    Route::resource('addresses', AddressController::class)->except(['allAddressList']);
 
     // Payment Methods Management (Saved Cards)
     Route::prefix('payment-methods')->group(function () {
@@ -199,6 +200,7 @@ Route::group(['prefix' => 'customer', 'middleware' => ['auth:web', 'isCustomer']
         Route::delete('/{id}', [PaymentMethodController::class, 'destroy'])->name('customer.payment_methods.destroy');
     });
 });
+    Route::get('addresses/setDefault', [AddressController::class, 'setDefault'])->name('addresses.setDefault');
 
 
 

@@ -13,6 +13,7 @@ class BrandRepository{
         return Category::where('status', true)->orderBy('name')->get();
     }
     public function createBrand(array $data):?Brand{
+
         return Brand::create($data);
     }
     public function findBrand(int $id):?Brand{

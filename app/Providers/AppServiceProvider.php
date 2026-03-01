@@ -11,10 +11,12 @@ use App\Models\Wishlist;
 use App\Models\UserPaymentMethod;
 use App\Models\Address;
 use App\Models\Brand;
+use App\Models\Product;
 use App\Models\Category;
 use App\Policies\PaymentMethodPolicy;
 use App\Policies\UserAddressPolicy;
 use App\Policies\BrandPolicy;
+ use App\Policies\ProductPolicy;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -36,7 +38,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(UserPaymentMethod::class, PaymentMethodPolicy::class);
         Gate::policy(Address::class, UserAddressPolicy::class);
         Gate::policy(Brand::class, BrandPolicy::class);
-
+        Gate::policy(Product::class, ProductPolicy::class);
         // Register API Routes
         Route::middleware('api')
         ->prefix('api')

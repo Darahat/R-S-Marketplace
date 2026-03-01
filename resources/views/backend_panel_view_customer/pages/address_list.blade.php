@@ -49,7 +49,7 @@
                 <p class="text-sm text-gray-600 mt-2"><i class="fas fa-phone mr-1"></i> {{ $address->phone }}</p>
 
                 <div class="mt-4 flex flex-wrap gap-2">
-                    <a  href="{{ route('addresses.edit', ['address_id' => $address->id, 'user_id' => $address->user_id]) }}" class="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors duration-200">
+                    <a  href="{{ route('addresses.edit', ['address' => $address->id, 'user_id' => $address->user_id]) }}" class="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors duration-200">
                         <i class="fas fa-pencil-alt mr-1 text-xs"></i> Edit
                     </a>
                     <form action="{{ route('addresses.destroy', $address->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this address?');">
@@ -60,7 +60,7 @@
                         </button>
                     </form>
                     @if(!$address->is_default)
-                    <form action="{{ route('addresses.set-default', ['address_id' => $address->id, 'user_id' => $address->user_id])}}" method="POST">
+                    <form action="{{ route('addresses.setDefault', ['address_id' => $address->id, 'user_id' => $address->user_id])}}" method="POST">
                         @csrf
                         <button type="submit" class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-primary-700 bg-primary-100 hover:bg-primary-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors duration-200">
                             <i class="fas fa-check-circle mr-1 text-xs"></i> Set Default
@@ -94,7 +94,7 @@
                 <p class="text-sm text-gray-600 mt-2"><i class="fas fa-phone mr-1"></i> {{ $address->phone }}</p>
 
                 <div class="mt-4 flex flex-wrap gap-2">
-                    <a href="{{ route('addresses.edit', ['address_id' => $address->id, 'user_id' => $address->user_id]) }}" class="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors duration-200">
+                    <a href="{{ route('addresses.edit', ['address' => $address->id, 'user_id' => $address->user_id]) }}" class="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors duration-200">
                         <i class="fas fa-pencil-alt mr-1 text-xs"></i> Edit
                     </a>
                     <form action="{{ route('addresses.destroy', $address->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this address?');">
@@ -105,7 +105,7 @@
                         </button>
                     </form>
                     @if(!$address->is_default)
-                    <form action="{{ route('addresses.set-default', ['address_id' => $address->id, 'user_id' => $address->user_id]) }}" method="POST">
+                    <form action="{{ route('addresses.setDefault', ['address_id' => $address->id, 'user_id' => $address->user_id]) }}" method="POST">
                         @csrf
                         <button type="submit" class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-primary-700 bg-primary-100 hover:bg-primary-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors duration-200">
                             <i class="fas fa-check-circle mr-1 text-xs"></i> Set Default

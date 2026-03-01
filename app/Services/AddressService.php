@@ -12,6 +12,8 @@ class AddressService{
     }
 
     public function createAddress(int $userId, array $data): ?Address{
+        $data['user_id'] = $userId;
+
         if($data['is_default'] ?? false){
             $this->handleDefaultChange(
         $userId,

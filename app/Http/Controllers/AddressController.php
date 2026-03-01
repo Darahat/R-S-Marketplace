@@ -19,12 +19,7 @@ class AddressController extends Controller
      */
     public function index()
     {
-        if (Auth::user()?->user_type === 'ADMIN') {
-            $addresses = $this->repo->getAllUsersAddress(15);
-            $page_title = "All User Address";
-            $page_header = "All User Address";
-            return view('backend_panel_view_admin.pages.address.address_list', compact('addresses','page_title','page_header'));
-        }
+
 
         $userId = Auth::id();
         $shippingAddresses =$this->repo->getUserShippingAddress($userId);
@@ -32,11 +27,14 @@ class AddressController extends Controller
         return view('backend_panel_view_customer.pages.address_list', compact('shippingAddresses', 'billingAddresses'));
     }
 
-     public function AllAddressList()
+     public function allAddressList()
     {
-        $addresses = $this->repo->getAllUsersAddress(15);
-
-        return view('backend_panel_view_admin.pages.address.address_list', compact('addresses'));
+        if (Auth::user()?->user_type === 'ADMIN') {
+            $addresses = $this->repo->getAllUsersAddress(15);
+            $page_title = "All User Address";
+            $page_header = "All User Address";
+            return view('backend_panel_view_admin.pages.address.address_list', compact('addresses','page_title','page_header'));
+        }
     }
 
     /**
@@ -126,5 +124,4 @@ class AddressController extends Controller
         return redirect()->route('addresses.index')
             ->with('success', 'Default address updated successfully!');
     }
-
 }

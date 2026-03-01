@@ -8,6 +8,8 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Http\Request;
+use Illuminate\Database\Eloquent\Builder;
 
 class ProductService
 {
@@ -15,6 +17,49 @@ class ProductService
     {
     }
 
+    public function index(Builder $query,Request $request): ?Builder{
+ // Search functionality
+        if ($request->has('search') && $request->search != '') {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', '%' . $search . '%')
+                  ->orWhere('slug', 'like', '%' . $search . '%')
+                  ->orWhere('description', 'like', '%' . $search . '%');
+            });
+        }
+
+        // Category filter
+        if ($request->has('category') && $request->category != '') {
+            $query->where('category_id', $request->category);
+        }
+
+        // Brand filter
+        if ($request->has('brand') && $request->brand != '') {
+            $query->where('brand_id', $request->brand);
+        }
+
+        // Status filter
+        if ($request->has('status')) {
+            switch ($request->status) {
+                case 'featured':
+                    $query->where('featured', true);
+                    break;
+                case 'best_selling':
+                    $query->where('is_best_selling', true);
+                    break;
+                case 'latest':
+                    $query->where('is_latest', true);
+                    break;
+                case 'flash_sale':
+                    $query->where('is_flash_sale', true);
+                    break;
+                case 'low_stock':
+                    $query->where('stock', '<', 10);
+                    break;
+            }
+        }
+        return  $query;
+    }
     /**
      * Create a new product
      */

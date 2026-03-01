@@ -47,7 +47,7 @@
         </div>
 
         <!-- Form Content -->
-        <form action="{{ isset($address) ? route('addresses.update', ['address_id' => $address->id, 'user_id' => $address->user_id]) : route('addresses.store') }}" method="POST" class="divide-y divide-gray-200">
+        <form action="{{ isset($address) ? route('addresses.update', ['address' => $address->id, 'user_id' => $address->user_id]) : route('addresses.store') }}" method="POST" class="divide-y divide-gray-200">
             @csrf
             @if(isset($address))
                 @method('PUT')
@@ -133,8 +133,8 @@
                         <div class="mt-1 relative rounded-md shadow-sm">
                                 <select id="district_id" name="district_id" class="form-select appearance-none block w-full pl-3 pr-10 py-3 text-base border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-lg transition-all duration-150">
                                 <option value="">--Select District--</option>
-                                @foreach($district as $district)
-                                    <option value="{{ $district->id }}" @if(old('district_id', isset($address) ? $address->district_id : '') == $district->id) selected @endif>{{ $district->name }}</option>
+                                @foreach($district as $districtItem)
+                                    <option value="{{ $districtItem->id }}" @if(old('district_id', isset($address) ? $address->district_id : '') == $districtItem->id) selected @endif>{{ $districtItem->name }}</option>
                                 @endforeach
                             </select>
                             <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
@@ -267,76 +267,91 @@
 </style>
 @endpush
 <script>
-    $(document).ready(function() {
-        // Data already loaded from server
-        const districts = @json($district);
-        console.log('Districts loaded:', districts);
-
+    document.addEventListener('DOMContentLoaded', function () {
+        const rawDistricts = @json($district);
+        const toArray = function (value) {
+            if (Array.isArray(value)) {
+                return value;
+            }
+            if (value && typeof value === 'object') {
+                return Object.values(value);
+            }
+            return [];
+        };
+        const districts = toArray(rawDistricts);
         const selectedDistrictId = "{{ old('district_id', isset($address) ? $address->district_id : '') }}";
         const selectedUpazilaId = "{{ old('upazila_id', isset($address) ? $address->upazila_id : '') }}";
         const selectedUnionId = "{{ old('union_id', isset($address) ? $address->union_id : '') }}";
 
-        const $districtSelect = $('#district_id');
-        const $upazilaSelect = $('#upazila_id');
-        const $unionSelect = $('#union_id');
+        const districtSelect = document.getElementById('district_id');
+        const upazilaSelect = document.getElementById('upazila_id');
+        const unionSelect = document.getElementById('union_id');
 
-        function populateUpazilas(districtId, selectedUpazila = null) {
-            console.log('populateUpazilas called with:', districtId, selectedUpazila);
+        if (!districtSelect || !upazilaSelect || !unionSelect) {
+            return;
+        }
 
-            const district = districts.find(d => d.id == districtId);
-            console.log('Found district:', district);
+        function setDefaultOption(selectEl, placeholder) {
+            selectEl.innerHTML = '';
+            const option = document.createElement('option');
+            option.value = '';
+            option.textContent = placeholder;
+            selectEl.appendChild(option);
+        }
 
-            const upazilas = district ? district.upazila : [];
-            console.log('Upazilas:', upazilas);
+        function appendOption(selectEl, value, label, isSelected) {
+            const option = document.createElement('option');
+            option.value = String(value);
+            option.textContent = label;
+            option.selected = Boolean(isSelected);
+            selectEl.appendChild(option);
+        }
 
-            $upazilaSelect.html('<option value="">--Select Upazila--</option>');
-            $unionSelect.html('<option value="">--Select Union--</option>');
+        function populateUnions(districtId, upazilaId, selectedUnion) {
+            const district = districts.find(function (item) {
+                return String(item.id) === String(districtId);
+            });
+            const upazilas = district ? toArray(district.upazila) : [];
+            const upazila = upazilas.length
+                ? upazilas.find(function (item) {
+                    return String(item.id) === String(upazilaId);
+                })
+                : null;
+            const unions = upazila ? toArray(upazila.union) : [];
 
-            upazilas.forEach(upazila => {
-                const selected = (upazila.id == selectedUpazila) ? 'selected' : '';
-                $upazilaSelect.append(`<option value="${upazila.id}" ${selected}>${upazila.name}</option>`);
+            setDefaultOption(unionSelect, '--Select Union--');
+            unions.forEach(function (item) {
+                appendOption(unionSelect, item.id, item.name, String(item.id) === String(selectedUnion));
+            });
+        }
+
+        function populateUpazilas(districtId, selectedUpazila) {
+            const district = districts.find(function (item) {
+                return String(item.id) === String(districtId);
+            });
+            const upazilas = district ? toArray(district.upazila) : [];
+
+            setDefaultOption(upazilaSelect, '--Select Upazila--');
+            setDefaultOption(unionSelect, '--Select Union--');
+
+            upazilas.forEach(function (item) {
+                appendOption(upazilaSelect, item.id, item.name, String(item.id) === String(selectedUpazila));
             });
 
-            // If there's a selected upazila, trigger load unions
             if (selectedUpazila) {
                 populateUnions(districtId, selectedUpazila, selectedUnionId);
             }
         }
 
-        function populateUnions(districtId, upazilaId, selectedUnion = null) {
-            console.log('populateUnions called with:', districtId, upazilaId, selectedUnion);
-
-            const district = districts.find(d => d.id == districtId);
-            const upazila = district?.upazila?.find(u => u.id == upazilaId);
-            const unions = upazila ? upazila.union : [];
-
-            console.log('Unions:', unions);
-
-            $unionSelect.html('<option value="">--Select Union--</option>');
-
-            unions.forEach(union => {
-                const selected = (union.id == selectedUnion) ? 'selected' : '';
-                $unionSelect.append(`<option value="${union.id}" ${selected}>${union.name}</option>`);
-            });
-        }
-
-        // Event handlers
-        $districtSelect.on('change', function() {
-            const districtId = $(this).val();
-            console.log('District changed to:', districtId);
-            populateUpazilas(districtId);
+        districtSelect.addEventListener('change', function () {
+            populateUpazilas(this.value);
         });
 
-        $upazilaSelect.on('change', function() {
-            const districtId = $districtSelect.val();
-            const upazilaId = $(this).val();
-            console.log('Upazila changed to:', upazilaId);
-            populateUnions(districtId, upazilaId);
+        upazilaSelect.addEventListener('change', function () {
+            populateUnions(districtSelect.value, this.value);
         });
 
-        // Initial population (for edit or old input)
         if (selectedDistrictId) {
-            console.log('Initial population with:', selectedDistrictId, selectedUpazilaId);
             populateUpazilas(selectedDistrictId, selectedUpazilaId);
         }
     });
