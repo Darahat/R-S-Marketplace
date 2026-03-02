@@ -116,10 +116,11 @@
                                         <input type="checkbox" class="product-checkbox" value="{{ $product->id }}">
                                     </td>
                                     <td>
-                                        <img src="{{ $product->image ? (filter_var($product->image, FILTER_VALIDATE_URL) ? $product->image : asset('storage/' . $product->image)) : 'https://via.placeholder.com/50' }}"
+                                        <img src="{{ $product->image ? (filter_var($product->image, FILTER_VALIDATE_URL) ? $product->image : asset('storage/' . $product->image)) : asset('images/no-image.svg') }}"
                                              alt="{{ $product->name }}"
                                              class="img-thumbnail"
-                                             style="width: 50px; height: 50px; object-fit: cover;">
+                                             style="width: 50px; height: 50px; object-fit: cover;"
+                                             onerror="this.onerror=null;this.src='{{ asset('images/no-image.svg') }}'">
                                     </td>
                                     <td>
                                         <strong>{{ $product->name }}</strong><br>

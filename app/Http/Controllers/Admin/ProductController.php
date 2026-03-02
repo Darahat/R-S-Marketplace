@@ -4,18 +4,20 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use App\Http\Requests\ProductRequest;
 use App\Models\Product;
 use App\Models\Category;
 use App\Models\Brand;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
 use App\Services\ProductService;
 use App\Repositories\ProductRepository;
 use App\Repositories\BrandRepository;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 class ProductController extends Controller
 {
+    use AuthorizesRequests;
     protected $page_title;
 
     public function __construct(private ProductRepository $repo,private BrandRepository $brandRepo, private ProductService $service)
@@ -65,7 +67,7 @@ class ProductController extends Controller
     /**
      * Store a newly created product
      */
-    public function store(Request $request)
+    public function store(ProductRequest $request)
     {
         $validated = $request->validated();
         try{
@@ -100,9 +102,10 @@ class ProductController extends Controller
      */
     public function edit($id)
     {
-        $product = Product::findOrFail($id);
-        $categories = Category::where('status', true)->orderBy('name')->get();
-        $brands = Brand::where('status', true)->orderBy('name')->get();
+        $product = $this->repo->findProduct($id);
+        abort_if(!$product, 404, 'Product not found');
+        $categories = $this->brandRepo->getAllCategory();
+        $brands =  $this->brandRepo->getAllBrands();
 
         return view('backend_panel_view_admin.pages.products.edit', [
             'product' => $product,
@@ -116,52 +119,16 @@ class ProductController extends Controller
     /**
      * Update the specified product
      */
-    public function update(Request $request, $id)
+    public function update(ProductRequest $request, $id)
     {
-        $product = Product::findOrFail($id);
-        $validated = $request->validated();
+         $validated = $request->validated();
 
-        try {
-            $product->name = $request->name;
-            $product->slug = Str::slug($request->name);
-            $product->description = $request->description;
-            $product->price = $request->price;
-            $product->purchase_price = $request->purchase_price ?? 0;
-            $product->discount_price = $request->discount_price ?? 0;
-            $product->stock = $request->stock;
-            $product->category_id = $request->category_id;
-            $product->brand_id = $request->brand_id;
-            $product->featured = $request->input('featured', 0) == 1;
-            $product->is_best_selling = $request->input('is_best_selling', 0) == 1;
-            $product->is_latest = $request->input('is_latest', 0) == 1;
-            $product->is_flash_sale = $request->input('is_flash_sale', 0) == 1;
-            $product->is_todays_deal = $request->input('is_todays_deal', 0) == 1;
-            $product->rating = $request->rating ?? $product->rating;
 
-            // Handle image upload
-            if ($request->hasFile('image')) {
-                // Delete old image if it's a file path (not a URL)
-                if ($product->image && !filter_var($product->image, FILTER_VALIDATE_URL)) {
-                    if (Storage::disk('public')->exists($product->image)) {
-                        Storage::disk('public')->delete($product->image);
-                    }
-                }
+           $this->service->updateProduct($validated, $id,$request->file('image'));
 
-                $image = $request->file('image');
-                $imageName = time() . '_' . Str::slug($request->name) . '.' . $image->getClientOriginalExtension();
-                $imagePath = $image->storeAs('products', $imageName, 'public');
-                $product->image = $imagePath;
-            }
-
-            $product->save();
-
-            return redirect()->route('admin.products.index')
-                ->with('success', 'Product updated successfully!');
-        } catch (\Exception $e) {
-            return redirect()->back()
-                ->withInput()
-                ->with('error', 'Failed to update product: ' . $e->getMessage());
-        }
+         return redirect()
+        ->route('admin.products.index')
+        ->with('success', 'Product updated successfully!');
     }
 
     /**
@@ -170,24 +137,16 @@ class ProductController extends Controller
     public function destroy($id)
     {
         $product = Product::findOrFail($id);
-
         // Delete image if exists
         if ($product->image && Storage::disk('public')->exists($product->image)) {
             Storage::disk('public')->delete($product->image);
         }
-
         $product->delete();
-
         return response()->json([
             'success' => true,
             'message' => 'Product deleted successfully!'
         ]);
     }
-
-
-
-
-
     /**
      * Toggle featured status
      */
@@ -210,7 +169,6 @@ class ProductController extends Controller
     public function bulkDelete(Request $request)
     {
         $ids = $request->ids;
-
         if (empty($ids)) {
             return response()->json([
                 'success' => false,

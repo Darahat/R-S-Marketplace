@@ -30,8 +30,15 @@ class BrandRequest extends FormRequest
             'status' => 'required|boolean',
         ];
     }
-     protected function prepareForValidation(): void
+    protected function prepareForValidation(): void
     {
+        // Auto-generate slug from name if not provided
+        if ($this->has('name') && empty($this->slug)) {
+            $this->merge([
+                'slug' => \Illuminate\Support\Str::slug($this->name),
+            ]);
+        }
+
         // Convert checkbox to boolean
         if ($this->has('status')) {
             $this->merge([
@@ -39,5 +46,4 @@ class BrandRequest extends FormRequest
             ]);
         }
     }
-
 }

@@ -110,49 +110,27 @@ class ProductService
     /**
      * Update an existing product
      */
-    public function updateProduct(array $data, int $id): bool
+    public function updateProduct(array $data, int $id): void
     {
-        Log::info('Updating product', ['id' => $id, 'data' => $data]);
-
         $product = $this->repo->findProduct($id);
-
         if (!$product) {
-            Log::error('Product not found', ['id' => $id]);
-            return false;
-        }
-
+        throw new \RuntimeException('Product not found');
+    }
         // Generate slug if name changed
         if (isset($data['name']) && $data['name'] !== $product->name) {
             $data['slug'] = Str::slug($data['name']);
         }
-
         // Handle image upload
         if (isset($data['image']) && $data['image'] instanceof UploadedFile) {
+
             // Delete old image if exists
             if ($product->image && Storage::disk('public')->exists($product->image)) {
+                 Log::info('I am inside');
                 Storage::disk('public')->delete($product->image);
             }
-
             $data['image'] = $this->uploadImage($data['image'], $data['name'] ?? $product->name);
         }
-
-        // Ensure boolean fields
-        $booleanFields = ['featured', 'is_best_selling', 'is_latest', 'is_flash_sale', 'is_todays_deal'];
-        foreach ($booleanFields as $field) {
-            if (!isset($data[$field])) {
-                $data[$field] = false;
-            }
-        }
-
-        $result = $this->repo->updateProduct($id, $data);
-
-        if ($result) {
-            Log::info('Product updated successfully', ['id' => $id]);
-        } else {
-            Log::error('Failed to update product', ['id' => $id]);
-        }
-
-        return $result;
+        $this->repo->updateProduct($id, $data);
     }
 
     /**
