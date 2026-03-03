@@ -8,7 +8,6 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Http\Request;
 use Illuminate\Database\Eloquent\Builder;
 
 class ProductService
@@ -17,10 +16,10 @@ class ProductService
     {
     }
 
-    public function index(Builder $query,Request $request): ?Builder{
+    public function index(Builder $query,array $filters): Builder{
  // Search functionality
-        if ($request->has('search') && $request->search != '') {
-            $search = $request->search;
+        if (!empty($filters['search'])) {
+            $search = $filters['search'];
             $query->where(function($q) use ($search) {
                 $q->where('name', 'like', '%' . $search . '%')
                   ->orWhere('slug', 'like', '%' . $search . '%')
@@ -29,18 +28,18 @@ class ProductService
         }
 
         // Category filter
-        if ($request->has('category') && $request->category != '') {
-            $query->where('category_id', $request->category);
+        if (!empty($filters['category'])) {
+            $query->where('category_id', $filters['category']);
         }
 
         // Brand filter
-        if ($request->has('brand') && $request->brand != '') {
-            $query->where('brand_id', $request->brand);
+        if  (!empty($filters['brand'])){
+            $query->where('brand_id', $filters['brand']);
         }
 
         // Status filter
-        if ($request->has('status')) {
-            switch ($request->status) {
+        if (!empty($filters['status'])) {
+            switch ($filters['status']) {
                 case 'featured':
                     $query->where('featured', true);
                     break;
@@ -174,12 +173,24 @@ class ProductService
         if (!$product) {
             return false;
         }
-
         return $this->repo->updateProduct($id, [
             'featured' => !$product->featured
         ]);
     }
 
+    public function bulkDelete($ids): bool{
+
+        $this->repo->chunkProducts($ids, 100, function ($products) {
+        foreach ($products as $product) {
+            if ($product->image && Storage::disk('public')->exists($product->image)) {
+                Storage::disk('public')->delete($product->image);
+            }
+            $product->delete();
+
+        }
+        });
+        return true;
+    }
     /**
      * Update product stock
      */
@@ -254,7 +265,6 @@ class ProductService
         if (!$product) {
             return false;
         }
-
         return $this->repo->updateProduct($id, [
             'sold_count' => $product->sold_count + $quantity
         ]);

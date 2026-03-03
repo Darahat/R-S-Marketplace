@@ -33,7 +33,13 @@ class ProductController extends Controller
     public function index(Request $request)
     {
         $query = Product::with(['category', 'brand']);
-        $query = $this->service->index($query, $request);
+        $filters = $request->only([
+            'search',
+            'category',
+            'brand',
+            'status'
+        ]);
+        $query = $this->service->index($query, $filters);
 
         $products = $query->orderBy('created_at', 'desc')->paginate(20);
         $categories = $this->brandRepo->getAllCategory();
@@ -88,7 +94,7 @@ class ProductController extends Controller
      */
     public function show($id)
     {
-        $product = Product::with(['category', 'brand'])->findOrFail($id);
+        $product = $this->repo->findProduct($id);
 
         return view('backend_panel_view_admin.pages.products.show', [
             'product' => $product,
@@ -121,12 +127,12 @@ class ProductController extends Controller
      */
     public function update(ProductRequest $request, $id)
     {
-         $validated = $request->validated();
+        $validated = $request->validated();
 
 
-           $this->service->updateProduct($validated, $id,$request->file('image'));
+        $this->service->updateProduct($validated, $id);
 
-         return redirect()
+        return redirect()
         ->route('admin.products.index')
         ->with('success', 'Product updated successfully!');
     }
@@ -136,12 +142,7 @@ class ProductController extends Controller
      */
     public function destroy($id)
     {
-        $product = Product::findOrFail($id);
-        // Delete image if exists
-        if ($product->image && Storage::disk('public')->exists($product->image)) {
-            Storage::disk('public')->delete($product->image);
-        }
-        $product->delete();
+        $this->service->deleteProduct($id);
         return response()->json([
             'success' => true,
             'message' => 'Product deleted successfully!'
@@ -152,13 +153,9 @@ class ProductController extends Controller
      */
     public function toggleFeatured($id)
     {
-        $product = Product::findOrFail($id);
-        $product->featured = !$product->featured;
-        $product->save();
-
+        $this->service->toggleFeatured($id);
         return response()->json([
             'success' => true,
-            'featured' => $product->featured,
             'message' => 'Featured status updated successfully!'
         ]);
     }
@@ -168,26 +165,27 @@ class ProductController extends Controller
      */
     public function bulkDelete(Request $request)
     {
-        $ids = $request->ids;
+         $ids = $request->ids;
+
         if (empty($ids)) {
             return response()->json([
                 'success' => false,
                 'message' => 'No products selected!'
             ]);
         }
+        $success = $this->service->bulkDelete($ids);
 
-        $products = Product::whereIn('id', $ids)->get();
-
-        foreach ($products as $product) {
-            if ($product->image && Storage::disk('public')->exists($product->image)) {
-                Storage::disk('public')->delete($product->image);
-            }
-            $product->delete();
-        }
-
-        return response()->json([
+        if( $success ){
+return response()->json([
             'success' => true,
             'message' => count($ids) . ' products deleted successfully!'
         ]);
+        }else{
+            return response()->json([
+            'error' => true,
+            'message' => count($ids) . ' products deleted failed!'
+        ]);
+        }
+
     }
 }
