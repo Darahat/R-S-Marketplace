@@ -8,7 +8,6 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Http\Request;
 use Illuminate\Database\Eloquent\Builder;
 
 class ProductService
@@ -17,7 +16,7 @@ class ProductService
     {
     }
 
-    public function index(Builder $query,array $filters): ?Builder{
+    public function index(Builder $query,array $filters): Builder{
  // Search functionality
         if (!empty($filters['search'])) {
             $search = $filters['search'];
@@ -39,8 +38,8 @@ class ProductService
         }
 
         // Status filter
-        if (!empty($filters['brand'])) {
-            switch ($filters['brand']) {
+        if (!empty($filters['status'])) {
+            switch ($filters['status']) {
                 case 'featured':
                     $query->where('featured', true);
                     break;

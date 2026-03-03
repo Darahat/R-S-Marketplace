@@ -127,12 +127,12 @@ class ProductController extends Controller
      */
     public function update(ProductRequest $request, $id)
     {
-         $validated = $request->validated();
+        $validated = $request->validated();
 
 
-           $this->service->updateProduct($validated, $id,$request->file('image'));
+        $this->service->updateProduct($validated, $id);
 
-         return redirect()
+        return redirect()
         ->route('admin.products.index')
         ->with('success', 'Product updated successfully!');
     }
