@@ -46,7 +46,7 @@ class AdminAuthController extends Controller
             $this->service->recordLoginMetaData($user,$request->ip(),$request->header('User-Agent'));
 
             session()->regenerate();
-            return $this->service->redirectByRole($user);
+            return redirect()->intended($this->service->redirectByRole($user));
         }
 
         return back()->withErrors([

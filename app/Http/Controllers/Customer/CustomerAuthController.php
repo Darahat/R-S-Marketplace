@@ -23,36 +23,31 @@ class CustomerAuthController extends Controller
     public function login(LoginRequest $request)
     {
         // return $request->all();
-        $credentials = $request->validated();
-
-        if (Auth::attempt($credentials, $request->remember)) {
-            $request->session()->regenerate();
-
-            /** @var User|null $user */
-            $user = Auth::user();
-            if ($user) {
-                $this->service->recordLoginMetaData($user,$request->ip(),$request->header('User-Agent'));
-                $this->service->syncUserData($user);
-            }
-
-            // Return JSON for AJAX requests
-            if ($request->ajax() || $request->wantsJson()) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Login successful!',
-                    'redirect' =>  $this->service->redirectByRole($user),
-                ]);
-            }
-
-           return $this->service->redirectByRole($user);
-
-        }
+        $user = $this->service->attemptLogin(
+        $request->validated(),
+        $request->boolean('remember'),
+        $request->ip(),
+        $request->userAgent()
+    );
 
 
+     if (!$user) {
         return back()->withErrors([
             'email' => 'The provided credentials do not match our records.',
         ])->onlyInput('email');
     }
+
+        if ($request->wantsJson()) {
+        return response()->json([
+            'success' => true,
+            'redirect' => $this->service->redirectByRole($user),
+        ]);
+    }
+        return redirect()->intended($this->service->redirectByRole($user));
+
+        }
+
+
 
     // Show Registration Form
     public function showRegister()
@@ -86,6 +81,8 @@ class CustomerAuthController extends Controller
     public function logout()
     {
         $this->service->logout();
+        session()->invalidate();
+        session()->regenerateToken();
         return redirect('/');
     }
 }
