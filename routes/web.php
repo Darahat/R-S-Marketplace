@@ -1,9 +1,12 @@
 <?php
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\WishlistController;
-use App\Http\Controllers\AuthController;
+use App\Http\Controllers\Admin\AdminAuthController;
+use App\Http\Controllers\Customer\CustomerAuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\ProductSettingController;
@@ -96,19 +99,25 @@ Route::prefix('wishlist')->group(function () {
 Route::get('/login', function () {
     return view('errors.page-not-found');
 })->name('login');
-Route::post('/login', [AuthController::class, 'login'])->name('checklogin');
+Route::post('/login', [CustomerAuthController::class, 'login'])->name('checklogin');
 
-// Admin Login
-Route::get('/admin-login', [AuthController::class, 'adminLogin'])->name('admin.login');
-Route::post('/admin-login', [AuthController::class, 'adminLogin'])->name('admin.checklogin');
+// Test route - remove this later
+Route::get('/admin-login-test', function() {
+    Log::info('Test route hit!');
+    return 'Test route works! User: ' . (Auth::check() ? Auth::user()->email : 'guest');
+});
+
+// Admin Login - separate GET and POST
+Route::get('/admin-login', [AdminAuthController::class, 'showAdminLogin'])->name('admin.login');
+Route::post('/admin-login', [AdminAuthController::class, 'adminLogin'])->name('admin.checklogin');
 
 // Logout - Support both GET and POST
-Route::match(['get', 'post'], '/logout', [AuthController::class, 'logout'])->name('logout');
+Route::match(['get', 'post'], '/logout', [CustomerAuthController::class, 'logout'])->name('logout');
 
 // Authentication Routes
 Route::middleware('guest')->group(function () {
-    Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
-    Route::post('/register', [AuthController::class, 'register']);
+    Route::get('/register', [CustomerAuthController::class, 'showRegister'])->name('register');
+    Route::post('/register', [CustomerAuthController::class, 'register']);
 });
 
 Route::group(['prefix' => 'admin', 'middleware' => ['auth:web', 'isAdmin']], function () {

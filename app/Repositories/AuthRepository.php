@@ -5,4 +5,5 @@ use App\Models\User;
 use Illuminate\Support\Collection;
 
 class AuthRepository{
+
 }
