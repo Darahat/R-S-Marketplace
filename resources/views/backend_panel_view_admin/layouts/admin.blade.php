@@ -101,7 +101,10 @@
             <a href="{{ url('admin/change_password') }}" class="dropdown-item"><i class="fas fa-key mr-2"></i> Change Password</a>
             <div class="dropdown-divider"></div>
 
-            <a href="{{ route('logout') }}" class="dropdown-item"  role="button"><i class="fas fa-sign-out-alt mr-2"></i> Logout</a>
+            <form method="POST" action="{{ route('logout') }}">
+              @csrf
+              <button type="submit" class="dropdown-item" role="button"><i class="fas fa-sign-out-alt mr-2"></i> Logout</button>
+            </form>
           </div>
         </li>
       </ul>

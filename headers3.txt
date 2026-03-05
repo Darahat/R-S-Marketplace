@@ -1,0 +1,11 @@
+HTTP/1.1 200 OK
+Host: 127.0.0.1:8000
+Date: Thu, 05 Mar 2026 05:22:13 GMT
+Connection: close
+X-Powered-By: PHP/8.2.4
+Content-Type: text/html; charset=utf-8
+Cache-Control: no-cache, private
+Date: Thu, 05 Mar 2026 05:22:10 GMT
+Set-Cookie: XSRF-TOKEN=eyJpdiI6IjBtSzFONzRqeGdaLzJ3VjRXN1drVFE9PSIsInZhbHVlIjoicTRJUzVwditiaDBjcHVYc3hqYkFBZFpnRkpieUNGemJMUWlSdTVWQXV6R2VhRFlDdFFFS2dQZi8xUEZLMjk1aldzZUcrTlR6YjZHbHZwdUZUYS8yWkRQUlJqdG5sQWtPdnBTWjdlbjd6RUVsUkZtRHZ6M3RZVHMrdXV3akt2ckoiLCJtYWMiOiJkZjdiN2FlZDZjM2MxMGY5Y2Q1ODNiNzUyOTU2NDNkMjY0ZDBmNzRjMWY2ZGExZjRjNWNhOGM3OWRhNDFmY2M5IiwidGFnIjoiIn0%3D; expires=Thu, 05 Mar 2026 07:22:10 GMT; Max-Age=7197; path=/; samesite=lax
+Set-Cookie: laravel_session=eyJpdiI6IkViN1ZGWkhDelBCWDRTSHFOaU9XK0E9PSIsInZhbHVlIjoiYkptOUFTelZidGlYejVCczRtTkVSbnJMS1lwcjFDdGc2cFhXS24vL1poNlFScTJDZ1A4OXhiNHhVZHJadVdmaGdJOTE4bXpQa09kM1lqRFRRMUNRUE1mQnVLc045aWh6R3MzaWRwRkJ6RkdCbzYvQTJ6bjhBemRrNGl5Y2F0d1QiLCJtYWMiOiJjMzVlOTc1MWJmMTg4OGVhOTM4ZjU2YjQ5Njk0OWI0OTZkMDNjZDRmNTk5ZTNkNzE0NTM5NmUxMTFlNWZiYzIwIiwidGFnIjoiIn0%3D; expires=Thu, 05 Mar 2026 07:22:10 GMT; Max-Age=7197; path=/; httponly; samesite=lax
+
