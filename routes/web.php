@@ -25,9 +25,9 @@ use App\Http\Controllers\PaymentMethodController;
 
 
 
-// Route::get('/', function () {
-//     return view('welcome');
-// });
+Route::get('/test', function () {
+    return session()->getId();
+});
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/category/{slug}', [HomeController::class, 'category'])->name('category');
@@ -92,8 +92,8 @@ Route::get('/admin-login-test', function() {
 Route::get('/admin-login', [AdminAuthController::class, 'showAdminLogin'])->name('admin.login');
 Route::post('/admin-login', [AdminAuthController::class, 'adminLogin'])->name('admin.checklogin');
 
-// Logout - Support both GET and POST
-Route::match(['get', 'post'], '/logout', [CustomerAuthController::class, 'logout'])->name('logout');
+// Logout - POST only to avoid accidental logout/session invalidation from GET requests
+Route::post('/logout', [CustomerAuthController::class, 'logout'])->name('logout');
 
 // Authentication Routes
 Route::middleware('guest')->group(function () {

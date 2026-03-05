@@ -155,12 +155,15 @@
 
 
           <li class="nav-item">
-            <a href="{{ route('logout')}}" class="nav-link">
-            <i class="nav-icon fas fa-sign-out-alt nav-icon"></i>
-              <p>
-                Logout
-              </p>
-            </a>
+            <form method="POST" action="{{ route('logout') }}">
+              @csrf
+              <button type="submit" class="nav-link bg-transparent border-0 w-100 text-left">
+                <i class="nav-icon fas fa-sign-out-alt nav-icon"></i>
+                <p>
+                  Logout
+                </p>
+              </button>
+            </form>
           </li>
 
         </ul>

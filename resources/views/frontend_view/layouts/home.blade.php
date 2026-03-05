@@ -18,13 +18,13 @@
 
     <!-- PWA -->
     <meta name="theme-color" content="{{ config('theme.colors.primary.DEFAULT', '#3b82f6') }}">
+        <link rel="manifest" href="{{ asset('manifest.json') }}">
     <script>
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('/serviceworker.js')
           .then(function() { console.log("Service Worker Registered"); });
       }
     </script>
-    @laravelPWA
 
     <script>
         tailwind.config = {
