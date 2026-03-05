@@ -58,10 +58,10 @@
                                     <input type="text"
                                            class="form-control"
                                            id="slug"
-                                           value=""
+                                           name="slug"
+                                           value="{{ old('slug') }}"
                                            placeholder="brand-name-slug"
-                                           readonly
-                                           disabled>
+                                           readonly>
                                     <div class="form-text">URL-friendly version of the brand name (automatically generated).</div>
                                 </div>
 

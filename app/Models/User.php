@@ -28,6 +28,9 @@ class User extends Authenticatable
         'mobile',
         'user_type',
         'stripe_customer_id',
+        'last_login',
+        'last_ip',
+        'last_device',
     ];
 
     /**
@@ -49,6 +52,7 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'last_login' => 'datetime',
             'password' => 'hashed',
         ];
     }

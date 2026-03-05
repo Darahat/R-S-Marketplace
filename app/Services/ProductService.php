@@ -8,6 +8,7 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Database\Eloquent\Builder;
 
 class ProductService
 {
@@ -15,6 +16,49 @@ class ProductService
     {
     }
 
+    public function index(Builder $query,array $filters): Builder{
+ // Search functionality
+        if (!empty($filters['search'])) {
+            $search = $filters['search'];
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', '%' . $search . '%')
+                  ->orWhere('slug', 'like', '%' . $search . '%')
+                  ->orWhere('description', 'like', '%' . $search . '%');
+            });
+        }
+
+        // Category filter
+        if (!empty($filters['category'])) {
+            $query->where('category_id', $filters['category']);
+        }
+
+        // Brand filter
+        if  (!empty($filters['brand'])){
+            $query->where('brand_id', $filters['brand']);
+        }
+
+        // Status filter
+        if (!empty($filters['status'])) {
+            switch ($filters['status']) {
+                case 'featured':
+                    $query->where('featured', true);
+                    break;
+                case 'best_selling':
+                    $query->where('is_best_selling', true);
+                    break;
+                case 'latest':
+                    $query->where('is_latest', true);
+                    break;
+                case 'flash_sale':
+                    $query->where('is_flash_sale', true);
+                    break;
+                case 'low_stock':
+                    $query->where('stock', '<', 10);
+                    break;
+            }
+        }
+        return  $query;
+    }
     /**
      * Create a new product
      */
@@ -65,49 +109,27 @@ class ProductService
     /**
      * Update an existing product
      */
-    public function updateProduct(array $data, int $id): bool
+    public function updateProduct(array $data, int $id): void
     {
-        Log::info('Updating product', ['id' => $id, 'data' => $data]);
-
         $product = $this->repo->findProduct($id);
-
         if (!$product) {
-            Log::error('Product not found', ['id' => $id]);
-            return false;
-        }
-
+        throw new \RuntimeException('Product not found');
+    }
         // Generate slug if name changed
         if (isset($data['name']) && $data['name'] !== $product->name) {
             $data['slug'] = Str::slug($data['name']);
         }
-
         // Handle image upload
         if (isset($data['image']) && $data['image'] instanceof UploadedFile) {
+
             // Delete old image if exists
             if ($product->image && Storage::disk('public')->exists($product->image)) {
+                 Log::info('I am inside');
                 Storage::disk('public')->delete($product->image);
             }
-
             $data['image'] = $this->uploadImage($data['image'], $data['name'] ?? $product->name);
         }
-
-        // Ensure boolean fields
-        $booleanFields = ['featured', 'is_best_selling', 'is_latest', 'is_flash_sale', 'is_todays_deal'];
-        foreach ($booleanFields as $field) {
-            if (!isset($data[$field])) {
-                $data[$field] = false;
-            }
-        }
-
-        $result = $this->repo->updateProduct($id, $data);
-
-        if ($result) {
-            Log::info('Product updated successfully', ['id' => $id]);
-        } else {
-            Log::error('Failed to update product', ['id' => $id]);
-        }
-
-        return $result;
+        $this->repo->updateProduct($id, $data);
     }
 
     /**
@@ -151,12 +173,24 @@ class ProductService
         if (!$product) {
             return false;
         }
-
         return $this->repo->updateProduct($id, [
             'featured' => !$product->featured
         ]);
     }
 
+    public function bulkDelete($ids): bool{
+
+        $this->repo->chunkProducts($ids, 100, function ($products) {
+        foreach ($products as $product) {
+            if ($product->image && Storage::disk('public')->exists($product->image)) {
+                Storage::disk('public')->delete($product->image);
+            }
+            $product->delete();
+
+        }
+        });
+        return true;
+    }
     /**
      * Update product stock
      */
@@ -231,7 +265,6 @@ class ProductService
         if (!$product) {
             return false;
         }
-
         return $this->repo->updateProduct($id, [
             'sold_count' => $product->sold_count + $quantity
         ]);

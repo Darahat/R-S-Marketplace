@@ -1,40 +1,29 @@
 <?php
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\WishlistController;
-use App\Http\Controllers\AuthController;
+use App\Http\Controllers\Admin\AdminAuthController;
+use App\Http\Controllers\Customer\CustomerAuthController;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\ProductController;
+use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\ProductSettingController;
 use Illuminate\Support\Facades\Artisan;
 use App\Http\Controllers\AddressController;
+use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\Admin\OrderController;
+use App\Http\Controllers\Admin\PaymentController;
 use App\Http\Controllers\BrandController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\StripeWebhookController;
+use App\Http\Controllers\Admin\HeroSectionController;
 use App\Http\Controllers\PaymentProcessController;
 use App\Http\Controllers\PaymentMethodController;
-use Prometheus\CollectorRegistry;
-use Prometheus\Storage\Redis;
-use Prometheus\Storage\InMemory;
-use Prometheus\RenderTextFormat;
+ use App\Http\Controllers\Api\CustomerProfileApiController;
 
-Route::get('/metrics', function () {
-    // Use Redis storage if PHP Redis extension is available, else fallback to InMemory
-    if (class_exists('\\Redis')) {
-        $registry = new CollectorRegistry(new Redis([
-            'host' => '127.0.0.1',
-            'port' => 6379,
-        ]));
-    } else {
-        $registry = new CollectorRegistry(new InMemory());
-    }
-    $renderer = new RenderTextFormat();
-    $result = $renderer->render($registry->getMetricFamilySamples());
 
-    return response($result, 200)
-        ->header('Content-Type', RenderTextFormat::MIME_TYPE);
-});
 
 // Route::get('/', function () {
 //     return view('welcome');
@@ -91,89 +80,97 @@ Route::prefix('wishlist')->group(function () {
 Route::get('/login', function () {
     return view('errors.page-not-found');
 })->name('login');
-Route::post('/login', [AuthController::class, 'login'])->name('checklogin');
+Route::post('/login', [CustomerAuthController::class, 'login'])->name('checklogin');
 
-// Admin Login
-Route::get('/admin-login', [AuthController::class, 'adminLogin'])->name('admin.login');
-Route::post('/admin-login', [AuthController::class, 'adminLogin'])->name('admin.checklogin');
+// Test route - remove this later
+Route::get('/admin-login-test', function() {
+    Log::info('Test route hit!');
+    return 'Test route works! User: ' . (Auth::check() ? Auth::user()->email : 'guest');
+});
+
+// Admin Login - separate GET and POST
+Route::get('/admin-login', [AdminAuthController::class, 'showAdminLogin'])->name('admin.login');
+Route::post('/admin-login', [AdminAuthController::class, 'adminLogin'])->name('admin.checklogin');
 
 // Logout - Support both GET and POST
-Route::match(['get', 'post'], '/logout', [AuthController::class, 'logout'])->name('logout');
+Route::match(['get', 'post'], '/logout', [CustomerAuthController::class, 'logout'])->name('logout');
 
 // Authentication Routes
 Route::middleware('guest')->group(function () {
-    Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
-    Route::post('/register', [AuthController::class, 'register']);
+    Route::get('/register', [CustomerAuthController::class, 'showRegister'])->name('register');
+    Route::post('/register', [CustomerAuthController::class, 'register']);
 });
 
 Route::group(['prefix' => 'admin', 'middleware' => ['auth:web', 'isAdmin']], function () {
     Route::get('/dashboard', [DashboardController::class, 'dashboard'])->name('admin.dashboard');
 
     // Product Management
-    Route::get('/viewProduct', [ProductController::class, 'viewProduct'])->name('admin.viewproduct');
-    Route::delete('/products/{id}', [ProductController::class, 'destroy'])->name('products.destroy');
+     Route::delete('/products/{id}', [ProductController::class, 'destroy'])->name('products.destroy');
     // Category Management
-    Route::get('/categories', [\App\Http\Controllers\CategoryController::class, 'index'])->name('admin.categories.index');
-    Route::get('/categories/create', [\App\Http\Controllers\CategoryController::class, 'create'])->name('admin.categories.create');
-    Route::post('/categories', [\App\Http\Controllers\CategoryController::class, 'store'])->name('admin.categories.store');
-    Route::get('/categories/{id}', [\App\Http\Controllers\CategoryController::class, 'show'])->name('admin.categories.show');
-    Route::get('/categories/{id}/edit', [\App\Http\Controllers\CategoryController::class, 'edit'])->name('admin.categories.edit');
-    Route::put('/categories/{id}', [\App\Http\Controllers\CategoryController::class, 'update'])->name('admin.categories.update');
-    Route::delete('/categories/{id}', [\App\Http\Controllers\CategoryController::class, 'destroy'])->name('admin.categories.destroy');
-    Route::post('/categories/{id}/toggle-status', [\App\Http\Controllers\CategoryController::class, 'toggleStatus'])->name('admin.categories.toggleStatus');
-    Route::post('/categories/{id}/toggle-featured', [\App\Http\Controllers\CategoryController::class, 'toggleFeatured'])->name('admin.categories.toggleFeatured');
-    Route::get('/api/categories/tree', [\App\Http\Controllers\CategoryController::class, 'getTree'])->name('admin.categories.tree');
+    Route::get('/categories', [CategoryController::class, 'index'])->name('admin.categories.index');
+    Route::get('/categories/create', [CategoryController::class, 'create'])->name('admin.categories.create');
+    Route::post('/categories', [CategoryController::class, 'store'])->name('admin.categories.store');
+    Route::get('/categories/{id}', [CategoryController::class, 'show'])->name('admin.categories.show');
+    Route::get('/categories/{id}/edit', [CategoryController::class, 'edit'])->name('admin.categories.edit');
+    Route::put('/categories/{id}', [CategoryController::class, 'update'])->name('admin.categories.update');
+    Route::delete('/categories/{id}', [CategoryController::class, 'destroy'])->name('admin.categories.destroy');
+    Route::post('/categories/{id}/toggle-status', [CategoryController::class, 'toggleStatus'])->name('admin.categories.toggleStatus');
+    Route::post('/categories/{id}/toggle-featured', [CategoryController::class, 'toggleFeatured'])->name('admin.categories.toggleFeatured');
+    Route::get('/api/categories/tree', [CategoryController::class, 'getTree'])->name('admin.categories.tree');
 
     // Product Management
-    Route::get('/products', [\App\Http\Controllers\Admin\ProductController::class, 'index'])->name('admin.products.index');
-    Route::get('/products/create', [\App\Http\Controllers\Admin\ProductController::class, 'create'])->name('admin.products.create');
-    Route::post('/products', [\App\Http\Controllers\Admin\ProductController::class, 'store'])->name('admin.products.store');
-    Route::get('/products/{id}', [\App\Http\Controllers\Admin\ProductController::class, 'show'])->name('admin.products.show');
-    Route::get('/products/{id}/edit', [\App\Http\Controllers\Admin\ProductController::class, 'edit'])->name('admin.products.edit');
-    Route::put('/products/{id}', [\App\Http\Controllers\Admin\ProductController::class, 'update'])->name('admin.products.update');
-    Route::delete('/products/{id}', [\App\Http\Controllers\Admin\ProductController::class, 'destroy'])->name('admin.products.destroy');
-    Route::post('/products/{id}/toggle-featured', [\App\Http\Controllers\Admin\ProductController::class, 'toggleFeatured'])->name('admin.products.toggleFeatured');
-    Route::post('/products/bulk-delete', [\App\Http\Controllers\Admin\ProductController::class, 'bulkDelete'])->name('admin.products.bulk-delete');
+    Route::get('/products', [ProductController::class, 'index'])->name('admin.products.index');
+    Route::get('/products/create', [ProductController::class, 'create'])->name('admin.products.create');
+    Route::post('/products', [ProductController::class, 'store'])->name('admin.products.store');
+    Route::get('/products/{id}', [ProductController::class, 'show'])->name('admin.products.show');
+    Route::get('/products/{id}/edit', [ProductController::class, 'edit'])->name('admin.products.edit');
+    Route::put('/products/{id}', [ProductController::class, 'update'])->name('admin.products.update');
+    Route::delete('/products/{id}', [ProductController::class, 'destroy'])->name('admin.products.destroy');
+    Route::post('/products/{id}/toggle-featured', [ProductController::class, 'toggleFeatured'])->name('admin.products.toggleFeatured');
+    Route::post('/products/bulk-delete', [ProductController::class, 'bulkDelete'])->name('admin.products.bulk-delete');
 
     // Order Management
-    Route::get('/orders', [\App\Http\Controllers\Admin\OrderController::class, 'index'])->name('admin.orders');
-    Route::get('/orders/{id}', [\App\Http\Controllers\Admin\OrderController::class, 'show'])->name('admin.orders.show');
-    Route::post('/orders/{id}/update-status', [\App\Http\Controllers\Admin\OrderController::class, 'updateStatus'])->name('admin.orders.update-status');
-    Route::post('/orders/{id}/update-payment-status', [\App\Http\Controllers\Admin\OrderController::class, 'updatePaymentStatus'])->name('admin.orders.update-payment-status');
-    Route::post('/orders/{id}/update-notes', [\App\Http\Controllers\Admin\OrderController::class, 'updateNotes'])->name('admin.orders.update-notes');
-    Route::get('/orders/{id}/print', [\App\Http\Controllers\Admin\OrderController::class, 'printInvoice'])->name('admin.orders.print');
-    Route::get('/api/orders/statistics', [\App\Http\Controllers\Admin\OrderController::class, 'getStatistics'])->name('admin.orders.statistics');
+    Route::get('/orders', [OrderController::class, 'index'])->name('admin.orders');
+    Route::get('/orders/{id}', [OrderController::class, 'show'])->name('admin.orders.show');
+    Route::post('/orders/{id}/update-status', [OrderController::class, 'updateStatus'])->name('admin.orders.update-status');
+    Route::post('/orders/{id}/update-payment-status', [OrderController::class, 'updatePaymentStatus'])->name('admin.orders.update-payment-status');
+    Route::post('/orders/{id}/update-notes', [OrderController::class, 'updateNotes'])->name('admin.orders.update-notes');
+    Route::get('/orders/{id}/print', [OrderController::class, 'printInvoice'])->name('admin.orders.print');
+    Route::get('/api/orders/statistics', [OrderController::class, 'getStatistics'])->name('admin.orders.statistics');
 
     // Payment Management
-    Route::get('/payments', [\App\Http\Controllers\Admin\PaymentController::class, 'index'])->name('admin.payments');
-    Route::get('/payments/{id}', [\App\Http\Controllers\Admin\PaymentController::class, 'show'])->name('admin.payments.show');
-    Route::post('/payments/{id}/process', [\App\Http\Controllers\Admin\PaymentController::class, 'process'])->name('admin.payments.process');
-    Route::post('/payments/{id}/mark-failed', [\App\Http\Controllers\Admin\PaymentController::class, 'markFailed'])->name('admin.payments.mark-failed');
-    Route::post('/payments/{id}/refund', [\App\Http\Controllers\Admin\PaymentController::class, 'refund'])->name('admin.payments.refund');
-    Route::post('/payments/{id}/update-notes', [\App\Http\Controllers\Admin\PaymentController::class, 'updateNotes'])->name('admin.payments.update-notes');
-    Route::get('/api/payments/statistics', [\App\Http\Controllers\Admin\PaymentController::class, 'getStatistics'])->name('admin.payments.statistics');
-    Route::get('/api/payments/trends', [\App\Http\Controllers\Admin\PaymentController::class, 'getTrends'])->name('admin.payments.trends');
-    Route::get('/api/payments/method-breakdown', [\App\Http\Controllers\Admin\PaymentController::class, 'getMethodBreakdown'])->name('admin.payments.method-breakdown');
+    Route::get('/payments', [PaymentController::class, 'index'])->name('admin.payments');
+    Route::get('/payments/{id}', [PaymentController::class, 'show'])->name('admin.payments.show');
+    Route::post('/payments/{id}/process', [PaymentController::class, 'process'])->name('admin.payments.process');
+    Route::post('/payments/{id}/mark-failed', [PaymentController::class, 'markFailed'])->name('admin.payments.mark-failed');
+    Route::post('/payments/{id}/refund', [PaymentController::class, 'refund'])->name('admin.payments.refund');
+    Route::post('/payments/{id}/update-notes', [PaymentController::class, 'updateNotes'])->name('admin.payments.update-notes');
+    Route::get('/api/payments/statistics', [PaymentController::class, 'getStatistics'])->name('admin.payments.statistics');
+    Route::get('/api/payments/trends', [PaymentController::class, 'getTrends'])->name('admin.payments.trends');
+    Route::get('/api/payments/method-breakdown', [PaymentController::class, 'getMethodBreakdown'])->name('admin.payments.method-breakdown');
 
     // Hero Section
-    Route::get('/hero', [\App\Http\Controllers\Admin\HeroSectionController::class, 'edit'])->name('admin.hero.edit');
-    Route::post('/hero', [\App\Http\Controllers\Admin\HeroSectionController::class, 'update'])->name('admin.hero.update');
+    Route::get('/hero', [HeroSectionController::class, 'edit'])->name('admin.hero.edit');
+    Route::post('/hero', [HeroSectionController::class, 'update'])->name('admin.hero.update');
     // ADMIN ROUTES - Resource except create/store/setDefault
-    Route::resource('addresses', AddressController::class)->except(['create', 'store','setDefault']);
+    Route::resource('addresses', AddressController::class)
+        ->names('admin.addresses')
+        ->except(['index','create', 'store','setDefault']);
 
-    });
+        Route::get('addresses/getAll', [AddressController::class, 'allAddressList'])->name('addresses.getAll');
 
 
 /// These routes user role managed by policy
 // TODO: Every route should be here whoes role managed by policy
    // Brand Management
-    Route::get('/brands', [\App\Http\Controllers\BrandController::class, 'index'])->name('admin.brands.index');
-    Route::get('/brands/create', [\App\Http\Controllers\BrandController::class, 'create'])->name('admin.brands.create');
-    Route::post('/brands', [\App\Http\Controllers\BrandController::class, 'store'])->name('admin.brands.store');
-    Route::get('/brands/{id}/edit', [\App\Http\Controllers\BrandController::class, 'edit'])->name('admin.brands.edit');
-    Route::put('/brands/{id}', [\App\Http\Controllers\BrandController::class, 'update'])->name('admin.brands.update');
-    Route::delete('/brands/{id}', [\App\Http\Controllers\BrandController::class, 'destroy'])->name('admin.brands.destroy');
+    Route::get('/brands', [BrandController::class, 'index'])->name('admin.brands.index');
+    Route::get('/brands/create', [BrandController::class, 'create'])->name('admin.brands.create');
+    Route::post('/brands', [BrandController::class, 'store'])->name('admin.brands.store');
+    Route::get('/brands/{id}/edit', [BrandController::class, 'edit'])->name('admin.brands.edit');
+    Route::put('/brands/{id}', [BrandController::class, 'update'])->name('admin.brands.update');
+    Route::delete('/brands/{id}', [BrandController::class, 'destroy'])->name('admin.brands.destroy');
     Route::patch('/brands/{id}/toggle-status',[BrandController::class, 'toggleStatus'])->name('admin.brands.toggle-status');
+});
 
 
 
@@ -183,13 +180,13 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth:web', 'isAdmin']], fun
 Route::group(['prefix' => 'customer', 'middleware' => ['auth:web', 'isCustomer']], function () {
     Route::get('/dashboard', [DashboardController::class, 'customer_dashboard'])->name('customer.dashboard');
     Route::get('/profile-setting', [DashboardController::class, 'customer_profile_setting'])->name('customer.profile_setting');
-    Route::post('/profile/update', [\App\Http\Controllers\Api\CustomerProfileApiController::class, 'update'])->name('customer.profile.update');
-    Route::get('/profile/photo', [\App\Http\Controllers\Api\CustomerProfileApiController::class, 'instant_photo_view'])->name('customer.profile.photo');
+    Route::post('/profile/update', [CustomerProfileApiController::class, 'update'])->name('customer.profile.update');
+    Route::get('/profile/photo', [CustomerProfileApiController::class, 'instant_photo_view'])->name('customer.profile.photo');
     Route::get('/order-details/{id}', [DashboardController::class, 'customer_order_details'])->name('customer.order_details');
     Route::get('/order-history', [DashboardController::class, 'customer_order_history'])->name('customer.orders');
 
     // CUSTOMER ROUTES - Full resource routes
-    Route::resource('addresses', AddressController::class);
+    Route::resource('addresses', AddressController::class)->except(['allAddressList']);
 
     // Payment Methods Management (Saved Cards)
     Route::prefix('payment-methods')->group(function () {
@@ -199,6 +196,7 @@ Route::group(['prefix' => 'customer', 'middleware' => ['auth:web', 'isCustomer']
         Route::delete('/{id}', [PaymentMethodController::class, 'destroy'])->name('customer.payment_methods.destroy');
     });
 });
+    Route::get('addresses/setDefault', [AddressController::class, 'setDefault'])->name('addresses.setDefault');
 
 
 

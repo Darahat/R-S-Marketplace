@@ -210,4 +210,12 @@ class ProductRepository
     {
         return Brand::where('status', true)->orderBy('name')->get();
     }
+
+    public function chunkProducts($ids,$size,$callback):bool
+    {
+        return Product::whereIn('id', $ids)
+        ->chunk($size, function ($products) use ($callback) {
+            $callback($products);
+        });
+    }
 }

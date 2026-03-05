@@ -273,7 +273,7 @@
                                 <img src="{{ filter_var($product->image, FILTER_VALIDATE_URL) ? $product->image : asset('storage/' . $product->image) }}"
                                      alt="{{ $product->name }}"
                                      class="img-fluid rounded"
-                                     onerror="this.src='https://via.placeholder.com/400x400?text=No+Image'">
+                                     onerror="this.onerror=null;this.src='{{ asset('images/no-image.svg') }}'">
                             </div>
                             @endif
 
