@@ -42,7 +42,7 @@
                 <div class="bg-white rounded-lg shadow-md p-6">
                     <div class="flex items-center justify-between mb-4">
                         <h2 class="text-xl font-semibold">Shipping Address</h2>
-                        <a href="{{ route('customer.address') }}" class="text-primary hover:text-secondary text-sm font-medium">
+                        <a href="{{ route('customer.addresses') }}" class="text-primary hover:text-secondary text-sm font-medium">
                             <i class="fas fa-plus mr-1"></i>Add New Address
                         </a>
                     </div>
@@ -76,7 +76,7 @@
                         <div class="text-center py-8 border-2 border-dashed rounded-lg">
                             <i class="fas fa-map-marker-alt text-4xl text-gray-300 mb-3"></i>
                             <p class="text-gray-500 mb-3">No shipping address found</p>
-                            <a href="{{ route('customer.address') }}" class="inline-flex items-center px-4 py-2 bg-primary hover:bg-secondary text-white font-medium rounded-lg transition">
+                            <a href="{{ route('customer.addresses.index') }}" class="inline-flex items-center px-4 py-2 bg-primary hover:bg-secondary text-white font-medium rounded-lg transition">
                                 <i class="fas fa-plus mr-2"></i>Add Shipping Address
                             </a>
                         </div>

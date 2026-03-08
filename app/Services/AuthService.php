@@ -3,12 +3,13 @@
 namespace App\Services;
 
 use App\Models\User;
-use App\Services\CartAndWishlistService;
+use App\Services\WishlistService;
+use App\Services\CartService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
-
+use Illuminate\Support\Facades\Hash;
 class AuthService{
-  public function __construct(protected CartAndWishlistService $cartAndWishlistService)
+  public function __construct(protected WishlistService $wishlistService, protected CartService $cartService)
     {
 
     }
@@ -26,7 +27,7 @@ class AuthService{
         return $user;
 
     }
-   public function recordLoginMetaData(User $user, String $ip,String $userAgent):void{
+   private function recordLoginMetaData(User $user, String $ip,String $userAgent):void{
 
     $device = $this->parseDeviceName($userAgent);
 
@@ -48,13 +49,13 @@ class AuthService{
         default => route('home'),
    };
    }
-    public function syncUserData(User $user): void
+    private function syncUserData(User $user): void
     {
           // Sync guest cart to user cart
-                $this->cartAndWishlistService->syncGuestCart($user->id);
+                $this->cartService->syncGuestCart($user->id);
 
                 // Sync guest wishlist to user wishlist
-                $this->cartAndWishlistService->syncGuestWishlist($user->id);
+                $this->wishlistService->syncGuestWishlist($user->id);
     }
      public function logout()
     {
@@ -106,5 +107,22 @@ class AuthService{
         }
 
         return $browser . ' on ' . $platform;
+    }
+
+    public function register(array $data,string $ip,string $device):User{
+          $user = User::create([
+            'name' => $data['name'],
+            'email' => $data['email'],
+            'password' => Hash::make($data['password']),
+            'mobile' => $data['mobile'],
+            'user_type' => 'CUSTOMER',
+        ]);
+        Auth::login($user);
+        $user = Auth::user();
+        if ($user) {
+                $this->recordLoginMetaData($user,$ip,$device);
+                $this->syncUserData($user);
+            }
+        return $user;
     }
 }

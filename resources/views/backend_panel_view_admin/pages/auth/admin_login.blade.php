@@ -7,14 +7,14 @@
             <img class="mx-auto h-12 w-auto" src="{{ asset('images/logo/logo.png') }}" alt="R&SMarketPlace">
         </a>
         <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Sign in to your account
+            Sign in to your admin account
         </h2>
-        <p class="mt-2 text-center text-sm text-gray-600">
+        {{-- <p class="mt-2 text-center text-sm text-gray-600">
             Or
-            <a href="{{ route('register') }}" class="font-medium text-primary hover:text-secondary">
+            <a href="{{ route('admin-register') }}" class="font-medium text-primary hover:text-secondary">
                 create a new account
             </a>
-        </p>
+        </p> --}}
     </div>
 
     <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
