@@ -17,7 +17,7 @@ class WishlistService{
      * Sync guest wishlist to database when user logs in
      */
 
-      public function syncGuestWishlist($id)
+      public function syncGuestWishlist($id):void
     {
         if (session()->has('wishlist')) {
             $guestWishlist = session('wishlist', []);
@@ -33,7 +33,7 @@ class WishlistService{
             session()->forget('wishlist');
         }
     }
-    public function getWishlistItems()
+    public function getWishlistItems():Array
     {
         if (Auth::check()) {
             $wishlist = Wishlist::firstOrCreate(['user_id' => Auth::id()]);
@@ -71,7 +71,7 @@ class WishlistService{
     /**
      * Get wishlist count
      */
-    public function getWishlistCount()
+    public function getWishlistCount():Int
     {
         if (Auth::check()) {
             $wishlist = Wishlist::where('user_id', Auth::id())->first();
@@ -83,7 +83,7 @@ class WishlistService{
         /**
      * Move wishlist item to cart
      */
-    public function wishListmoveToCart(int $productId)
+    public function wishListmoveToCart(int $productId):Array
     {
 
         // Remove from wishlist
@@ -118,5 +118,69 @@ class WishlistService{
     'quantity' => $cartCount,
     'cart' => $cartData
 ];
+    }
+
+    public function removeWishListProduct(int $productId):int{
+         if (Auth::check()) {
+            $wishlist = Wishlist::where('user_id', Auth::id())->first();
+            if ($wishlist) {
+                WishlistItem::where('wishlist_id', $wishlist->id)
+                    ->where('product_id', $productId)
+                    ->delete();
+
+                $wishlistCount = $wishlist->items->count();
+            }
+        } else {
+            $wishlist = session()->get('wishlist', []);
+            $wishlist = array_diff($wishlist, [$productId]);
+            session()->put('wishlist', $wishlist);
+            $wishlistCount = count($wishlist);
+
+        }
+                    return $wishlistCount;
+    }
+
+    public function wishlistToggle(int $productId):array{
+
+
+        if (Auth::check()) {
+            // Database storage for logged-in users
+            $wishlist = Wishlist::firstOrCreate(['user_id' => Auth::id()]);
+            $wishlistItem = WishlistItem::where('wishlist_id', $wishlist->id)
+                ->where('product_id', $productId)
+                ->first();
+
+            if ($wishlistItem) {
+                $wishlistItem->delete();
+                $is_wishlisted = false;
+            } else {
+                WishlistItem::create([
+                    'wishlist_id' => $wishlist->id,
+                    'product_id' => $productId
+                ]);
+                $is_wishlisted = true;
+            }
+
+            $count = $wishlist->items->count();
+        } else {
+            // Session storage for guests
+            $wishlist = session()->get('wishlist', []);
+
+            if (in_array($productId, $wishlist)) {
+                $wishlist = array_diff($wishlist, [$productId]);
+                $is_wishlisted = false;
+            } else {
+                $wishlist[] = $productId;
+                $is_wishlisted = true;
+            }
+
+            session()->put('wishlist', $wishlist);
+            $count = count($wishlist);
+        }
+
+        return [
+            'is_wishlisted' =>$is_wishlisted,
+            'count' => $count,
+        ];
     }
 }
