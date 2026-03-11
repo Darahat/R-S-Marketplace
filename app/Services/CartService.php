@@ -6,6 +6,8 @@ use App\Repositories\CartRepository;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Product;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
+
 class CartService{
   public function __construct(protected CartRepository $repo)
     {
@@ -56,6 +58,8 @@ class CartService{
     }
 
     public function addToCart(String $productId,String $quantity):Array {
+        Log::info($productId);
+        Log::info($quantity);
         $product = Product::find($productId);
         if (Auth::check()) {
             // Database storage for logged-in users

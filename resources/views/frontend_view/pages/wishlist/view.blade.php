@@ -167,9 +167,7 @@ function moveToCart(productId) {
                 $('#wishlist-items-count').text(wishlistCount);
 
                 // Check if wishlist is empty
-                if (wishlistCount === 0) {
-                    location.reload(); // Reload to show empty state
-                }
+
             });
 
             // Update cart count
