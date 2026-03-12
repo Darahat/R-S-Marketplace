@@ -2,18 +2,21 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\CategoryRequest;
 use Illuminate\Http\Request;
 use App\Models\Category;
+use App\Services\CategoryService;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 
 class CategoryController extends Controller
 {
     protected $page_title;
 
-    public function __construct()
+    public function __construct(protected CategoryService $category_service)
     {
         $this->page_title = "Category Management";
     }
@@ -23,20 +26,12 @@ class CategoryController extends Controller
      */
     public function index()
     {
-        // Get all categories with their relationships
-        $categories = Category::with(['parent', 'children'])
-            ->orderBy('name')
-            ->paginate(20);
 
-        // Get root categories for tree view
-        $rootCategories = Category::with('children.children')
-            ->whereNull('parent_id')
-            ->orderBy('name')
-            ->get();
+        $getAllCategories = $this->category_service->getCategories();
 
         return view('backend_panel_view_admin.pages.categories.index', [
-            'categories' => $categories,
-            'rootCategories' => $rootCategories,
+            'categories' => $getAllCategories['categories'],
+            'rootCategories' => $getAllCategories['rootCategories'],
             'page_title' => $this->page_title,
             'page_header' => 'Categories',
         ]);
@@ -47,7 +42,7 @@ class CategoryController extends Controller
      */
     public function create()
     {
-        $categories = $this->getCategoriesWithLevel();
+        $categories = $this->category_service->getCategoriesWithLevel();
 
         return view('backend_panel_view_admin.pages.categories.create', [
             'categories' => $categories,
@@ -59,39 +54,10 @@ class CategoryController extends Controller
     /**
      * Store a newly created category
      */
-    public function store(Request $request)
+    public function store(CategoryRequest $request)
     {
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255|unique:categories',
-            'description' => 'nullable|string',
-            'image' => 'nullable|image|max:2048',
-            'parent_id' => 'nullable|exists:categories,id',
-            'status' => 'required|boolean',
-            'is_featured' => 'nullable|boolean',
-            'is_new' => 'nullable|boolean',
-            'discount_price' => 'nullable|numeric|min:0',
-        ]);
 
-        if ($validator->fails()) {
-            return redirect()->back()
-                ->withErrors($validator)
-                ->withInput();
-        }
-
-        $category = new Category();
-        $category->name = $request->name;
-        $category->slug = Str::slug($request->name);
-        $category->description = $request->description;
-        if ($request->hasFile('image')) {
-            $category->image = $request->file('image')->store('categories', 'public');
-        }
-        $category->parent_id = $request->parent_id;
-        $category->status = $request->status ?? true;
-        $category->is_featured = $request->is_featured ?? false;
-        $category->is_new = $request->is_new ?? false;
-        $category->discount_price = $request->discount_price ?? 0;
-        $category->created_by = Auth::id();
-        $category->save();
+         $this->category_service->createCategory($request->validated());
 
         return redirect()->route('admin.categories.index')
             ->with('success', 'Category created successfully!');
@@ -102,55 +68,9 @@ class CategoryController extends Controller
      */
     public function show($id)
     {
-        $category = Category::with(['parent', 'children', 'products', 'creator', 'updater'])
-            ->findOrFail($id);
+        $category = $this->category_service->getCategoryDetails($id);
 
-        $html = '
-        <div class="row">
-            <div class="col-md-6">
-                <p><strong><i class="fas fa-tag"></i> Name:</strong> ' . $category->name . '</p>
-                <p><strong><i class="fas fa-info-circle"></i> Status:</strong>
-                    ' . ($category->status ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-danger">Inactive</span>') . '
-                </p>
-                <p><strong><i class="fas fa-star"></i> Featured:</strong>
-                    ' . ($category->is_featured ? '<span class="badge bg-warning">Yes</span>' : '<span class="badge bg-secondary">No</span>') . '
-                </p>
-                <p><strong><i class="fas fa-certificate"></i> New:</strong>
-                    ' . ($category->is_new ? '<span class="badge bg-info">Yes</span>' : '<span class="badge bg-secondary">No</span>') . '
-                </p>
-            </div>
-            <div class="col-md-6">
-                <p><strong><i class="fas fa-sitemap"></i> Parent:</strong>
-                    ' . ($category->parent ? $category->parent->name : '<span class="text-muted">Root Category</span>') . '
-                </p>
-                <p><strong><i class="fas fa-box"></i> Products:</strong>
-                    <span class="badge bg-info">' . $category->products->count() . '</span>
-                </p>
-                <p><strong><i class="fas fa-percentage"></i> Discount:</strong> ' . ($category->discount_price ?? 0) . '%</p>
-                <p><strong><i class="fas fa-calendar"></i> Created:</strong> ' . $category->created_at->format('M d, Y h:i A') . '</p>
-            </div>
-        </div>';
-
-        if ($category->description) {
-            $html .= '<hr><p><strong><i class="fas fa-align-left"></i> Description:</strong></p><p>' . nl2br(e($category->description)) . '</p>';
-        }
-
-        if ($category->children->count() > 0) {
-            $html .= '<hr><p><strong><i class="fas fa-folder-tree"></i> Subcategories (' . $category->children->count() . '):</strong></p><ul>';
-            foreach ($category->children as $child) {
-                $html .= '<li>' . $child->name . '</li>';
-            }
-            $html .= '</ul>';
-        }
-
-        if ($category->creator) {
-            $html .= '<hr><p class="small text-muted mb-0"><strong>Created by:</strong> ' . $category->creator->name . '</p>';
-        }
-        if ($category->updater) {
-            $html .= '<p class="small text-muted mb-0"><strong>Last updated by:</strong> ' . $category->updater->name . '</p>';
-        }
-
-        return $html;
+        return view('backend_panel_view_admin.pages.categories.partials.show',compact('category'))->render();
     }
 
     /**
@@ -161,7 +81,7 @@ class CategoryController extends Controller
         $category = Category::findOrFail($id);
 
         // Get all categories with level excluding current category
-        $categories = $this->getCategoriesWithLevel($id);
+        $categories = $this->category_service->getCategoriesWithLevel($id);
 
         return view('backend_panel_view_admin.pages.categories.edit', [
             'category' => $category,
@@ -174,50 +94,22 @@ class CategoryController extends Controller
     /**
      * Update the specified category
      */
-    public function update(Request $request, $id)
+    public function update(CategoryRequest $request, $id)
     {
-        $category = Category::findOrFail($id);
 
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255|unique:categories,name,' . $id,
-            'description' => 'nullable|string',
-            'image' => 'nullable|image|max:2048',
-            'parent_id' => 'nullable|exists:categories,id',
-            'status' => 'required|boolean',
-            'is_featured' => 'nullable|boolean',
-            'is_new' => 'nullable|boolean',
-            'discount_price' => 'nullable|numeric|min:0',
-        ]);
-
-        if ($validator->fails()) {
-            return redirect()->back()
-                ->withErrors($validator)
-                ->withInput();
+        $data = $request->validated();
+       if ($request->hasFile('image')) {
+            $data['image'] = $request->file('image')->store('categories', 'public');
         }
+       $categoryUpdate = $this->category_service->updateCategory($data,$id);
 
         // Prevent circular reference
-        if ($request->parent_id == $id) {
+        if (!$categoryUpdate) {
             return redirect()->back()
-                ->with('error', 'A category cannot be its own parent!')
+                ->with('error', 'Category Update Failed')
                 ->withInput();
         }
 
-        $category->name = $request->name;
-        $category->slug = Str::slug($request->name);
-        $category->description = $request->description;
-        $category->parent_id = $request->parent_id;
-        $category->status = $request->status ?? true;
-        $category->is_featured = $request->is_featured ?? false;
-        $category->is_new = $request->is_new ?? false;
-        $category->discount_price = $request->discount_price ?? 0;
-        if ($request->hasFile('image')) {
-            if ($category->image) {
-                Storage::disk('public')->delete($category->image);
-            }
-            $category->image = $request->file('image')->store('categories', 'public');
-        }
-        $category->updated_by = Auth::id();
-        $category->save();
 
         return redirect()->route('admin.categories.index')
             ->with('success', 'Category updated successfully!');
@@ -253,14 +145,17 @@ class CategoryController extends Controller
      */
     public function toggleStatus($id)
     {
-        $category = Category::findOrFail($id);
-        $category->status = !$category->status;
-        $category->updated_by = Auth::id();
-        $category->save();
-
+        $categoryStatus = $this->category_service->toggleStatus($id);
+        if(!$categoryStatus){
+            return response()->json([
+            'success' => false,
+            'status' => $categoryStatus,
+            'message' => 'Category status update failed!'
+        ]);
+        }
         return response()->json([
             'success' => true,
-            'status' => $category->status,
+            'status' => $categoryStatus,
             'message' => 'Category status updated successfully!'
         ]);
     }
@@ -270,14 +165,17 @@ class CategoryController extends Controller
      */
     public function toggleFeatured($id)
     {
-        $category = Category::findOrFail($id);
-        $category->is_featured = !$category->is_featured;
-        $category->updated_by = Auth::id();
-        $category->save();
-
+        $categoryIsFeatured = $this->category_service->toggleFeature($id);
+         if(!$categoryIsFeatured){
+            return response()->json([
+            'success' => false,
+            'status' => $categoryIsFeatured,
+            'message' => 'Category Feature update failed!'
+        ]);
+        }
         return response()->json([
             'success' => true,
-            'is_featured' => $category->is_featured,
+            'is_featured' => $categoryIsFeatured,
             'message' => 'Featured status updated successfully!'
         ]);
     }
@@ -287,39 +185,11 @@ class CategoryController extends Controller
      */
     public function getTree()
     {
-        $categories = Category::with('children.children')
-            ->whereNull('parent_id')
-            ->where('status', true)
-            ->orderBy('name')
-            ->get();
+
+        $categories = $this->category_service->getTree();
 
         return response()->json($categories);
     }
 
-    /**
-     * Get all categories as flat list with hierarchy levels
-     */
-    private function getCategoriesWithLevel($excludeId = null)
-    {
-        $categories = Category::with('parent')->orderBy('name')->get();
-        $result = [];
 
-        foreach ($categories as $category) {
-            if ($excludeId && $category->id == $excludeId) {
-                continue;
-            }
-
-            $level = 0;
-            $parent = $category->parent;
-            while ($parent) {
-                $level++;
-                $parent = $parent->parent;
-            }
-
-            $category->level = $level;
-            $result[] = $category;
-        }
-
-        return collect($result)->sortBy(['level', 'name']);
-    }
 }

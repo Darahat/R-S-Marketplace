@@ -27,7 +27,7 @@ class AuthService{
         return $user;
 
     }
-   private function recordLoginMetaData(User $user, String $ip,String $userAgent):void{
+   public function recordLoginMetaData(User $user, String $ip,String $userAgent):void{
 
     $device = $this->parseDeviceName($userAgent);
 
