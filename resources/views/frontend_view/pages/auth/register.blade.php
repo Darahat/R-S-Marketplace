@@ -1,3 +1,4 @@
+
 <div class="bg-gray-50 flex flex-col justify-center px-4 py-4 sm:px-6 lg:px-8">
     <div class="sm:mx-auto sm:w-full sm:max-w-md text-center space-y-2">
         <a href="{{ route('home') }}" class="inline-block">

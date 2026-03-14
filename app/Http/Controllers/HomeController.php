@@ -9,9 +9,10 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Http\File;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 use DateTime;
-use Auth;
 use App\Models\HeroSection;
+use App\Models\Wishlist;
 class HomeController extends Controller
 {
     protected $siteTitle;
@@ -19,6 +20,30 @@ class HomeController extends Controller
     function __construct()
     {
         $this->siteTitle = 'R&SMarketPlace | ';
+    }
+
+    private function getWishlistProductIds(): array
+    {
+        if (Auth::check()) {
+            $wishlist = Wishlist::where('user_id', Auth::id())->first();
+
+            return $wishlist
+                ? $wishlist->items()->pluck('product_id')->map(fn ($productId) => (int) $productId)->toArray()
+                : [];
+        }
+
+        return array_map('intval', session('wishlist', []));
+    }
+
+    private function markWishlisted($products, array $wishlistIds)
+    {
+        $wishlistLookup = array_fill_keys($wishlistIds, true);
+
+        return $products->map(function ($product) use ($wishlistLookup) {
+            $product->is_wishlisted = isset($wishlistLookup[(int) $product->id]);
+
+            return $product;
+        });
     }
 
     function index(Request $request)
@@ -65,37 +90,43 @@ class HomeController extends Controller
         }
 
         $heroSettings = $heroModel ? array_merge($heroDefaults, $heroModel->toArray()) : $heroDefaults;
+        $wishlistIds = $this->getWishlistProductIds();
 
         $productBase = DB::table('products')->where('stock', '>', 0);
 
+        $latestProducts = $this->markWishlisted((clone $productBase)
+            ->where('is_latest', true)
+            ->orderBy('created_at', 'desc')
+            ->take(8)
+            ->get(), $wishlistIds);
+
+        $bestSellingProducts = $this->markWishlisted((clone $productBase)
+            ->where('is_best_selling', true)
+            ->orderBy('sold_count', 'desc')
+            ->take(8)
+            ->get(), $wishlistIds);
+
+        $discountProducts = $this->markWishlisted((clone $productBase)
+            ->where('discount_price', '>', 0)
+            ->take(8)
+            ->get(), $wishlistIds);
+
+        $regularProducts = $this->markWishlisted((clone $productBase)
+            ->inRandomOrder()
+            ->take(8)
+            ->get(), $wishlistIds);
+
+        $suggestedProducts = $this->markWishlisted((clone $productBase)
+            ->where('featured', true)
+            ->take(8)
+            ->get(), $wishlistIds);
+
         return view('frontend_view.pages.homepage',[
-
-                'latestProducts' => (clone $productBase)
-                    ->where('is_latest', true)
-                    ->orderBy('created_at', 'desc')
-                    ->take(8)
-                    ->get(),
-
-                'bestSellingProducts' => (clone $productBase)
-                    ->where('is_best_selling', true)
-                    ->orderBy('sold_count', 'desc')
-                    ->take(8)
-                    ->get(),
-
-                'discountProducts' => (clone $productBase)
-                    ->where('discount_price', '>', 0)
-                    ->take(8)
-                    ->get(),
-
-                'regularProducts' => (clone $productBase)
-                    ->inRandomOrder()
-                    ->take(8)
-                    ->get(),
-
-                'suggestedProducts' => (clone $productBase)
-                    ->where('featured', true)
-                    ->take(8)
-                    ->get(),
+                'latestProducts' => $latestProducts,
+                'bestSellingProducts' => $bestSellingProducts,
+                'discountProducts' => $discountProducts,
+                'regularProducts' => $regularProducts,
+                'suggestedProducts' => $suggestedProducts,
                 'hero' => $heroSettings,
                 'data' => $data,
                 'categories' => $categories,
@@ -139,6 +170,7 @@ class HomeController extends Controller
 
 
         $brandIds = [];
+        $wishlistIds = $this->getWishlistProductIds();
         if ($request->filled('brands')) {
             $brandIds = explode(',', $request->input('brands'));
         }
@@ -153,6 +185,7 @@ class HomeController extends Controller
             }
 
         $products = $products_db->paginate(10);
+        $products->setCollection($this->markWishlisted($products->getCollection(), $wishlistIds));
 
         if (request()->ajax()) {
             return view('frontend_view.components.cards.productGrid', [
@@ -230,6 +263,8 @@ class HomeController extends Controller
             $category->subcategories = $subcategories->where('parent_id', $category->id)->values();
         }
 
+        $wishlistIds = $this->getWishlistProductIds();
+
         // Search products
         $products_query = DB::table('products')
             ->where('stock', '>', 0);
@@ -261,6 +296,7 @@ class HomeController extends Controller
         }
 
         $products = $products_query->orderBy('created_at', 'desc')->paginate(12);
+        $products->setCollection($this->markWishlisted($products->getCollection(), $wishlistIds));
 
         if (request()->ajax()) {
             return view('frontend_view.components.cards.productGrid', [

@@ -235,7 +235,7 @@
             success: function (response) {
                 // Toggle the heart icon color
                 const svg = button.find('svg');
-                if (response.isWishlisted) {
+                if (response.is_wishlisted) {
                     svg.addClass('text-danger fill-danger').removeClass('text-gray-400');
                     svg.attr('fill', 'currentColor');
                     svg.find('path').attr('stroke-width', '0');

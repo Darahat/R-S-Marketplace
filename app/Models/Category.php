@@ -24,6 +24,7 @@ class Category extends Model
         'is_new',
         'discount_price',
         'parent_id',
+        'created_by',
     ];
 
     /**

@@ -17,6 +17,7 @@ use App\Policies\PaymentMethodPolicy;
 use App\Policies\UserAddressPolicy;
 use App\Policies\BrandPolicy;
  use App\Policies\ProductPolicy;
+ use App\Policies\CategoryPolicy;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -39,6 +40,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Address::class, UserAddressPolicy::class);
         Gate::policy(Brand::class, BrandPolicy::class);
         Gate::policy(Product::class, ProductPolicy::class);
+        Gate::policy(Category::class, CategoryPolicy::class);
         // Register API Routes
         Route::middleware('api')
         ->prefix('api')
