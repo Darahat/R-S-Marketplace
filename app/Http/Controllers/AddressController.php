@@ -55,7 +55,7 @@ class AddressController extends Controller
         $this->authorize('create', Address::class);
         $validated = $request->validated();
         $this->service->createAddress(Auth::id(),$validated);
-        return redirect()->route('addresses.index')
+        return redirect()->route('customer.addresses.index')
             ->with('success', 'Address added successfully!');
     }
 
@@ -81,7 +81,7 @@ class AddressController extends Controller
                 ->with('error', 'Failed to update address.')
                 ->withInput();
         }
-        $redirectUrl = Auth::user()?->user_type === 'ADMIN' ? url('/admin/addresses') : route('addresses.index');
+        $redirectUrl = Auth::user()?->user_type === 'ADMIN' ? url('/admin/addresses') : route('customer.addresses.index');
 
         return redirect()->to($redirectUrl)
             ->with('success', 'Address updated successfully!');
@@ -100,7 +100,7 @@ class AddressController extends Controller
             return redirect()->back()
                 ->with('error', 'Failed to delete address.');
         }
-        $redirectUrl = Auth::user()?->user_type === 'ADMIN' ? url('/admin/addresses') : route('addresses.index');
+        $redirectUrl = Auth::user()?->user_type === 'ADMIN' ? url('/admin/addresses') : route('customer.addresses.index');
 
         return redirect()->to($redirectUrl)
             ->with('success', 'Address deleted successfully!');
@@ -121,7 +121,7 @@ class AddressController extends Controller
             return redirect()->back()
                 ->with('error', 'Failed to update default address.');
         }
-        return redirect()->route('addresses.index')
+        return redirect()->route('customer.addresses.index')
             ->with('success', 'Default address updated successfully!');
     }
 }

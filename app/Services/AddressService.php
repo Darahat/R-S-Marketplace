@@ -57,7 +57,7 @@ class AddressService{
         $address = $this->repo->findAddress($address_id);
 
         if (!$address) {
-            return redirect()->route('addresses.index')
+            return redirect()->route('customer.addresses.index')
                 ->with('error', 'Address not found!');
         }
 

@@ -141,7 +141,7 @@
             </a>
           </li>
         <li class="nav-item">
-            <a href="{{ route('addresses.index') }}" class="nav-link {{ Request::routeIs('admin.hero.*') ? 'active' : '' }}">
+            <a href="{{ route('customer.addresses.index') }}" class="nav-link {{ Request::routeIs('admin.hero.*') ? 'active' : '' }}">
               <i class="nav-icon fas fa-image"></i>
               <p>Address</p>
             </a>

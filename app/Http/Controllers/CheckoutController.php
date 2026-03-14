@@ -2,24 +2,26 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\CheckoutRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use App\Models\Cart;
-use App\Models\CartItem;
+
 use App\Models\Product;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\UserPaymentMethod;
+use App\Services\CheckoutService;
 use Stripe\Stripe;
 use Stripe\Checkout\Session as StripeSession;
 class CheckoutController extends Controller
 {
     protected $siteTitle;
 
-    function __construct()
+    function __construct(protected CheckoutService $checkout_service)
     {
         $this->siteTitle = 'R&SMarketPlace | ';
     }
@@ -30,48 +32,14 @@ class CheckoutController extends Controller
             return redirect()->route('home')->with('error', 'Please login to checkout');
         }
 
-        // Get cart items from database or session
-        if (Auth::check()) {
-            $userCart = Cart::where('user_id', Auth::id())->with('items.product')->first();
-            $cartItems = $userCart ? $userCart->items->map(function($item) {
-                return [
-                    'id' => $item->product_id,
-                    'name' => $item->product->name,
-                    'price' => $item->price,
-                    'quantity' => $item->quantity,
-                    'image' => $item->product->image
-                ];
-            })->toArray() : [];
-        } else {
-            $cartItems = session('cart', []);
-        }
-
-        $total = $this->calculateTotal($cartItems);
-        $data['title'] = $this->siteTitle . 'Checkout';
-
-        // if (count($cartItems) === 0) {
-        //     return redirect()->route('cart.view')->with('error', 'Your cart is empty');
-        // }
-
-        // Get user addresses
-        $addresses = DB::table('addresses')
-            ->leftJoin('districts', 'addresses.district_id', '=', 'districts.id')
-            ->leftJoin('upazilas', 'addresses.upazila_id', '=', 'upazilas.id')
-            ->leftJoin('unions', 'addresses.union_id', '=', 'unions.id')
-            ->where('addresses.user_id', Auth::id())
-            ->select(
-                'addresses.*',
-                'districts.name as district_name',
-                'upazilas.name as upazila_name',
-                'unions.name as union_name'
-            )
-            ->get();
-
+    $checkoutindex = $this->checkout_service->index();
+    $data['title'] = $this->siteTitle . 'Checkout';
         return view('frontend_view.pages.checkout.index', [
-            'cartItems' => $cartItems,
-            'addresses' => $addresses,
-            'total' => $total,
-            'subtotal' => $total,
+            'cartItems' => $checkoutindex['cartItems'],
+            'addresses' => $checkoutindex['addresses'],
+            'defaultAddressId' => $checkoutindex['defaultAddressId'] ?? null,
+            'total' => $checkoutindex['total'],
+            'subtotal' => $checkoutindex['total'],
             'shipping' => 0,
             'data' => $data,
         ]);
@@ -92,79 +60,43 @@ class CheckoutController extends Controller
             return redirect()->back()->with('error', 'Product not found');
         }
 
-        // Create single item array for buy now
-        $cartItems = [[
-            'id' => $product->id,
-            'name' => $product->name,
-            'price' => $product->price,
-            'quantity' => $quantity,
-            'image' => $product->image
-        ]];
 
-        // Store buy now items in session for later use
-        session(['buy_now_items' => $cartItems]);
-
-        $total = $product->price * $quantity;
         $data['title'] = $this->siteTitle . 'Buy Now - Checkout';
+        $response = $this->checkout_service->buyNow($product,$quantity);
 
-        // Get user addresses
-        $addresses = DB::table('addresses')
-            ->leftJoin('districts', 'addresses.district_id', '=', 'districts.id')
-            ->leftJoin('upazilas', 'addresses.upazila_id', '=', 'upazilas.id')
-            ->leftJoin('unions', 'addresses.union_id', '=', 'unions.id')
-            ->where('addresses.user_id', Auth::id())
-            ->select(
-                'addresses.*',
-                'districts.name as district_name',
-                'upazilas.name as upazila_name',
-                'unions.name as union_name'
-            )
-            ->get();
+        if (!$response['hasAddresses']) {
+            return redirect()->route('customer.addresses.index')
+                ->with('error', 'Please add a shipping address before using Buy Now.');
+        }
 
         return view('frontend_view.pages.checkout.index', [
-            'cartItems' => $cartItems,
-            'addresses' => $addresses,
-            'total' => $total,
-            'subtotal' => $total,
+            'cartItems' => $response['cartItems'],
+            'addresses' => $response['addresses'],
+            'defaultAddressId' => $response['defaultAddressId'] ?? null,
+            'total' => $response['total'],
+            'subtotal' => $response['total'],
             'shipping' => 0,
             'data' => $data,
             'isBuyNow' => true,
         ]);
     }
 
-    public function review(Request $request)
+    public function review(CheckoutRequest $request)
     {
         if (!Auth::check()) {
             return redirect()->route('home')->with('error', 'Please login to checkout');
         }
 
-        // Validate address selection
-        $validator = Validator::make($request->all(), [
-            'address_id' => 'required|exists:addresses,id',
-        ]);
 
-        if ($validator->fails()) {
-            return redirect()->back()
-                ->withErrors($validator)
-                ->withInput();
-        }
+        $address = $this->checkout_service->review($request->validated());
 
-        // Verify address belongs to user
-        $address = DB::table('addresses')
-            ->where('id', $request->address_id)
-            ->where('user_id', Auth::id())
-            ->first();
 
         if (!$address) {
             return redirect()->back()->with('error', 'Invalid address selected');
         }
 
         // Store checkout data in session
-        session([
-            'checkout_address_id' => $request->address_id,
-            'checkout_notes' => $request->notes ?? '',
-            'is_buy_now' => $request->input('is_buy_now', false),
-        ]);
+
 
         // Redirect to payment page
         return redirect()->route('checkout.payment');
@@ -179,70 +111,17 @@ class CheckoutController extends Controller
         if (!session('checkout_address_id')) {
             return redirect()->route('checkout')->with('error', 'Please select a shipping address first');
         }
-
-        // Check if this is a Buy Now checkout
-        $isBuyNow = session('is_buy_now', false);
-
-        if ($isBuyNow) {
-            // Get items from buy now session
-            $cartItems = session('buy_now_items', []);
-        } else {
-            // Get cart items from database or session
-            if (Auth::check()) {
-                $userCart = Cart::where('user_id', Auth::id())->with('items.product')->first();
-                $cartItems = $userCart ? $userCart->items->map(function($item) {
-                    return [
-                        'id' => $item->product_id,
-                        'name' => $item->product->name,
-                        'price' => $item->price,
-                        'quantity' => $item->quantity,
-                        'image' => $item->product->image
-                    ];
-                })->toArray() : [];
-            } else {
-                $cartItems = session('cart', []);
-            }
-        }
-
-        // if (count($cartItems) === 0) {
-        //     return redirect()->route('cart.view')->with('error', 'Your cart is empty');
-        // }
-
-        $total = $this->calculateTotal($cartItems);
         $data['title'] = $this->siteTitle . 'Payment';
 
-        // Get the selected address
-        $address = DB::table('addresses')
-            ->leftJoin('districts', 'addresses.district_id', '=', 'districts.id')
-            ->leftJoin('upazilas', 'addresses.upazila_id', '=', 'upazilas.id')
-            ->leftJoin('unions', 'addresses.union_id', '=', 'unions.id')
-            ->where('addresses.id', session('checkout_address_id'))
-            ->where('addresses.user_id', Auth::id())
-            ->select(
-                'addresses.*',
-                'districts.name as district_name',
-                'upazilas.name as upazila_name',
-                'unions.name as union_name'
-            )
-            ->first();
-
-        if (!$address) {
-            return redirect()->route('checkout')->with('error', 'Address not found');
-        }
-
-        // Load saved payment methods for authenticated users
-        $savedPaymentMethods = UserPaymentMethod::where('user_id', Auth::id())
-            ->orderBy('is_default', 'desc')
-            ->orderBy('created_at', 'desc')
-            ->get();
+        $checkoutData = $this->checkout_service->getPaymentPageData();
 
         return view('frontend_view.pages.checkout.payment', [
-            'total' => $total,
-            'subtotal' => $total,
+            'total' => $checkoutData['total'],
+            'subtotal' => $checkoutData['total'],
             'shipping' => 0,
-            'address' => $address,
-            'cartItems' => $cartItems,
-            'savedPaymentMethods' => $savedPaymentMethods,
+            'address' => $checkoutData['address'],
+            'cartItems' => $checkoutData['cartItems'],
+            'savedPaymentMethods' => $checkoutData['savedPaymentMethods'],
             'data' => $data,
         ]);
     }

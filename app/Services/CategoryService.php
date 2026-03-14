@@ -10,7 +10,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 class CategoryService{
-  public function __construct(private CategoryRepository $repo)
+  public function __construct()
     {
     }
     public function getCategories(){
