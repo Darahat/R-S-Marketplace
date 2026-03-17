@@ -181,4 +181,91 @@ class CheckoutService{
             ->orderByDesc('addresses.id')
             ->get();
     }
+
+     public function updateProductStock($cartItems)
+    {
+        foreach ($cartItems as $item) {
+            $product = Product::find($item['id']);
+            if ($product) {
+                $product->stock -= $item['quantity'];
+                $product->save();
+            }
+        }
+    }
+    public function createOrderData($address, $total, $paymentMethod,$cartItems){
+         $order = new Order();
+        $order->user_id = Auth::id();
+        $order->order_number = 'ORD-' . strtoupper(uniqid());
+        $order->address_id = $address->id;
+        $order->order_status = 'Processing';
+        $order->total_amount = $total;
+        $order->payment_method = $paymentMethod;
+        $order->payment_status = 'pending';
+        $order->notes = session('checkout_notes', '');
+        $order->save();
+
+        foreach ($cartItems as $item) {
+            $itemTotal = $item['price'] * $item['quantity'];
+            $orderItem = new OrderItem();
+            $orderItem->order_id = $order->id;
+            $orderItem->product_id = $item['id'];
+            $orderItem->quantity = $item['quantity'];
+            $orderItem->price = $item['price'];
+            $orderItem->total = $itemTotal;
+            $orderItem->save();
+        }
+        return $order;
+    }
+    public function paymentSuccessData($data,$order){
+        $this->checkOrder($data);
+
+         // Optional fallback: if we have session_id and no PI yet, try to resolve it now
+        try {
+            $sessionId = $data->get('session_id');
+            if ($sessionId && empty($order->stripe_payment_intent_id)) {
+                Stripe::setApiKey(config('services.stripe.secret'));
+                $fullSession = \Stripe\Checkout\Session::retrieve([
+                    'id' => $sessionId,
+                    'expand' => ['payment_intent', 'invoice.payment_intent']
+                ]);
+
+                $paymentIntentId = null;
+                if (!empty($fullSession->payment_intent)) {
+                    $paymentIntentId = is_string($fullSession->payment_intent) ? $fullSession->payment_intent : ($fullSession->payment_intent->id ?? null);
+                } elseif (!empty($fullSession->invoice) && isset($fullSession->invoice->payment_intent)) {
+                    $paymentIntentId = is_string($fullSession->invoice->payment_intent) ? $fullSession->invoice->payment_intent : ($fullSession->invoice->payment_intent->id ?? null);
+                }
+
+                if ($paymentIntentId) {
+                    $order->stripe_session_id = $sessionId;
+                    $order->stripe_payment_intent_id = $paymentIntentId;
+                    $order->payment_status = $order->payment_status === 'paid' ? $order->payment_status : 'paid';
+                    $order->save();
+                }
+            }
+        } catch (\Exception $e) {
+            Log::warning('Checkout success page PI resolve failed: ' . $e->getMessage());
+        }
+    }
+    public function checkOrder($data){
+        $orderNumber = $data->order;
+        $order = Order::where('order_number', $orderNumber)
+            ->where('user_id', Auth::id())
+            ->with(['items.product', 'address.district', 'address.upazila', 'address.union'])
+            ->first();
+             if (!$order) {
+        throw new \Exception('Address not found');
+    }
+    return $order;
+    }
+    public function toPayOrder(){
+        // Get all "to_pay" orders for the user
+        return Order::where('user_id', Auth::id())
+            ->where('order_status', 'to_pay')
+            ->with(['items.product', 'address.district', 'address.upazila', 'address.union'])
+            ->orderBy('created_at', 'desc')
+            ->paginate(10);
+    }
+
+
 }

@@ -2,12 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\BuyNowRequest;
 use App\Http\Requests\CheckoutRequest;
+use App\Http\Requests\CompletePaymentRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Validator;
 use App\Models\Cart;
 
 use App\Models\Product;
@@ -45,20 +46,14 @@ class CheckoutController extends Controller
         ]);
     }
 
-    public function buyNow(Request $request)
+    public function buyNow(BuyNowRequest $request)
     {
-
         if (!Auth::check()) {
             return redirect()->route('home')->with('error', 'Please login to proceed');
         }
 
-        $productId = $request->input('product_id');
-        $quantity = $request->input('quantity', 1);
-
-        $product = Product::find($productId);
-        if (!$product) {
-            return redirect()->back()->with('error', 'Product not found');
-        }
+        $product = Product::find($request->validated('product_id'));
+        $quantity = $request->validated('quantity');
 
 
         $data['title'] = $this->siteTitle . 'Buy Now - Checkout';
@@ -126,18 +121,6 @@ class CheckoutController extends Controller
         ]);
     }
 
-
-
-    /// Helper Method
-    // private function getOrCreateStripeCustomer($user){
-    //     Stripe::setApiKey(config('services.stripe.secret'));
-    //      /// Check if user already has a Stripe customer ID stored
-    //     if($user->id){
-    //         try{
-    //             return Customer:retrive($user->id);
-    //         }
-    //     }
-    // }
     public function cancel()
     {
         return redirect()->route('cart.view')->with('error', 'Your payment was cancelled.');
@@ -145,104 +128,19 @@ class CheckoutController extends Controller
 
     public function success(Request $request)
     {
-        $orderNumber = $request->order;
-        $order = Order::where('order_number', $orderNumber)
-            ->where('user_id', Auth::id())
-            ->with(['items.product', 'address.district', 'address.upazila', 'address.union'])
-            ->first();
-
-        if (!$order) {
-            return redirect()->route('home')->with('error', 'Order not found');
-        }
-
-        // Optional fallback: if we have session_id and no PI yet, try to resolve it now
-        try {
-            $sessionId = $request->get('session_id');
-            if ($sessionId && empty($order->stripe_payment_intent_id)) {
-                Stripe::setApiKey(config('services.stripe.secret'));
-                $fullSession = \Stripe\Checkout\Session::retrieve([
-                    'id' => $sessionId,
-                    'expand' => ['payment_intent', 'invoice.payment_intent']
-                ]);
-
-                $paymentIntentId = null;
-                if (!empty($fullSession->payment_intent)) {
-                    $paymentIntentId = is_string($fullSession->payment_intent) ? $fullSession->payment_intent : ($fullSession->payment_intent->id ?? null);
-                } elseif (!empty($fullSession->invoice) && isset($fullSession->invoice->payment_intent)) {
-                    $paymentIntentId = is_string($fullSession->invoice->payment_intent) ? $fullSession->invoice->payment_intent : ($fullSession->invoice->payment_intent->id ?? null);
-                }
-
-                if ($paymentIntentId) {
-                    $order->stripe_session_id = $sessionId;
-                    $order->stripe_payment_intent_id = $paymentIntentId;
-                    $order->payment_status = $order->payment_status === 'paid' ? $order->payment_status : 'paid';
-                    $order->save();
-                }
-            }
-        } catch (\Exception $e) {
-            Log::warning('Checkout success page PI resolve failed: ' . $e->getMessage());
-        }
-
         return view('frontend_view.pages.checkout.success', [
-            'order' => $order,
+            // 'order' => $order,
             'data' => ['title' => $this->siteTitle . 'Order Success'],
         ]);
     }
-
-    protected function validateCheckout(array $data)
+    protected function createOrder( $address, $cartItems, $total, $paymentMethod)
     {
-        return Validator::make($data, [
-            'address_id' => 'required|exists:addresses,id',
-            'payment_method' => 'required|string|in:cash,bkash,card',
-            'notes' => 'nullable|string',
-        ]);
-    }
 
-
-    protected function createOrder($request, $address, $cartItems, $total, $paymentMethod)
-    {
-        $order = new Order();
-        $order->user_id = Auth::id();
-        $order->order_number = 'ORD-' . strtoupper(uniqid());
-        $order->address_id = $address->id;
-        $order->order_status = 'Processing';
-        $order->total_amount = $total;
-        $order->payment_method = $paymentMethod;
-        $order->payment_status = 'pending';
-        $order->notes = session('checkout_notes', '');
-        $order->save();
-
-        foreach ($cartItems as $item) {
-            $itemTotal = $item['price'] * $item['quantity'];
-            $orderItem = new OrderItem();
-            $orderItem->order_id = $order->id;
-            $orderItem->product_id = $item['id'];
-            $orderItem->quantity = $item['quantity'];
-            $orderItem->price = $item['price'];
-            $orderItem->total = $itemTotal;
-            $orderItem->save();
-        }
-
+        $order = $this->checkout_service->createOrderData($address,$total,$paymentMethod,$cartItems);
         return $order;
     }
 
-    protected function updateProductStock($cartItems)
-    {
-        foreach ($cartItems as $item) {
-            $product = Product::find($item['id']);
-            if ($product) {
-                $product->stock -= $item['quantity'];
-                $product->save();
-            }
-        }
-    }
 
-    public function calculateTotal($cartItems)
-    {
-        return array_reduce($cartItems, function($carry, $item) {
-            return $carry + ($item['price'] * $item['quantity']);
-        }, 0);
-    }
 
     public function toPayOrders()
     {
@@ -250,12 +148,7 @@ class CheckoutController extends Controller
             return redirect()->route('home')->with('error', 'Please login to view your orders');
         }
 
-        // Get all "to_pay" orders for the user
-        $orders = Order::where('user_id', Auth::id())
-            ->where('order_status', 'to_pay')
-            ->with(['items.product', 'address.district', 'address.upazila', 'address.union'])
-            ->orderBy('created_at', 'desc')
-            ->paginate(10);
+        $orders = $this->checkout_service->toPayOrder();
 
         $data['title'] = $this->siteTitle . 'Orders to Pay';
 
@@ -265,12 +158,8 @@ class CheckoutController extends Controller
         ]);
     }
 
-    public function completePayment(Request $request, $orderNumber)
+    public function completePayment(CompletePaymentRequest $request, $orderNumber)
     {
-        if (!Auth::check()) {
-            return redirect()->route('home')->with('error', 'Please login');
-        }
-
         $order = Order::where('order_number', $orderNumber)
             ->where('user_id', Auth::id())
             ->where('order_status', 'to_pay')
@@ -285,17 +174,6 @@ class CheckoutController extends Controller
             'payment_order_id' => $order->id,
             'payment_order_number' => $orderNumber,
         ]);
-
-        // Validate payment method
-        $validator = Validator::make($request->all(), [
-            'payment_method' => 'required|string|in:cash,bkash,card',
-        ]);
-
-        if ($validator->fails()) {
-            return redirect()->back()
-                ->withErrors($validator)
-                ->withInput();
-        }
 
         try {
             // Update order payment method and status

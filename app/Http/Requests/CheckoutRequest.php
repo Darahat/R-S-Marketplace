@@ -22,7 +22,10 @@ class CheckoutRequest extends FormRequest
     public function rules(): array
     {
         return [
+            // Step 1 (checkout review) only collects shipping and notes.
             'address_id' => 'required|exists:addresses,id',
+            'is_buy_now' => 'nullable|boolean',
+            'notes' => 'nullable|string',
         ];
     }
 }

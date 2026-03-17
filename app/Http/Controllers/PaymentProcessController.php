@@ -6,7 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Validator;
+use App\Http\Requests\PaymentProcessRequest;
 use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Product;
@@ -17,15 +17,18 @@ use Stripe\Stripe;
 use Stripe\Checkout\Session as StripeSession;
 use Stripe\Customer;
 use App\Http\Controllers\CheckoutController;
+use App\Services\CheckoutService;
 
 class PaymentProcessController extends CheckoutController
 {
-public function process(Request $request)
+public function process(PaymentProcessRequest $request, CheckoutService $checkout_service)
     {
-       // Check validation and stop if it fails
-       $validationResult = $this->checkValidation($request);
-       if ($validationResult !== true) {
-           return $validationResult;
+       if (!Auth::check()) {
+           return redirect()->route('home')->with('error', 'Please login to checkout');
+       }
+
+       if (!session('checkout_address_id')) {
+           return redirect()->route('checkout')->with('error', 'Please select a shipping address first');
        }
 
         try {
@@ -37,7 +40,7 @@ public function process(Request $request)
             $cartItems = $this->getCartItems($isBuyNow);
             $this->verifyProductAvailability($cartItems);
 
-            $total = $this->calculateTotal($cartItems);
+            $total = $this->checkout_service->calculateTotal($cartItems);
             $address = $this->getCheckoutAddress();
 
             // Process payment based on method
@@ -108,7 +111,7 @@ public function process(Request $request)
         // Create order FIRST
 
         $order = $this->createOrder($request, $address, $cartItems, $total, 'stripe');
-        $this->updateProductStock($cartItems);
+        $this->checkout_service->updateProductStock($cartItems);
 
         Stripe::setApiKey(config('services.stripe.secret'));
 
@@ -256,7 +259,7 @@ public function process(Request $request)
     private function processNonStripePayment($request, $address, $cartItems, $total, $payment_method, $isBuyNow)
     {
         $order = $this->createOrder($request, $address, $cartItems, $total, $payment_method);
-        $this->updateProductStock($cartItems);
+        $this->checkout_service->updateProductStock($cartItems);
 
         // Create payment record for cash/bkash
         Payment::create([
@@ -289,35 +292,5 @@ public function process(Request $request)
         }
 
         session()->forget(['checkout_address_id', 'checkout_notes', 'is_buy_now', 'buy_now_items']);
-    }
-
-    private function checkValidation($request){
-         if (!Auth::check()) {
-            return redirect()->route('home')->with('error', 'Please login to checkout');
-        }
-
-        if (!session('checkout_address_id')) {
-            return redirect()->route('checkout')->with('error', 'Please select a shipping address first');
-        }
-
-        // Validate payment method
-        $validator = Validator::make($request->all(), [
-            'payment_method' => 'required|string|in:cash,bkash,stripe',
-        ]);
-
-        // Log validation for debugging
-        Log::info('Payment method validator check', [
-            'payment_method' => $request->input('payment_method'),
-            'fails' => $validator->fails(),
-            'errors' => $validator->errors()->all(),
-        ]);
-
-        if ($validator->fails()) {
-            return redirect()->back()
-                ->withErrors($validator)
-                ->withInput();
-        }
-
-        return true;
     }
 }
