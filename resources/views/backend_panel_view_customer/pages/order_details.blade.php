@@ -34,13 +34,19 @@
             <h1 class="text-2xl font-bold text-gray-800">Order #{{ $orderData->order_number }}</h1>
             <p class="text-gray-600">Placed on {{ \Carbon\Carbon::parse($orderData->created_at)->format('F j, Y') }}</p>
         </div>
-        <div class="mt-4 md:mt-0">
+        <div class="mt-4 md:mt-0 flex items-center gap-3">
             <span class="px-3 py-1 rounded-full text-sm font-medium
                 @if($orderData->order_status === 'shipped') bg-blue-100 text-blue-800
                 @elseif($orderData->order_status === 'delivered') bg-green-100 text-green-800
+                @elseif($orderData->order_status === 'to_pay') bg-red-100 text-red-800
                 @else bg-yellow-100 text-yellow-800 @endif">
-                {{ ucfirst($orderData->order_status) }}
+                {{ ucfirst(str_replace('_', ' ', $orderData->order_status)) }}
             </span>
+            @if($orderData->order_status === 'to_pay')
+                <a href="{{ route('checkout.to_pay') }}" class="px-4 py-2 bg-primary hover:bg-secondary text-white text-sm font-medium rounded-lg transition">
+                    <i class="fas fa-credit-card mr-1"></i> Pay Now
+                </a>
+            @endif
         </div>
     </div>
 
@@ -71,11 +77,14 @@
                 @endforeach
             </div>
             <div class="absolute top-6 left-0 right-0 h-1 bg-gray-200 z-0">
-                <div class="h-full bg-green-500" style="width:
-                    @if($orderData->order_status === 'packaged') 33%
-                    @elseif($orderData->order_status === 'shipped') 66%
-                    @elseif($orderData->order_status === 'delivered') 100%
-                    @else 0% @endif">
+                @php
+                    $totalSteps = count($progress_steps);
+                    $currentIndex = collect($progress_steps)->search(fn($s) => $s['is_current']);
+                    $progressPercent = $currentIndex !== false && $totalSteps > 1
+                        ? round(($currentIndex / ($totalSteps - 1)) * 100)
+                        : 0;
+                @endphp
+                <div class="h-full bg-green-500" style="width: {{ $progressPercent }}%">
                 </div>
             </div>
         </div>
@@ -85,38 +94,58 @@
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div class="bg-gray-50 p-4 rounded-lg">
             <h3 class="font-medium text-gray-800 mb-2">Shipping Address</h3>
-            <p class="text-gray-600">John Doe</p>
-            <p class="text-gray-600">123 Main Street</p>
-            <p class="text-gray-600">New York, NY 10001</p>
-            <p class="text-gray-600">United States</p>
-            <p class="text-gray-600">Phone: (123) 456-7890</p>
+            @if($orderData->address)
+                <p class="text-gray-600 font-medium">{{ $orderData->address->full_name }}</p>
+                <p class="text-gray-600">{{ $orderData->address->street_address }}</p>
+                <p class="text-gray-600">
+                    {{ $orderData->address->union->name ?? '' }}@if($orderData->address->union && $orderData->address->upazila), @endif
+                    {{ $orderData->address->upazila->name ?? '' }}
+                </p>
+                <p class="text-gray-600">
+                    {{ $orderData->address->district->name ?? '' }}
+                    @if($orderData->address->postal_code) - {{ $orderData->address->postal_code }} @endif
+                </p>
+                @if($orderData->address->phone)
+                    <p class="text-gray-600 mt-1">Phone: {{ $orderData->address->phone }}</p>
+                @endif
+            @else
+                <p class="text-gray-400 italic">Address not available</p>
+            @endif
         </div>
 
         <div class="bg-gray-50 p-4 rounded-lg">
-            <h3 class="font-medium text-gray-800 mb-2">Billing Address</h3>
-            <p class="text-gray-600">John Doe</p>
-            <p class="text-gray-600">123 Main Street</p>
-            <p class="text-gray-600">New York, NY 10001</p>
-            <p class="text-gray-600">United States</p>
+            <h3 class="font-medium text-gray-800 mb-2">Order Info</h3>
+            <div class="space-y-2 text-sm">
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Order Number:</span>
+                    <span class="text-gray-800 font-medium">{{ $orderData->order_number }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Payment Status:</span>
+                    <span class="px-2 py-0.5 rounded text-xs font-medium
+                        @if($orderData->payment_status === 'paid') bg-green-100 text-green-800
+                        @else bg-yellow-100 text-yellow-800 @endif">
+                        {{ ucfirst($orderData->payment_status) }}
+                    </span>
+                </div>
+                @if($orderData->notes)
+                <div>
+                    <span class="text-gray-600">Notes:</span>
+                    <p class="text-gray-800 mt-1">{{ $orderData->notes }}</p>
+                </div>
+                @endif
+            </div>
         </div>
 
         <div class="bg-gray-50 p-4 rounded-lg">
             <h3 class="font-medium text-gray-800 mb-2">Payment Summary</h3>
             <div class="flex justify-between py-2 border-b border-gray-200">
-                <span class="text-gray-600">Subtotal:</span>
-                <span class="text-gray-800">${{ number_format($orderData->subtotal, 2) }}</span>
-            </div>
-            <div class="flex justify-between py-2 border-b border-gray-200">
-                <span class="text-gray-600">Discount:</span>
-                <span class="text-green-600">-${{ number_format($orderData->discount, 2) }}</span>
-            </div>
-            <div class="flex justify-between py-2 font-medium">
-                <span class="text-gray-800">Total:</span>
-                <span class="text-gray-800">${{ number_format($orderData->total_amount, 2) }}</span>
+                <span class="text-gray-600">Total:</span>
+                <span class="text-gray-800 font-medium">৳{{ number_format($orderData->total_amount, 2) }}</span>
             </div>
             <div class="mt-3 pt-3 border-t border-gray-200">
                 <span class="text-gray-600">Payment Method:</span>
-                <span class="text-gray-800 block">Credit Card (VISA ****4242)</span>
+                <span class="text-gray-800 block font-medium">{{ ucfirst(str_replace('_', ' ', $orderData->payment_method)) }}</span>
             </div>
         </div>
     </div>
@@ -135,24 +164,33 @@
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
-                    <!-- Sample product row - replace with dynamic data -->
+                    @forelse($orderData->items as $item)
                     <tr>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="flex items-center">
                                 <div class="flex-shrink-0 h-10 w-10">
-                                    <img class="h-10 w-10 rounded" src="https://via.placeholder.com/80" alt="">
+                                    @if($item->product && $item->product->image)
+                                        <img class="h-10 w-10 rounded object-cover" src="{{ asset('storage/' . $item->product->image) }}" alt="{{ $item->product->name }}">
+                                    @else
+                                        <div class="h-10 w-10 rounded bg-gray-200 flex items-center justify-center">
+                                            <i class="fas fa-image text-gray-400"></i>
+                                        </div>
+                                    @endif
                                 </div>
                                 <div class="ml-4">
-                                    <div class="text-sm font-medium text-gray-900">Premium Headphones</div>
-                                    <div class="text-sm text-gray-500">SKU: HD-2023</div>
+                                    <div class="text-sm font-medium text-gray-900">{{ $item->product->name ?? 'Product unavailable' }}</div>
                                 </div>
                             </div>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">$99.99</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">1</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">$99.99</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">৳{{ number_format($item->price, 2) }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $item->quantity }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">৳{{ number_format($item->total, 2) }}</td>
                     </tr>
-                    <!-- End sample row -->
+                    @empty
+                    <tr>
+                        <td colspan="4" class="px-6 py-4 text-center text-gray-500">No items found</td>
+                    </tr>
+                    @endforelse
                 </tbody>
             </table>
         </div>

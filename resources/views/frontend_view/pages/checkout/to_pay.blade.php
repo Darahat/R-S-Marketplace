@@ -81,7 +81,7 @@
 
                 <!-- Payment Method -->
                 <div class="mb-4">
-                    <h4 class="font-semibold text-gray-900 mb-3">Select Payment Method</h4>
+                    <h4 class="font-semibold text-gray-900 mb-3">Select Payment Methodd</h4>
                     <form action="{{ route('checkout.complete_payment', $order->order_number) }}" method="POST" class="space-y-2">
                         @csrf
 

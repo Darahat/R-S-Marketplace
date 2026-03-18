@@ -58,11 +58,6 @@ public function process(PaymentProcessRequest $request)
 
     private function processStripePayment(array $data, $address, $cartItems, $total, $is_pay_subscription)
     {
-        // Log::info($data);
-        //   Log::info($address);
-        //   Log::info($cartItems);
-        //   Log::info($total);
-        //   Log::info($is_pay_subscription);
         $session = $this->payment_process_service->stripePaymentProcess($data, $address, $cartItems, $total, $is_pay_subscription);
         return redirect($session->url);
     }
@@ -73,16 +68,7 @@ public function process(PaymentProcessRequest $request)
         $this->checkout_service->updateProductStock($cartItems);
 
         // Create payment record for cash/bkash
-        Payment::create([
-            'order_id' => $order->id,
-            'user_id' => Auth::id(),
-            'transaction_id' => 'TXN-' . strtoupper(uniqid()), // Generate transaction ID
-            'payment_method' => $payment_method,
-            'payment_status' => $payment_method === 'cash' ? 'pending' : 'pending', // COD is pending until delivery
-            'amount' => $total,
-            'fee' => 0,
-            'notes' => ucfirst($payment_method) . ' payment - awaiting confirmation',
-        ]);
+        $this->payment_process_service->paymentCreate($order->id,$payment_method,$total);
 
         $this->payment_process_service->clearCartAndSession($isBuyNow);
 
@@ -94,30 +80,13 @@ public function process(PaymentProcessRequest $request)
 
     public function completePayment(CompletePaymentRequest $request, $orderNumber)
     {
-        $order = Order::where('order_number', $orderNumber)
-            ->where('user_id', Auth::id())
-            ->where('order_status', 'to_pay')
-            ->first();
 
-        if (!$order) {
-            return redirect()->back()->with('error', 'Order not found');
-        }
-
+        $order = $this->checkout_service->toCheckSingleOrder($orderNumber);
         // Store order data in session for payment process
-        session([
-            'payment_order_id' => $order->id,
-            'payment_order_number' => $orderNumber,
-        ]);
+        $validData= $request->validated();
 
         try {
-            // Update order payment method and status
-            $order->payment_method = $request->payment_method;
-            $order->order_status = 'confirmed';
-            $order->payment_status = $request->payment_method === 'cash' ? 'pending' : 'pending';
-            $order->save();
-
-            // Clear session
-            session()->forget(['payment_order_id', 'payment_order_number']);
+            $this->payment_process_service->completePayment($order,$validData);
 
             return redirect()->route('checkout.success', ['order' => $orderNumber])
                 ->with('success', 'Order confirmed! Payment pending.');

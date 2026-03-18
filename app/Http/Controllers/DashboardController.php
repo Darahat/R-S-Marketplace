@@ -212,14 +212,15 @@ class DashboardController extends Controller
 
 
 public function customer_order_details($order_number){
-    $order = DB::table('orders')->where('order_number', $order_number)->first();
+    $order = Order::where('order_number', $order_number)
+        ->where('user_id', Auth::id())
+        ->with(['address.district', 'address.upazila', 'address.union', 'items.product', 'payments'])
+        ->firstOrFail();
 
     // Define status path
-    $statusPath = [
-        'packaged',
-        'shipped',
-        'delivered',
-    ];
+    $statusPath = $order->order_status === 'to_pay'
+        ? ['to_pay', 'Processing', 'packaged', 'shipped', 'delivered']
+        : ['Processing', 'packaged', 'shipped', 'delivered'];
       // Mark which steps are completed
     $currentStatusIndex = array_search($order->order_status, $statusPath);
 
@@ -227,8 +228,8 @@ public function customer_order_details($order_number){
     $progressSteps = [];
     foreach ($statusPath as $index => $status) {
         $progressSteps[] = [
-            'label' => ucfirst($status),
-            'completed' => $index <= $currentStatusIndex,
+            'label' => ucfirst(str_replace('_', ' ', $status)),
+            'completed' => $currentStatusIndex !== false && $index < $currentStatusIndex,
             'is_current' => $index === $currentStatusIndex,
         ];
     }

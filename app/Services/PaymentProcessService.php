@@ -275,4 +275,28 @@ class PaymentProcessService{
 
         session()->forget(['checkout_address_id', 'checkout_notes', 'is_buy_now', 'buy_now_items']);
     }
+    public function paymentCreate($orderId,$payment_method,$total){
+        return Payment::create([
+            'order_id' => $orderId,
+            'user_id' => Auth::id(),
+            'transaction_id' => 'TXN-' . strtoupper(uniqid()), // Generate transaction ID
+            'payment_method' => $payment_method,
+            'payment_status' => $payment_method === 'cash' ? 'pending' : 'pending', // COD is pending until delivery
+            'amount' => $total,
+            'fee' => 0,
+            'notes' => ucfirst($payment_method) . ' payment - awaiting confirmation',
+        ]);
+    }
+
+    public function completePayment($order,$data):void{
+
+        // Update order payment method and status
+            $order->payment_method = $data['payment_method'];
+            $order->order_status = 'confirmed';
+            $order->payment_status = $data['payment_method'] === 'cash' ? 'pending' : 'pending';
+            $order->save();
+
+            // Clear session
+            session()->forget(['payment_order_id', 'payment_order_number']);
+    }
 }

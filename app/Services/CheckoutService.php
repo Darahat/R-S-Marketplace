@@ -197,7 +197,7 @@ class CheckoutService{
         $order->user_id = Auth::id();
         $order->order_number = 'ORD-' . strtoupper(uniqid());
         $order->address_id = $address->id;
-        $order->order_status = 'Processing';
+        $order->order_status = $paymentMethod === 'stripe' ? 'to_pay' : 'Processing';
         $order->total_amount = $total;
         $order->payment_method = $paymentMethod;
         $order->payment_status = 'pending';
@@ -313,11 +313,32 @@ class CheckoutService{
 
     public function toPayOrder(){
         // Get all "to_pay" orders for the user
-        return Order::where('user_id', Auth::id())
+        try{
+return Order::where('user_id', Auth::id())
             ->where('order_status', 'to_pay')
             ->with(['items.product', 'address.district', 'address.upazila', 'address.union'])
             ->orderBy('created_at', 'desc')
             ->paginate(10);
+        }
+        catch (\Exception $e) {
+            Log::warning('Fallback get Order info check failed: ' . $e->getMessage());
+        }
+    }
+    public function toCheckSingleOrder($orderNumber){
+        // Get all "to_pay" orders for the user
+        try{
+return   Order::where('order_number', $orderNumber)
+            ->where('user_id', Auth::id())
+            ->where('order_status', 'to_pay')
+            ->first();
+        session([
+            'payment_order_id' => $order->id,
+            'payment_order_number' => $orderNumber,
+        ]);
+        }
+        catch (\Exception $e) {
+            Log::warning('Fallback get Order info check failed: ' . $e->getMessage());
+        }
     }
 
 

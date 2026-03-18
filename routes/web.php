@@ -60,7 +60,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/checkout/cancel', [CheckoutController::class, 'cancel'])->name('checkout.cancel');
 
     Route::get('/checkout/to-pay', [CheckoutController::class, 'toPayOrders'])->name('checkout.to_pay');
-    Route::post('/checkout/{orderNumber}/complete-payment', [CheckoutController::class, 'completePayment'])->name('checkout.complete_payment');
+    Route::post('/checkout/{orderNumber}/complete-payment', [PaymentProcessController::class, 'completePayment'])->name('checkout.complete_payment');
 });
 
 // Stripe webhook route (must be outside auth middleware)
