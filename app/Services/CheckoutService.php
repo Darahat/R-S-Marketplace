@@ -192,7 +192,7 @@ class CheckoutService{
             }
         }
     }
-    public function createOrderData($address, $total, $paymentMethod,$cartItems){
+    public function createOrderData($address, $total, $paymentMethod,$cartItems):Order{
          $order = new Order();
         $order->user_id = Auth::id();
         $order->order_number = 'ORD-' . strtoupper(uniqid());
@@ -216,12 +216,12 @@ class CheckoutService{
         }
         return $order;
     }
-    public function paymentSuccessData($data,$order){
-        $this->checkOrder($data);
+    public function paymentSuccessData($data):Order{
+         $order = $this->checkOrder($data);
 
          // Optional fallback: if we have session_id and no PI yet, try to resolve it now
         try {
-            $sessionId = $data->get('session_id');
+            $sessionId = $data['session_id'] ?? null;
             if ($sessionId && empty($order->stripe_payment_intent_id)) {
                 Stripe::setApiKey(config('services.stripe.secret'));
                 $fullSession = \Stripe\Checkout\Session::retrieve([
@@ -241,14 +241,19 @@ class CheckoutService{
                     $order->stripe_payment_intent_id = $paymentIntentId;
                     $order->payment_status = $order->payment_status === 'paid' ? $order->payment_status : 'paid';
                     $order->save();
+
+                    // Fallback: save payment method if webhook hasn't done it yet
+                    $this->savePaymentMethodFromIntent($paymentIntentId, $order->user_id);
                 }
             }
+            return $order;
         } catch (\Exception $e) {
             Log::warning('Checkout success page PI resolve failed: ' . $e->getMessage());
+            return $order;
         }
     }
-    public function checkOrder($data){
-        $orderNumber = $data->order;
+    public function checkOrder($data):Order{
+        $orderNumber = $data['order'];
         $order = Order::where('order_number', $orderNumber)
             ->where('user_id', Auth::id())
             ->with(['items.product', 'address.district', 'address.upazila', 'address.union'])
@@ -258,6 +263,54 @@ class CheckoutService{
     }
     return $order;
     }
+    /**
+     * Save payment method from a PaymentIntent (fallback when webhook hasn't fired).
+     */
+    private function savePaymentMethodFromIntent($paymentIntentId, $userId)
+    {
+        if (!$paymentIntentId || !$userId) {
+            return;
+        }
+
+        try {
+            $paymentIntent = \Stripe\PaymentIntent::retrieve($paymentIntentId);
+
+            if (empty($paymentIntent->payment_method)) {
+                return;
+            }
+
+            $paymentMethodId = $paymentIntent->payment_method;
+
+            // Already saved?
+            if (UserPaymentMethod::where('user_id', $userId)->where('stripe_payment_method_id', $paymentMethodId)->exists()) {
+                return;
+            }
+
+            $stripeMethod = \Stripe\PaymentMethod::retrieve($paymentMethodId);
+
+            if ($stripeMethod->type === 'card') {
+                $isFirst = UserPaymentMethod::where('user_id', $userId)->count() === 0;
+
+                UserPaymentMethod::create([
+                    'user_id' => $userId,
+                    'stripe_payment_method_id' => $paymentMethodId,
+                    'card_brand' => $stripeMethod->card->brand,
+                    'card_last4' => $stripeMethod->card->last4,
+                    'card_exp_month' => $stripeMethod->card->exp_month,
+                    'card_exp_year' => $stripeMethod->card->exp_year,
+                    'is_default' => $isFirst,
+                ]);
+
+                Log::info('Payment method saved via success fallback', [
+                    'user_id' => $userId,
+                    'payment_method_id' => $paymentMethodId,
+                ]);
+            }
+        } catch (\Exception $e) {
+            Log::warning('Fallback save payment method failed: ' . $e->getMessage());
+        }
+    }
+
     public function toPayOrder(){
         // Get all "to_pay" orders for the user
         return Order::where('user_id', Auth::id())

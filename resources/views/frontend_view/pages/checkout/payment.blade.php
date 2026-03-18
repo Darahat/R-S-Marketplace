@@ -82,7 +82,7 @@
                         </label>
 
                         <!-- Saved Cards Section (shown when Stripe is selected) -->
-                        <div id="saved-cards-section" class="hidden ml-8 space-y-3 mt-2">
+                        <div id="saved-cards-section" class="ml-8 space-y-3 mt-2" style="display: none;">
                             @if(isset($savedPaymentMethods) && $savedPaymentMethods->count() > 0)
                                 <p class="text-sm font-semibold text-gray-700 mb-2">Saved Cards:</p>
                                 @foreach($savedPaymentMethods as $method)
@@ -210,6 +210,26 @@
 @push('scripts')
 <script>
 $(document).ready(function() {
+    function toggleSavedCardUI() {
+        const selectedPaymentMethod = $('input[name="payment_method"]:checked').val();
+        const hasSavedCards = $('input[name="saved_payment_method_id"]').length > 0;
+        const selectedSavedCard = $('input[name="saved_payment_method_id"]:checked').val();
+
+        if (selectedPaymentMethod === 'stripe' && hasSavedCards) {
+            $('#saved-cards-section').slideDown(300);
+        } else {
+            $('#saved-cards-section').slideUp(300);
+        }
+
+        if (selectedPaymentMethod === 'stripe' && (!hasSavedCards || selectedSavedCard === 'new')) {
+            $('#save_payment_card_option').slideDown(300);
+
+        } else {
+            $('#save_payment_card_option').slideUp(300);
+            $('#save_payment_card').prop('checked', false);
+        }
+    }
+
     // Handle payment method selection
     $('input[name="payment_method"]').on('change', function() {
         // Reset all labels
@@ -224,18 +244,24 @@ $(document).ready(function() {
         selectedLabel.append('<i class="fas fa-check-circle text-primary text-xl"></i>');
 
         // Show/hide subscription option based on Stripe selection
+
         if ($(this).val() === 'stripe') {
             $('#subscription-option').slideDown(300);
-            $('#save_payment_card_option').slideDown(300);
+            toggleSavedCardUI();
 
         } else {
             $('#subscription-option').slideUp(300);
             $('#pay_subscription').prop('checked', false);
+            $('#saved-cards-section').slideUp(300);
             $('#save_payment_card_option').slideUp(300);
             $('#save_payment_card').prop('checked', false);
-
+            $('input[name="saved_payment_method_id"]').prop('checked', false);
 
         }
+    });
+
+    $('input[name="saved_payment_method_id"]').on('change', function() {
+        toggleSavedCardUI();
     });
 
     // Initialize first radio button as selected

@@ -4,10 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\BuyNowRequest;
 use App\Http\Requests\CheckoutRequest;
-use App\Http\Requests\CompletePaymentRequest;
+use App\Http\Requests\OrderSuccessRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Models\Cart;
 
@@ -126,10 +125,13 @@ class CheckoutController extends Controller
         return redirect()->route('cart.view')->with('error', 'Your payment was cancelled.');
     }
 
-    public function success(Request $request)
+    public function success(OrderSuccessRequest $request)
     {
+        // dd($request->all());
+        $data = $request->validated();
+        $order = $this->checkout_service->paymentSuccessData($data);
         return view('frontend_view.pages.checkout.success', [
-            // 'order' => $order,
+            'order' => $order,
             'data' => ['title' => $this->siteTitle . 'Order Success'],
         ]);
     }
@@ -158,40 +160,6 @@ class CheckoutController extends Controller
         ]);
     }
 
-    public function completePayment(CompletePaymentRequest $request, $orderNumber)
-    {
-        $order = Order::where('order_number', $orderNumber)
-            ->where('user_id', Auth::id())
-            ->where('order_status', 'to_pay')
-            ->first();
 
-        if (!$order) {
-            return redirect()->back()->with('error', 'Order not found');
-        }
 
-        // Store order data in session for payment process
-        session([
-            'payment_order_id' => $order->id,
-            'payment_order_number' => $orderNumber,
-        ]);
-
-        try {
-            // Update order payment method and status
-            $order->payment_method = $request->payment_method;
-            $order->order_status = 'confirmed';
-            $order->payment_status = $request->payment_method === 'cash' ? 'pending' : 'pending';
-            $order->save();
-
-            // Clear session
-            session()->forget(['payment_order_id', 'payment_order_number']);
-
-            return redirect()->route('checkout.success', ['order' => $orderNumber])
-                ->with('success', 'Order confirmed! Payment pending.');
-
-        } catch (\Exception $e) {
-            Log::error('Payment completion error: ' . $e->getMessage());
-            return redirect()->back()
-                ->with('error', 'There was an error confirming your order: ' . $e->getMessage());
-        }
-    }
 }
