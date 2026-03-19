@@ -42,7 +42,7 @@
                 <div class="bg-white rounded-lg shadow-md p-6">
                     <div class="flex items-center justify-between mb-4">
                         <h2 class="text-xl font-semibold">Shipping Address</h2>
-                        <a href="{{ route('customer.addresses') }}" class="text-primary hover:text-secondary text-sm font-medium">
+                        <a href="{{ route('customer.addresses.index') }}" class="text-primary hover:text-secondary text-sm font-medium">
                             <i class="fas fa-plus mr-1"></i>Add New Address
                         </a>
                     </div>
@@ -53,7 +53,7 @@
                             <label class="flex items-start p-4 border-2 rounded-lg cursor-pointer hover:border-primary transition {{ $address->is_default ? 'border-primary bg-primary/5' : 'border-gray-200' }}">
                                 <input type="radio" name="address_id" value="{{ $address->id }}"
                                        class="mt-1 h-4 w-4 text-primary focus:ring-primary"
-                                       {{ $address->is_default ? 'checked' : '' }} required>
+                                       {{ ($address->is_default || (($defaultAddressId ?? null) === $address->id)) ? 'checked' : '' }} required>
                                 <div class="ml-3 flex-1">
                                     <div class="flex items-center justify-between">
                                         <h3 class="font-medium text-gray-900">{{ $address->full_name }}</h3>
@@ -94,7 +94,8 @@
                 <!-- Continue Button -->
                 <button type="submit"
                         class="w-full bg-primary hover:bg-secondary text-white font-bold py-3 px-4 rounded-lg transition transform hover:scale-[1.02] flex items-center justify-center"
-                        {{ $addresses->count() == 0 ? 'disabled' : '' }}>
+                    {{ $addresses->count() == 0 ? 'disabled' : '' }}
+                        >
                     <i class="fas fa-arrow-right mr-2"></i>
                     Continue to Payment
                 </button>

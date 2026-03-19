@@ -6,7 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Validator;
+use App\Http\Requests\PaymentProcessRequest;
 use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Product;
@@ -14,310 +14,87 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Payment;
 use Stripe\Stripe;
+ use Stripe\Customer;
+ use App\Services\CheckoutService;
+use App\Services\PaymentProcessService;
+use App\Http\Requests\CompletePaymentRequest;
 use Stripe\Checkout\Session as StripeSession;
-use Stripe\Customer;
-use App\Http\Controllers\CheckoutController;
 
-class PaymentProcessController extends CheckoutController
+class PaymentProcessController extends Controller
 {
-public function process(Request $request)
+      function __construct(protected PaymentProcessRequest $request,protected CheckoutService $checkout_service,protected PaymentProcessService $payment_process_service)
     {
-       // Check validation and stop if it fails
-       $validationResult = $this->checkValidation($request);
-       if ($validationResult !== true) {
-           return $validationResult;
+
+    }
+public function process(PaymentProcessRequest $request)
+    {
+       if (!Auth::check()) {
+           return redirect()->route('home')->with('error', 'Please login to checkout');
        }
 
+       if (!session('checkout_address_id')) {
+           return redirect()->route('checkout')->with('error', 'Please select a shipping address first');
+       }
+        $reqData = $request->validated();
         try {
-            $payment_method = $request->payment_method;
-            $is_pay_subscription = ($request->pay_subscription ?? "1") == "1";
-            $isBuyNow = session('is_buy_now', false);
+        $payment_method = $reqData['payment_method'];
+        $data = $this->payment_process_service->process($reqData);
+  Log::info($data);
 
-            // Get cart items and verify availability
-            $cartItems = $this->getCartItems($isBuyNow);
-            $this->verifyProductAvailability($cartItems);
-
-            $total = $this->calculateTotal($cartItems);
-            $address = $this->getCheckoutAddress();
-
-            // Process payment based on method
-            if ($payment_method === 'stripe') {
-                return $this->processStripePayment($request, $address, $cartItems, $total, $is_pay_subscription);
+        if ($payment_method === 'stripe') {
+                return $this->processStripePayment($reqData, $data['address'], $data['cartItems'], $data['total'], $data['is_pay_subscription']);
             } else {
-                return $this->processNonStripePayment($request, $address, $cartItems, $total, $payment_method, $isBuyNow);
+                return $this->processNonStripePayment($reqData, $data['address'], $data['cartItems'],  $data['total'], $payment_method, $data['isBuyNow']);
             }
-
         } catch (\Exception $e) {
-            Log::error('Checkout error: ' . $e->getMessage());
+            Log::error('Checkout errorrr: ' . $e->getMessage());
             return redirect()->back()
                 ->with('error', 'There was an error processing your order: ' . $e->getMessage())
                 ->withInput();
         }
     }
 
-    private function getCartItems($isBuyNow)
+
+
+    private function processStripePayment(array $data, $address, $cartItems, $total, $is_pay_subscription)
     {
-        session(['is_buy_now' => $isBuyNow]);
-
-        if ($isBuyNow) {
-            return session('buy_now_items', []);
-        }
-
-        if (Auth::check()) {
-            $userCart = Cart::where('user_id', Auth::id())->with('items.product')->first();
-            return $userCart ? $userCart->items->map(function($item) {
-                return [
-                    'id' => $item->product_id,
-                    'name' => $item->product->name,
-                    'price' => $item->price,
-                    'quantity' => $item->quantity,
-                    'image' => $item->product->image
-                ];
-            })->toArray() : [];
-        }
-
-        return session('cart', []);
-    }
-
-    private function verifyProductAvailability($cartItems)
-    {
-        foreach ($cartItems as $item) {
-            $product = Product::find($item['id']);
-            if (!$product || $product->stock < $item['quantity']) {
-                throw new \Exception("{$item['name']} is no longer available in the requested quantity");
-            }
-        }
-    }
-
-    private function getCheckoutAddress()
-    {
-        $address = DB::table('addresses')
-            ->where('id', session('checkout_address_id'))
-            ->where('user_id', Auth::id())
-            ->first();
-
-        if (!$address) {
-            throw new \Exception('Address not found');
-        }
-
-        return $address;
-    }
-
-    private function processStripePayment($request, $address, $cartItems, $total, $is_pay_subscription)
-    {
-        // Create order FIRST
-
-        $order = $this->createOrder($request, $address, $cartItems, $total, 'stripe');
-        $this->updateProductStock($cartItems);
-
-        Stripe::setApiKey(config('services.stripe.secret'));
-
-        // Ensure Stripe customer exists for the user
-        $stripeCustomerId = $this->ensureStripeCustomer(Auth::user());
-
-        // Build line items
-        $lineItems = $this->buildStripeLineItems($cartItems, $is_pay_subscription);
-
-        // Create Stripe session
-        $mode = $is_pay_subscription ? 'subscription' : 'payment';
-        $sessionOptions = [
-            'payment_method_types' => ['card'],
-            'line_items' => $lineItems,
-            'mode' => $mode,
-            'customer' => $stripeCustomerId, // Attach customer to session
-            // Include session id placeholder so we can retrieve PI on success as a fallback
-            'success_url' => route('checkout.success', ['order' => $order->order_number]) . '&session_id={CHECKOUT_SESSION_ID}',
-            'cancel_url' => route('checkout.cancel'),
-             'metadata' => [
-                'order_number' => $order->order_number,
-                'user_id' => Auth::id(),
-                'subscription_interval_count' => $is_pay_subscription ? 3 : null,
-            ],
-        ];
-
-        // NOTE: Stripe Checkout Sessions have a limitation - you cannot pre-select a specific
-        // saved payment method via the API. When you attach the customer, Stripe will
-        // automatically display all their saved payment methods in the checkout UI,
-        // but the user must manually select which one to use.
-
-        // Log if user selected a saved payment method (for tracking purposes)
-        if ($request->saved_payment_method_id && $request->saved_payment_method_id !== 'new') {
-            Log::info('User wants to use saved payment method', [
-                'payment_method_id' => $request->saved_payment_method_id,
-                'order_id' => $order->id,
-                'customer_id' => $stripeCustomerId,
-                'note' => 'Stripe Checkout will display all saved cards; user must select in Stripe UI'
-            ]);
-        }
-
-        if ($is_pay_subscription) {
-            $sessionOptions['payment_method_options'] = [
-                'card' => ['request_three_d_secure' => 'automatic']
-            ];
-        }
-
-        // Save card for future use if checkbox was checked and not using saved card
-        // Note: Payment method will be automatically saved via webhook after successful payment
-        // See StripeWebhookController::savePaymentMethodIfPresent()
-        if ($request->save_payment_card && (!$request->saved_payment_method_id || $request->saved_payment_method_id === 'new')) {
-            if (!isset($sessionOptions['payment_intent_data'])) {
-                $sessionOptions['payment_intent_data'] = [];
-            }
-            $sessionOptions['payment_intent_data']['setup_future_usage'] = 'off_session';
-        }
-            $session = StripeSession::create(
-            $sessionOptions,
-            ['idempotency_key' => 'order_' . $order->id]
-        );
-            // dd($session); // Commented out to prevent halting flow
-
-        $order->update(['stripe_session_id' => $session->id]);
-
-        // Create payment record with pending status
-        Payment::create([
-            'order_id' => $order->id,
-            'user_id' => Auth::id(),
-            'transaction_id' => $session->id, // Stripe session ID as initial transaction ID
-            'stripe_payment_intent_id' => null,
-            'payment_method' => 'stripe',
-            'payment_status' => 'pending',
-            'amount' => $total,
-            'fee' => 0,
-            'notes' => 'Stripe ' . ($is_pay_subscription ? 'subscription' : 'payment') . ' session created',
-            'response_data' => json_encode([
-                'session_id' => $session->id,
-                'mode' => $mode,
-                'url' => $session->url,
-            ]),
-        ]);
-
+        $session = $this->payment_process_service->stripePaymentProcess($data, $address, $cartItems, $total, $is_pay_subscription);
         return redirect($session->url);
-    }
-
-    /**
-     * Ensure a Stripe customer exists for the given user and return its ID.
-     */
-    private function ensureStripeCustomer($user)
-    {
-        if (!$user) {
-            throw new \Exception('User not authenticated');
-        }
-        if (!empty($user->stripe_customer_id)) {
-            return $user->stripe_customer_id;
-        }
-        $customer = Customer::create([
-            'email' => $user->email,
-            'name' => $user->name,
-            'metadata' => [
-                'app_user_id' => $user->id,
-            ],
-        ]);
-        $user->stripe_customer_id = $customer->id;
-        $user->save();
-        return $customer->id;
-    }
-
-    private function buildStripeLineItems($cartItems, $is_pay_subscription)
-    {
-        $lineItems = [];
-
-        foreach ($cartItems as $item) {
-            if ($is_pay_subscription) {
-                $intervalCount = 3;
-                $perPeriodCents = (int) round(($item['price'] * 100) / $intervalCount);
-
-                $lineItems[] = [
-                    'price_data' => [
-                        'currency' => 'usd',
-                        'product_data' => ['name' => $item['name']],
-                        'unit_amount' => $perPeriodCents,
-                        'recurring' => [
-                            'interval' => 'month',
-                            'interval_count' => $intervalCount,
-                        ],
-                    ],
-                    'quantity' => $item['quantity'],
-                ];
-            } else {
-                $lineItems[] = [
-                    'price_data' => [
-                        'currency' => 'usd',
-                        'product_data' => ['name' => $item['name']],
-                        'unit_amount' => (int) ($item['price'] * 100),
-                    ],
-                    'quantity' => $item['quantity'],
-                ];
-            }
-        }
-
-        return $lineItems;
     }
 
     private function processNonStripePayment($request, $address, $cartItems, $total, $payment_method, $isBuyNow)
     {
-        $order = $this->createOrder($request, $address, $cartItems, $total, $payment_method);
-        $this->updateProductStock($cartItems);
+        $order = $this->checkout_service->createOrderData($address, $total, $payment_method, $cartItems);
+        $this->checkout_service->updateProductStock($cartItems);
 
         // Create payment record for cash/bkash
-        Payment::create([
-            'order_id' => $order->id,
-            'user_id' => Auth::id(),
-            'transaction_id' => 'TXN-' . strtoupper(uniqid()), // Generate transaction ID
-            'payment_method' => $payment_method,
-            'payment_status' => $payment_method === 'cash' ? 'pending' : 'pending', // COD is pending until delivery
-            'amount' => $total,
-            'fee' => 0,
-            'notes' => ucfirst($payment_method) . ' payment - awaiting confirmation',
-        ]);
+        $this->payment_process_service->paymentCreate($order->id,$payment_method,$total);
 
-        $this->clearCartAndSession($isBuyNow);
+        $this->payment_process_service->clearCartAndSession($isBuyNow);
 
         return redirect()->route('checkout.success', ['order' => $order->order_number])
             ->with('success', 'Order placed successfully!');
     }
 
-    private function clearCartAndSession($isBuyNow)
+
+
+    public function completePayment(CompletePaymentRequest $request, $orderNumber)
     {
-        if (!$isBuyNow) {
-            if (Auth::check()) {
-                $userCart = Cart::where('user_id', Auth::id())->first();
-                if ($userCart) {
-                    CartItem::where('cart_id', $userCart->id)->delete();
-                }
-            }
-            session()->forget('cart');
-        }
 
-        session()->forget(['checkout_address_id', 'checkout_notes', 'is_buy_now', 'buy_now_items']);
-    }
+        $order = $this->checkout_service->toCheckSingleOrder($orderNumber);
+        // Store order data in session for payment process
+        $validData= $request->validated();
 
-    private function checkValidation($request){
-         if (!Auth::check()) {
-            return redirect()->route('home')->with('error', 'Please login to checkout');
-        }
+        try {
+            $this->payment_process_service->completePayment($order,$validData);
 
-        if (!session('checkout_address_id')) {
-            return redirect()->route('checkout')->with('error', 'Please select a shipping address first');
-        }
+            return redirect()->route('checkout.success', ['order' => $orderNumber])
+                ->with('success', 'Order confirmed! Payment pending.');
 
-        // Validate payment method
-        $validator = Validator::make($request->all(), [
-            'payment_method' => 'required|string|in:cash,bkash,stripe',
-        ]);
-
-        // Log validation for debugging
-        Log::info('Payment method validator check', [
-            'payment_method' => $request->input('payment_method'),
-            'fails' => $validator->fails(),
-            'errors' => $validator->errors()->all(),
-        ]);
-
-        if ($validator->fails()) {
+        } catch (\Exception $e) {
+            Log::error('Payment completion error: ' . $e->getMessage());
             return redirect()->back()
-                ->withErrors($validator)
-                ->withInput();
+                ->with('error', 'There was an error confirming your order: ' . $e->getMessage());
         }
-
-        return true;
     }
 }

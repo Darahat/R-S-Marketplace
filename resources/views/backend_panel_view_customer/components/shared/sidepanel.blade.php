@@ -27,13 +27,13 @@
                <i class="fas fa-cog mr-3"></i>
                Profile
            </a>
-           <a href="{{ route('addresses.index') }}"
-           class="@if(Route::is('addresses.index')) bg-white bg-opacity-20 @endif flex items-center px-4 py-3 text-sm font-medium text-white rounded-lg hover:bg-white hover:bg-opacity-10 transition">
+           <a href="{{ route('customer.addresses.index') }}"
+           class="@if(Route::is('customer.addresses.index')) bg-white bg-opacity-20 @endif flex items-center px-4 py-3 text-sm font-medium text-white rounded-lg hover:bg-white hover:bg-opacity-10 transition">
             <i class="fas fa-cog mr-3"></i>
             Address Book
         </a>
         <a href="{{ route('customer.orders') }}"
-        class="@if(Route::is('addresses.index')) bg-white bg-opacity-20 @endif flex items-center px-4 py-3 text-sm font-medium text-white rounded-lg hover:bg-white hover:bg-opacity-10 transition">
+        class="@if(Route::is('customer.addresses.index')) bg-white bg-opacity-20 @endif flex items-center px-4 py-3 text-sm font-medium text-white rounded-lg hover:bg-white hover:bg-opacity-10 transition">
          <i class="fas fa-cog mr-3"></i>
          My Orders
      </a>

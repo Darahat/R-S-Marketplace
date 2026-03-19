@@ -60,7 +60,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/checkout/cancel', [CheckoutController::class, 'cancel'])->name('checkout.cancel');
 
     Route::get('/checkout/to-pay', [CheckoutController::class, 'toPayOrders'])->name('checkout.to_pay');
-    Route::post('/checkout/{orderNumber}/complete-payment', [CheckoutController::class, 'completePayment'])->name('checkout.complete_payment');
+    Route::post('/checkout/{orderNumber}/complete-payment', [PaymentProcessController::class, 'completePayment'])->name('checkout.complete_payment');
 });
 
 // Stripe webhook route (must be outside auth middleware)
@@ -186,7 +186,10 @@ Route::group(['prefix' => 'customer', 'middleware' => ['auth:web', 'isCustomer']
     Route::get('/order-history', [DashboardController::class, 'customer_order_history'])->name('customer.orders');
 
     // CUSTOMER ROUTES - Full resource routes
-    Route::resource('addresses', AddressController::class)->except(['allAddressList']);
+    Route::resource('addresses', AddressController::class)
+        ->names('customer.addresses')
+        ->except(['allAddressList']);
+    Route::get('addresses/setDefault', [AddressController::class, 'setDefault'])->name('customer.addresses.setDefault');
 
     // Payment Methods Management (Saved Cards)
     Route::prefix('payment-methods')->group(function () {
@@ -196,7 +199,6 @@ Route::group(['prefix' => 'customer', 'middleware' => ['auth:web', 'isCustomer']
         Route::delete('/{id}', [PaymentMethodController::class, 'destroy'])->name('customer.payment_methods.destroy');
     });
 });
-    Route::get('addresses/setDefault', [AddressController::class, 'setDefault'])->name('addresses.setDefault');
 
 
 
