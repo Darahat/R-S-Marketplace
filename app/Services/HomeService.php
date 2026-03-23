@@ -124,4 +124,30 @@ class HomeService{
         ];
     }
 
+    public function homePageProduct(String $slug):array{
+
+
+        $product = DB::table('products')
+            ->where('slug', $slug)->first();
+
+
+        // Get product reviews
+        $reviews = DB::table('reviews')
+            ->join('users', 'reviews.user_id', '=', 'users.id')
+            ->select('reviews.*', 'users.name as user_name')
+            ->where('reviews.product_id', $product->id)
+            ->orderBy('reviews.created_at', 'desc')
+            ->get();
+
+        // Calculate rating summary
+        $averageRating = DB::table('reviews')
+            ->where('product_id', $product->id)
+            ->avg('rating');
+
+        $reviewCount = DB::table('reviews')
+            ->where('product_id', $product->id)
+            ->count();
+    return [];
+            }
+
 }
