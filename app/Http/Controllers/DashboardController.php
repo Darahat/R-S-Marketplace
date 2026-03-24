@@ -1,22 +1,12 @@
 <?php
 
 namespace App\Http\Controllers;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Pagination\Paginator;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Http\File;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Http;
-
-use App\Models\User;
 use App\Models\Cart;
 use App\Models\Wishlist;
 use App\Models\Order;
-use Hash;
-use Session;
 use Carbon\Carbon;
-use Illuminate\Support\Str;
 
 class DashboardController extends Controller
 {
@@ -150,9 +140,6 @@ class DashboardController extends Controller
             'page_header' => 'Dashboard',
          ]);
             }
-
-
-
     }
     public function customer_dashboard()
     {
