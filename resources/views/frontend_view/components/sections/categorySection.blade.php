@@ -45,9 +45,9 @@
             @endforeach
         </div>
 
+{{--
 
-
-        <!-- <div class="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-6 gap-8">
+          <div class="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-6 gap-8">
     @foreach($allCategories as $category)
     <div class="group relative bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border border-gray-100">
 
@@ -90,7 +90,7 @@
 
     </div>
     @endforeach
-</div> -->
+</div> --}}
 
     </div>
 </section>

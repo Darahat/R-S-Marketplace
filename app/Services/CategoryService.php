@@ -2,16 +2,21 @@
 namespace App\Services;
 use Illuminate\Support\Str;
 use App\Repositories\CategoryRepository;
-use App\Models\Category;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\BrandCreatedNotification;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use App\Models\Wishlist;
+use App\Models\Category;
+use App\Models\Brand;
+use App\Models\Product;
 class CategoryService{
-  public function __construct()
-    {
+        protected $siteTitle;
+  public function __construct(protected HomeService $home_service)
+    {        $this->siteTitle = 'R&SMarketPlace | ';
+
     }
     public function getCategories(){
 // Get all categories with their relationships
@@ -120,5 +125,55 @@ class CategoryService{
             ->orderBy('name')
             ->get();
         return $categories;
+    }
+        public function getCategoryPageData(string $slug, array $filters){
+            $category = Category::where('slug', $slug)->firstOrFail();
+
+        $allCategories = Category::
+            where('status', true)
+            ->orderBy('name', 'asc')
+            ->get();
+
+        $categories = $allCategories->whereNull('parent_id');
+        $subcategories = $allCategories->whereNotNull('parent_id');
+
+        foreach ($categories as $cat) {
+            $cat->subcategories = $subcategories->where('parent_id', $cat->id)->values();
+        }
+
+        $brands = Brand::where('category_id', $category->id)
+            ->where('status', true)
+            ->orderBy('name', 'asc')
+            ->get();
+        $productsQuery = Product::where('category_id', $category->id);
+
+    if (!empty($filters['brandIds'])) {
+        $productsQuery->whereIn('brand_id', $filters['brandIds']);
+    };
+    if (!empty($filters['search'])) {
+        $productsQuery->where('name', 'like', '%' . $filters['search'] . '%');
+    }
+$products = $productsQuery->paginate(10);
+ $wishlistIds = $this->home_service->getWishlistProductIds();
+
+    $products->setCollection(
+        $this->home_service->markWishlisted(
+            $products->getCollection(),
+            $wishlistIds
+        )
+    );
+// 6. Final return
+    return [
+        'data' => [
+            'title' => $this->siteTitle . 'Category',
+            'page' => 'category',
+        ],
+        'allCategories' => $allCategories,
+        'categories' => $categories,
+        'category' => $category,
+        'category_name' => $category->name,
+        'products' => $products,
+        'brands' => $brands,
+    ];
     }
 }

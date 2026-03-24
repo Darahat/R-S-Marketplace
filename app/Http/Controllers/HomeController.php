@@ -12,196 +12,66 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use DateTime;
 use App\Models\HeroSection;
+use App\Models\Category;
+use App\Models\Product;
 use App\Models\Wishlist;
+use App\Services\CategoryService;
+use App\Services\HomeService;
+use App\Services\ProductService;
+
 class HomeController extends Controller
 {
     protected $siteTitle;
 
-    function __construct()
+    function __construct(protected HomeService $homeService,protected ProductService $product_service, protected CategoryService $category_service)
     {
         $this->siteTitle = 'R&SMarketPlace | ';
     }
 
-    private function getWishlistProductIds(): array
-    {
-        if (Auth::check()) {
-            $wishlist = Wishlist::where('user_id', Auth::id())->first();
 
-            return $wishlist
-                ? $wishlist->items()->pluck('product_id')->map(fn ($productId) => (int) $productId)->toArray()
-                : [];
-        }
-
-        return array_map('intval', session('wishlist', []));
-    }
-
-    private function markWishlisted($products, array $wishlistIds)
-    {
-        $wishlistLookup = array_fill_keys($wishlistIds, true);
-
-        return $products->map(function ($product) use ($wishlistLookup) {
-            $product->is_wishlisted = isset($wishlistLookup[(int) $product->id]);
-
-            return $product;
-        });
-    }
 
     function index(Request $request)
     {
         $data = array();
         $data['title'] = $this->siteTitle . 'Home';
         $data['page'] = 'home';
-
-
-        $allCategories = DB::table('categories')
-            ->where('status', true)
-            ->orderBy('name', 'asc')
-            ->get();
-
-        // Group by parent_id
-        $categories = $allCategories->whereNull('parent_id');
-        $subcategories = $allCategories->whereNotNull('parent_id');
-
-        // Attach subcategories to each main category
-        foreach ($categories as $category) {
-            $category->subcategories = $subcategories->where('parent_id', $category->id)->values();
-        }
-        // $data['products'] = DB::table('products')->where('status', 1)->orderBy('id', 'desc')->paginate(10);
-        // Hero settings from DB (fallback to defaults)
-        $heroDefaults = [
-            'headline' => 'Next-Gen Tech for 2025',
-            'highlight' => '2025',
-            'subheadline' => 'Discover the most innovative gadgets that will redefine your digital experience. Cutting-edge technology at your fingertips.',
-            'primary_text' => 'Shop Now',
-            'primary_url' => url('/'),
-            'secondary_text' => 'Explore Deals',
-            'secondary_url' => url('/'),
-            'banner_image' => null,
-        ];
-
-        $heroModel = \App\Models\HeroSection::first();
-
-        // One-time migration from legacy JSON if table is empty
-        if (!$heroModel && Storage::disk('local')->exists('hero_section.json')) {
-            $json = json_decode(Storage::disk('local')->get('hero_section.json'), true);
-            if (is_array($json)) {
-                $heroModel = \App\Models\HeroSection::create(array_merge($heroDefaults, $json));
-            }
-        }
-
-        $heroSettings = $heroModel ? array_merge($heroDefaults, $heroModel->toArray()) : $heroDefaults;
-        $wishlistIds = $this->getWishlistProductIds();
-
-        $productBase = DB::table('products')->where('stock', '>', 0);
-
-        $latestProducts = $this->markWishlisted((clone $productBase)
-            ->where('is_latest', true)
-            ->orderBy('created_at', 'desc')
-            ->take(8)
-            ->get(), $wishlistIds);
-
-        $bestSellingProducts = $this->markWishlisted((clone $productBase)
-            ->where('is_best_selling', true)
-            ->orderBy('sold_count', 'desc')
-            ->take(8)
-            ->get(), $wishlistIds);
-
-        $discountProducts = $this->markWishlisted((clone $productBase)
-            ->where('discount_price', '>', 0)
-            ->take(8)
-            ->get(), $wishlistIds);
-
-        $regularProducts = $this->markWishlisted((clone $productBase)
-            ->inRandomOrder()
-            ->take(8)
-            ->get(), $wishlistIds);
-
-        $suggestedProducts = $this->markWishlisted((clone $productBase)
-            ->where('featured', true)
-            ->take(8)
-            ->get(), $wishlistIds);
-
+        $serviceReturnData = $this->homeService->index($data);
+        Log::info($serviceReturnData['allCategories']);
         return view('frontend_view.pages.homepage',[
-                'latestProducts' => $latestProducts,
-                'bestSellingProducts' => $bestSellingProducts,
-                'discountProducts' => $discountProducts,
-                'regularProducts' => $regularProducts,
-                'suggestedProducts' => $suggestedProducts,
-                'hero' => $heroSettings,
+                'latestProducts' => $serviceReturnData['latestProducts'],
+                'bestSellingProducts' => $serviceReturnData['bestSellingProducts'],
+                'discountProducts' => $serviceReturnData['discountProducts'],
+                'regularProducts' => $serviceReturnData['regularProducts'],
+                'suggestedProducts' => $serviceReturnData['suggestedProducts'],
+                'hero' => $serviceReturnData['heroSettings'],
                 'data' => $data,
-                'categories' => $categories,
-                'allCategories' => $allCategories,
+                // 'categories' => $serviceReturnData['categories'],
+                'allCategories' => $serviceReturnData['allCategories']
             ]);
-
-
     }
 
     public function category(Request $request,$slug)
     {
-        $data = array();
-        $data['title'] = $this->siteTitle . 'Category';
-        $data['page'] = 'category';
+
+$filters = [
+    'brandIds' => $request->filled('brands')
+        ? explode(',', $request->brands)
+        : [],
+    'search' => $request->search,
+];
+
+       $result = $this->category_service->getCategoryPageData($slug, $filters);
 
 
+         if ($request->ajax()) {
+        return view('frontend_view.components.cards.productGrid', [
+            'products' => $result['products'],
+            'category_name' => $result['category']->name
+        ])->render();
+    }
 
-        $allCategories = DB::table('categories')
-            ->where('status', true)
-            ->orderBy('name', 'asc')
-            ->get();
+    return view('frontend_view.pages.category', $result);
 
-        $categories = $allCategories->whereNull('parent_id');
-        $subcategories = $allCategories->whereNotNull('parent_id');
-
-        foreach ($categories as $cat) {
-            $cat->subcategories = $subcategories->where('parent_id', $cat->id)->values();
-        }
-
-        $category = DB::table('categories')->where('slug', $slug)->first();
-        if (!$category) {
-            abort(404);
-        }
-
-
-        $brands = DB::table('brands')
-            ->whereRaw('FIND_IN_SET(?, category_id)', [$category->id])
-            ->where('status', true)
-            ->orderBy('name', 'asc')
-            ->get();
-
-
-        $brandIds = [];
-        $wishlistIds = $this->getWishlistProductIds();
-        if ($request->filled('brands')) {
-            $brandIds = explode(',', $request->input('brands'));
-        }
-
-        $products_db = DB::table('products')
-            ->whereRaw('FIND_IN_SET(?, category_id)', [$category->id]);
-          if (!empty($brandIds)) {
-                $products_db->whereIn('brand_id', $brandIds);
-            }
-            if (!empty($request->search)) {
-                $products_db->where('name', 'like', '%' . $request->search . '%');
-            }
-
-        $products = $products_db->paginate(10);
-        $products->setCollection($this->markWishlisted($products->getCollection(), $wishlistIds));
-
-        if (request()->ajax()) {
-            return view('frontend_view.components.cards.productGrid', [
-                'products' => $products,
-                'category_name' => $category->name
-            ])->render();
-        }
-
-        return view('frontend_view.pages.category', [
-            'data' => $data,
-            'allCategories' => $allCategories,
-            'categories' => $categories,
-            'category_name' => $category->name,
-            'products' => $products,
-            'brands' => $brands,
-        ]);
     }
 
     public function product($slug)
@@ -210,106 +80,55 @@ class HomeController extends Controller
         $data['title'] = $this->siteTitle . 'Category';
         $data['page'] = 'category';
 
+        $serviceData = $this->homeService->homePageProduct($slug);
 
-
-
-        $product = DB::table('products')
-            ->where('slug', $slug)->first();
-
-
-        // Get product reviews
-        $reviews = DB::table('reviews')
-            ->join('users', 'reviews.user_id', '=', 'users.id')
-            ->select('reviews.*', 'users.name as user_name')
-            ->where('reviews.product_id', $product->id)
-            ->orderBy('reviews.created_at', 'desc')
-            ->get();
-
-        // Calculate rating summary
-        $averageRating = DB::table('reviews')
-            ->where('product_id', $product->id)
-            ->avg('rating');
-
-        $reviewCount = DB::table('reviews')
-            ->where('product_id', $product->id)
-            ->count();
 
         return view('frontend_view.pages.product_view', [
-            'data' => $data,
-            'product' => $product,
-            'reviews' => $reviews,
-            'averageRating' => round($averageRating, 1),
-            'reviewCount' => $reviewCount,
+            'data' =>  $serviceData['data'],
+            'product' => $serviceData['product'],
+            'reviews' => $serviceData['reviews'],
+            'averageRating' => round($serviceData['$averageRating'], 1),
+            'reviewCount' => $serviceData['reviewCount'],
         ]);
     }
 
     public function search(Request $request)
     {
-        $data = array();
-        $data['title'] = $this->siteTitle . 'Search Results';
-        $data['page'] = 'search';
-
+        $data = [
+            'title' => $this->siteTitle . 'Search Results',
+            'page'  => 'search',
+        ];
+    $filters = [
+        'search'    => $request->input('q', ''),
+        'brands'    => $request->filled('brands') ? explode(',', $request->input('brands')) : [],
+        'categories'=> $request->input('categories'),
+        'min_price' => $request->input('min_price'),
+        'max_price' => $request->input('max_price'),
+    ];
         $query = $request->input('q', '');
 
-        $allCategories = DB::table('categories')
-            ->where('status', true)
-            ->orderBy('name', 'asc')
-            ->get();
+        $resultData = $this->homeService->homeSearch($filters);
 
-        $categories = $allCategories->whereNull('parent_id');
-        $subcategories = $allCategories->whereNotNull('parent_id');
-
-        foreach ($categories as $category) {
-            $category->subcategories = $subcategories->where('parent_id', $category->id)->values();
-        }
-
-        $wishlistIds = $this->getWishlistProductIds();
-
-        // Search products
-        $products_query = DB::table('products')
-            ->where('stock', '>', 0);
-
-        if (!empty($query)) {
-            $products_query->where(function($q) use ($query) {
-                $q->where('name', 'like', '%' . $query . '%')
-                  ->orWhere('description', 'like', '%' . $query . '%');
-            });
-        }
-
-        // Apply filters if provided
-        if ($request->filled('brands')) {
-            $brandIds = explode(',', $request->input('brands'));
-            $products_query->whereIn('brand_id', $brandIds);
-        }
-
-        if ($request->filled('categories')) {
-            $categoryIds = $request->input('categories');
-            $products_query->whereIn('category_id', $categoryIds);
-        }
 
         if ($request->filled('min_price')) {
-            $products_query->where('price', '>=', $request->input('min_price'));
+            $resultData['productsQuery']->where('price', '>=', $request->input('min_price'));
         }
 
         if ($request->filled('max_price')) {
-            $products_query->where('price', '<=', $request->input('max_price'));
+            $resultData['productsQuery']->where('price', '<=', $request->input('max_price'));
         }
-
-        $products = $products_query->orderBy('created_at', 'desc')->paginate(12);
-        $products->setCollection($this->markWishlisted($products->getCollection(), $wishlistIds));
-
         if (request()->ajax()) {
             return view('frontend_view.components.cards.productGrid', [
-                'products' => $products,
+                'products' => $resultData['products'],
             ])->render();
         }
 
         return view('frontend_view.pages.search', [
             'data' => $data,
-            'products' => $products,
+            'products' => $resultData['products'],
             'query' => $query,
-            'categories' => $categories,
-            'allCategories' => $allCategories,
+            'categories' => $resultData['categories'],
+            'allCategories' => $resultData['allCategories'],
         ]);
     }
 

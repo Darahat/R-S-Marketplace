@@ -215,37 +215,29 @@
                         <i class="fas fa-chevron-down ml-2 text-xs opacity-75"></i>
                     </button>
 
-                    <!-- Improved Categories Dropdown - Single Column Compact -->
-                    <div class="absolute left-0 top-full mt-1 w-64 bg-white shadow-2xl rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50 border border-gray-100 max-h-[600px] overflow-y-auto">
+                    <!-- Categories Dropdown - Parent & Subcategories in Single Panel -->
+                    <div class="absolute left-0 top-full mt-1 w-72 bg-white shadow-2xl rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50 border border-gray-100 max-h-[600px] overflow-y-auto">
                         <div class="py-2">
                             @foreach($categories as $category)
-                            <div class="relative group/cat">
-                                <a href="{{route('category',$category->slug)}}" class="px-4 py-2.5 hover:bg-primary hover:text-white flex items-center justify-between text-gray-700 transition-colors duration-150 text-sm">
-                                    <div class="flex items-center flex-1 min-w-0">
-                                        <i class="fas fa-tag mr-2.5 text-xs opacity-60 flex-shrink-0"></i>
-                                        <span class="font-medium truncate">{{ $category->name }}</span>
-                                    </div>
-                                    @if($category->subcategories->isNotEmpty())
-                                    <i class="fas fa-chevron-right text-xs opacity-40 ml-2 flex-shrink-0"></i>
-                                    @endif
+                            <div>
+                                <a href="{{route('category',$category->slug)}}" class="px-4 py-2.5 hover:bg-primary hover:text-white flex items-center text-gray-800 transition-colors duration-150 text-sm font-semibold">
+                                    <i class="fas fa-tag mr-2.5 text-xs opacity-60 flex-shrink-0"></i>
+                                    <span class="truncate">{{ $category->name }}</span>
                                 </a>
 
                                 @if($category->subcategories->isNotEmpty())
-                                <!-- Vertical Subcategories Popup -->
-                                <div class="absolute top-0 left-full ml-1 w-60 bg-white shadow-xl rounded-lg opacity-0 invisible group-hover/cat:opacity-100 group-hover/cat:visible transition-all duration-200 border border-gray-100 z-50">
-                                    <div class="p-3 border-b border-gray-100 bg-gray-50">
-                                        <p class="text-xs font-semibold text-gray-700">{{ $category->name }}</p>
-                                    </div>
-                                    <div class="py-2 max-h-96 overflow-y-auto">
-                                        @foreach($category->subcategories as $subcategory)
-                                        <a href="{{route('category',$subcategory->slug)}}" class="block px-4 py-2.5 hover:bg-primary hover:text-white text-gray-700 transition-colors duration-150 text-sm">
-                                            <i class="fas fa-arrow-right mr-2 text-xs opacity-50"></i>{{ $subcategory->name }}
-                                        </a>
-                                        @endforeach
-                                    </div>
+                                <div class="pl-4 pb-1">
+                                    @foreach($category->subcategories as $subcategory)
+                                    <a href="{{route('category',$subcategory->slug)}}" class="block px-4 py-1.5 hover:bg-primary/10 hover:text-primary text-gray-500 transition-colors duration-150 text-sm">
+                                        <i class="fas fa-arrow-right mr-2 text-xs opacity-40"></i>{{ $subcategory->name }}
+                                    </a>
+                                    @endforeach
                                 </div>
                                 @endif
                             </div>
+                            @if(!$loop->last)
+                            <div class="mx-3 my-1 h-px bg-gray-100"></div>
+                            @endif
                             @endforeach
                         </div>
                     </div>
