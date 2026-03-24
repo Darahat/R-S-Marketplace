@@ -118,4 +118,7 @@ class User extends Authenticatable
             $this->save();
         }
     }
+    public function Reviews(){
+        return $this->hasMany(Review::class);
+    }
 }

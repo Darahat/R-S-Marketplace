@@ -12,14 +12,18 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use DateTime;
 use App\Models\HeroSection;
+use App\Models\Category;
+use App\Models\Product;
 use App\Models\Wishlist;
 use App\Services\CategoryService;
 use App\Services\HomeService;
+use App\Services\ProductService;
+
 class HomeController extends Controller
 {
     protected $siteTitle;
 
-    function __construct(protected HomeService $homeService, protected CategoryService $category_service)
+    function __construct(protected HomeService $homeService,protected ProductService $product_service, protected CategoryService $category_service)
     {
         $this->siteTitle = 'R&SMarketPlace | ';
     }
@@ -32,7 +36,6 @@ class HomeController extends Controller
         $data['title'] = $this->siteTitle . 'Home';
         $data['page'] = 'home';
         $serviceReturnData = $this->homeService->index($data);
-        // dd($serviceReturnData['categories'],$serviceReturnData['allCategories']);
         return view('frontend_view.pages.homepage',[
                 'latestProducts' => $serviceReturnData['latestProducts'],
                 'bestSellingProducts' => $serviceReturnData['bestSellingProducts'],
@@ -44,8 +47,6 @@ class HomeController extends Controller
                 'categories' => $serviceReturnData['categories'],
                 'allCategories' => $serviceReturnData['allCategories'],
             ]);
-
-
     }
 
     public function category(Request $request,$slug)
@@ -70,14 +71,6 @@ $filters = [
 
     return view('frontend_view.pages.category', $result);
 
-        // return view('frontend_view.pages.category', [
-        //     'data' => $data,
-        //     'allCategories' => $allCategories,
-        //     'categories' => $categories,
-        //     'category_name' => $category->name,
-        //     'products' => $products,
-        //     'brands' => $brands,
-        // ]);
     }
 
     public function product($slug)
@@ -100,71 +93,41 @@ $filters = [
 
     public function search(Request $request)
     {
-        $data = array();
-        $data['title'] = $this->siteTitle . 'Search Results';
-        $data['page'] = 'search';
-
+        $data = [
+            'title' => $this->siteTitle . 'Search Results',
+            'page'  => 'search',
+        ];
+    $filters = [
+        'search'    => $request->input('q', ''),
+        'brands'    => $request->filled('brands') ? explode(',', $request->input('brands')) : [],
+        'categories'=> $request->input('categories'),
+        'min_price' => $request->input('min_price'),
+        'max_price' => $request->input('max_price'),
+    ];
         $query = $request->input('q', '');
 
-        $allCategories = DB::table('categories')
-            ->where('status', true)
-            ->orderBy('name', 'asc')
-            ->get();
+        $resultData = $this->homeService->homeSearch($query,$filters);
 
-        $categories = $allCategories->whereNull('parent_id');
-        $subcategories = $allCategories->whereNotNull('parent_id');
-
-        foreach ($categories as $category) {
-            $category->subcategories = $subcategories->where('parent_id', $category->id)->values();
-        }
-
-        $wishlistIds = $this->homeService->getWishlistProductIds();
-
-        // Search products
-        $products_query = DB::table('products')
-            ->where('stock', '>', 0);
-
-        if (!empty($query)) {
-            $products_query->where(function($q) use ($query) {
-                $q->where('name', 'like', '%' . $query . '%')
-                  ->orWhere('description', 'like', '%' . $query . '%');
-            });
-        }
-
-        // Apply filters if provided
-        if ($request->filled('brands')) {
-            $brandIds = explode(',', $request->input('brands'));
-            $products_query->whereIn('brand_id', $brandIds);
-        }
-
-        if ($request->filled('categories')) {
-            $categoryIds = $request->input('categories');
-            $products_query->whereIn('category_id', $categoryIds);
-        }
 
         if ($request->filled('min_price')) {
-            $products_query->where('price', '>=', $request->input('min_price'));
+            $resultData['productsQuery']->where('price', '>=', $request->input('min_price'));
         }
 
         if ($request->filled('max_price')) {
-            $products_query->where('price', '<=', $request->input('max_price'));
+            $resultData['productsQuery']->where('price', '<=', $request->input('max_price'));
         }
-
-        $products = $products_query->orderBy('created_at', 'desc')->paginate(12);
-        $products->setCollection($this->homeService->markWishlisted($products->getCollection(), $wishlistIds));
-
         if (request()->ajax()) {
             return view('frontend_view.components.cards.productGrid', [
-                'products' => $products,
+                'products' => $resultData['products'],
             ])->render();
         }
 
         return view('frontend_view.pages.search', [
             'data' => $data,
-            'products' => $products,
+            'products' => $resultData['products'],
             'query' => $query,
-            'categories' => $categories,
-            'allCategories' => $allCategories,
+            'categories' => $resultData['$categories'],
+            'allCategories' => $resultData['allCategories'],
         ]);
     }
 

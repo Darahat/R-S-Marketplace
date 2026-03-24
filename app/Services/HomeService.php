@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Storage;
 class HomeService{
       use AuthorizesRequests;
        protected $siteTitle;
-    public function __construct()
+    public function __construct(protected HomeService $homeService,protected ProductService $product_service, protected CategoryService $category_service)
     {
         $this->siteTitle = '';
     }
@@ -40,9 +40,6 @@ class HomeService{
         });
     }
     public function index(){
-
-
-
         $allCategories = Category::where('status', 1)
             ->orderBy('name', 'asc')
             ->get();
@@ -125,29 +122,58 @@ class HomeService{
     }
 
     public function homePageProduct(String $slug):array{
-
-
-        $product = DB::table('products')
-            ->where('slug', $slug)->first();
-
+        $product =Product::with(['reviews.user:id,name'])
+        ->withAvg('reviews','rating')
+        ->withCount('reviews')
+        ->where('slug', $slug)->firstOrFail();
 
         // Get product reviews
-        $reviews = DB::table('reviews')
-            ->join('users', 'reviews.user_id', '=', 'users.id')
-            ->select('reviews.*', 'users.name as user_name')
-            ->where('reviews.product_id', $product->id)
-            ->orderBy('reviews.created_at', 'desc')
+        $reviews = $product->reviews;
+        $averageRating = $product->reviews_avg_rating;
+        $reviewCount = $product->review_count;
+    return [
+        'product' => $product,
+        'reviews' => $reviews,
+        'averageRating' => $averageRating,
+        'reviewCount' => $reviewCount
+    ];
+            }
+
+    public function homeSearch($query,$filters){
+                $allCategories = Category::
+            where('status', true)
+            ->orderBy('name', 'asc')
             ->get();
 
-        // Calculate rating summary
-        $averageRating = DB::table('reviews')
-            ->where('product_id', $product->id)
-            ->avg('rating');
+        $categories = $allCategories->whereNull('parent_id');
+        $subcategories = $allCategories->whereNotNull('parent_id');
 
-        $reviewCount = DB::table('reviews')
-            ->where('product_id', $product->id)
-            ->count();
-    return [];
-            }
+        foreach ($categories as $category) {
+            $category->subcategories = $subcategories->where('parent_id', $category->id)->values();
+        }
+
+        $wishlistIds = $this->homeService->getWishlistProductIds();
+
+         $filters = [
+            'search'   => $query,
+            'brand'    => $filters->filled('brands') ? $filters->input('brands') : null,
+            'category' => $filters->filled('categories') ? $filters->input('categories') : null,
+        ];
+
+        // Search products
+        $productsQuery = Product::query()->where('stock', '>', 0);
+        $productsQuery = $this->product_service->index($productsQuery, $filters);
+        $products = $productsQuery->orderBy('created_at', 'desc')->paginate(12);
+        $products->setCollection($this->homeService->markWishlisted($products->getCollection(), $wishlistIds));
+
+    return [
+        'productQuery' => $productsQuery,
+        'products' => $products,
+        'wishlistIds' => $wishlistIds,
+        'categories' => $categories,
+        'allCategories' => $allCategories,
+
+    ];
+        }
 
 }
