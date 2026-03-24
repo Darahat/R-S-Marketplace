@@ -36,6 +36,7 @@ class HomeController extends Controller
         $data['title'] = $this->siteTitle . 'Home';
         $data['page'] = 'home';
         $serviceReturnData = $this->homeService->index($data);
+        Log::info($serviceReturnData['allCategories']);
         return view('frontend_view.pages.homepage',[
                 'latestProducts' => $serviceReturnData['latestProducts'],
                 'bestSellingProducts' => $serviceReturnData['bestSellingProducts'],
@@ -44,8 +45,8 @@ class HomeController extends Controller
                 'suggestedProducts' => $serviceReturnData['suggestedProducts'],
                 'hero' => $serviceReturnData['heroSettings'],
                 'data' => $data,
-                'categories' => $serviceReturnData['categories'],
-                'allCategories' => $serviceReturnData['allCategories'],
+                // 'categories' => $serviceReturnData['categories'],
+                'allCategories' => $serviceReturnData['allCategories']
             ]);
     }
 
@@ -106,7 +107,7 @@ $filters = [
     ];
         $query = $request->input('q', '');
 
-        $resultData = $this->homeService->homeSearch($query,$filters);
+        $resultData = $this->homeService->homeSearch($filters);
 
 
         if ($request->filled('min_price')) {
@@ -126,7 +127,7 @@ $filters = [
             'data' => $data,
             'products' => $resultData['products'],
             'query' => $query,
-            'categories' => $resultData['$categories'],
+            'categories' => $resultData['categories'],
             'allCategories' => $resultData['allCategories'],
         ]);
     }

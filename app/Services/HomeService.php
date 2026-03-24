@@ -6,13 +6,12 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use App\Models\Wishlist;
 use App\Models\Category;
-use App\Models\Brand;
 use App\Models\Product;
 use Illuminate\Support\Facades\Storage;
 class HomeService{
       use AuthorizesRequests;
        protected $siteTitle;
-    public function __construct(protected HomeService $homeService,protected ProductService $product_service, protected CategoryService $category_service)
+    public function __construct(protected ProductService $product_service)
     {
         $this->siteTitle = '';
     }
@@ -139,8 +138,8 @@ class HomeService{
     ];
             }
 
-    public function homeSearch($query,$filters){
-                $allCategories = Category::
+    public function homeSearch($filters){
+        $allCategories = Category::
             where('status', true)
             ->orderBy('name', 'asc')
             ->get();
@@ -152,19 +151,12 @@ class HomeService{
             $category->subcategories = $subcategories->where('parent_id', $category->id)->values();
         }
 
-        $wishlistIds = $this->homeService->getWishlistProductIds();
-
-         $filters = [
-            'search'   => $query,
-            'brand'    => $filters->filled('brands') ? $filters->input('brands') : null,
-            'category' => $filters->filled('categories') ? $filters->input('categories') : null,
-        ];
-
+        $wishlistIds = $this->getWishlistProductIds();
         // Search products
         $productsQuery = Product::query()->where('stock', '>', 0);
         $productsQuery = $this->product_service->index($productsQuery, $filters);
         $products = $productsQuery->orderBy('created_at', 'desc')->paginate(12);
-        $products->setCollection($this->homeService->markWishlisted($products->getCollection(), $wishlistIds));
+        $products->setCollection($this->markWishlisted($products->getCollection(), $wishlistIds));
 
     return [
         'productQuery' => $productsQuery,

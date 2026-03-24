@@ -45,7 +45,7 @@
             @endforeach
         </div>
 
-
+{{--
 
           <div class="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-6 gap-8">
     @foreach($allCategories as $category)
@@ -90,7 +90,7 @@
 
     </div>
     @endforeach
-</div>
+</div> --}}
 
     </div>
 </section>
