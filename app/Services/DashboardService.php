@@ -10,13 +10,12 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\OrderItem;
 use Carbon\Carbon;
-use App\Models\Address;
-class AddressService{
+class DashboardService{
       use AuthorizesRequests;
-    public function __construct(private UserAddressRepository $repo)
+    public function __construct()
     {
     }
-    public function dashboard(){
+    public function dashboard_service(){
        $currentMonthStart = Carbon::now()->startOfMonth();
         $currentMonthEnd = Carbon::now()->endOfMonth();
         $lastMonthStart = Carbon::now()->subMonth()->startOfMonth();
@@ -37,20 +36,12 @@ class AddressService{
         $analytics['last_month_revenue'] = Order::where('payment_status', 'paid')->whereBetween('created_at', [$lastMonthStart, $lastMonthEnd])->sum('total_amount');
 
         // Calculate profit/loss (Revenue - Purchase Cost)
-        $analytics['total_profit'] = OrderItem::
-            join('orders', 'order_items.order_id', '=', 'orders.id')
-            ->join('products', 'order_items.product_id', '=', 'products.id')
-            ->where('orders.payment_status', 'paid')
-            ->select(DB::raw('SUM((order_items.price - products.purchase_price) * order_items.quantity) as profit'))
-            ->value('profit') ?? 0;
+        $analytics['total_profit'] = OrderItem::whereHas('order', fn($q)=> $q->where('payment_status','paid'))->with('product')->get()
+        ->sum(fn($item)=>($item->price - $item->product->purchase_price)* $item->quantity);
 
-        $analytics['month_profit'] = OrderItem::
-            join('orders', 'order_items.order_id', '=', 'orders.id')
-            ->join('products', 'order_items.product_id', '=', 'products.id')
-            ->where('orders.payment_status', 'paid')
-            ->whereBetween('orders.created_at', [$currentMonthStart, $currentMonthEnd])
-            ->select(DB::raw('SUM((order_items.price - products.purchase_price) * order_items.quantity) as profit'))
-            ->value('profit') ?? 0;
+
+        $analytics['month_profit'] = OrderItem::whereHas('order', fn($q)=> $q->where('payment_status','paid'))->whereBetween('created_at', [$currentMonthStart,$currentMonthEnd])->with('product')->get()
+        ->sum(fn($item)=>($item->price - $item->product->purchase_price)* $item->quantity);
 
         // Products Statistics
         $analytics['total_products'] = Product::count();
@@ -69,17 +60,17 @@ class AddressService{
         $analytics['paid_orders'] = Order::where('payment_status', 'paid')->count();
 
         // Top Selling Products (Last 30 days)
-        $analytics['top_products'] = OrderItem::
-            join('products', 'order_items.product_id', '=', 'products.id')
-            ->join('orders', 'order_items.order_id', '=', 'orders.id')
-            ->where('orders.created_at', '>=', Carbon::now()->subDays(30))
-            ->select('products.id', 'products.name', 'products.image', 'products.price',
-                DB::raw('SUM(order_items.quantity) as total_sold'),
-                DB::raw('SUM(order_items.price * order_items.quantity) as total_revenue'))
-            ->groupBy('products.id', 'products.name', 'products.image', 'products.price')
-            ->orderBy('total_sold', 'desc')
-            ->limit(5)
-            ->get();
+        $analytics['top_products'] = OrderItem::whereHas('order', fn($q) => $q->where('created_at', '>=', Carbon::now()->subDays(30)))
+        ->with('product:id,name,image,price')->get()->groupBy('product_id')
+        ->map(fn($items)=>[
+            'product' => $items->first()->product,
+            'total_sold' => $items->sum('quantity'),
+            'total_revenue' => $items->sum(fn($item) => $item->price * $item->quantity)
+        ])->sortByDesc('total_sold')
+        ->take(5)
+        ->values();
+
+        $analytics['top_products'] = OrderItem::whereHas('order', fn($q)=> $q->where('created_at', '>=', Carbon::now()->subDays(30)));
 
         // Recent Orders
         $analytics['recent_orders'] = Order::with(['user', 'items'])
@@ -106,13 +97,12 @@ class AddressService{
         for ($i = 11; $i >= 0; $i--) {
             $monthStart = Carbon::now()->subMonths($i)->startOfMonth();
             $monthEnd = Carbon::now()->subMonths($i)->endOfMonth();
+            $profit = OrderItem::whereHas('order', fn($q) => $q->where('payment_status', 'paid'))
+                ->whereBetween('created_at', [$monthStart, $monthEnd])
+                ->with('product')
+                ->get()
+                ->sum(fn($item) => ($item->price - $item->product->purchase_price) * $item->quantity);
 
-            $profit = OrderItem::join('orders', 'order_items.order_id', '=', 'orders.id')
-                ->join('products', 'order_items.product_id', '=', 'products.id')
-                ->where('orders.payment_status', 'paid')
-                ->whereBetween('orders.created_at', [$monthStart, $monthEnd])
-                ->select(DB::raw('SUM((order_items.price - products.purchase_price) * order_items.quantity) as profit'))
-                ->value('profit') ?? 0;
 
             $analytics['monthly_profit'][] = [
                 'month' => $monthStart->format('M Y'),
@@ -122,4 +112,110 @@ class AddressService{
 
 
     }
+    public function customer_dashboard_service($userId){
+         $stats = Order::where('user_id', $userId)
+        ->selectRow("COUNT(*) as total_order_count,
+            SUM(CASE WHEN order_status = 'completed' THEN 1 ELSE 0 END) as completed_order_count,
+            SUM(CASE WHEN order_status = 'pending' THEN 1 ELSE 0 END) as pending_order_count,
+            SUM(CASE WHEN order_status = 'cancelled' THEN 1 ELSE 0 END) as cancelled_order_count,
+            SUM(CASE WHEN order_status = 'delivered' THEN 1 ELSE 0 END) as delivered_order_count,
+            SUM(CASE WHEN order_status = 'shipped' THEN 1 ELSE 0 END) as shipped_order_count,
+            SUM(CASE WHEN order_status = 'returned' THEN 1 ELSE 0 END) as returned_order_count,
+            COALESCE(SUM(total_amount), 0) as total_spent,
+            COALESCE(SUM(discount), 0) as total_discount")->first();
+        $totalSpent = (float) $stats->total_spent;
+        $totalDiscount = (float) $stats->total_discount;
+        $totalEarning = max(0, $totalSpent - $totalDiscount);
+
+
+ return [
+        'total_order_count'     => $stats->total_order_count,
+        'completed_order_count' => $stats->completed_order_count,
+        'pending_order_count'   => $stats->pending_order_count,
+        'cancelled_order_count' => $stats->cancelled_order_count,
+        'delivered_order_count' => $stats->delivered_order_count,
+        'shipped_order_count'   => $stats->shipped_order_count,
+        'returned_order_count'  => $stats->returned_order_count,
+        'total_spent'           => number_format($totalSpent, 2, '.', ''),
+        'total_discount'        => number_format($totalDiscount, 2, '.', ''),
+        'total_earning'         => number_format($totalEarning, 2, '.', ''),
+        'recent_orders'         => Order::where('user_id', $userId)
+                                    ->where('created_at', '>=', now()->subDays(1))
+                                    ->get(),
+        'wishlist_items'        => $this->get_wishlist_items_service($userId),
+        'cart_items'            => $this->get_cart_items($userId),
+    ];
+
     }
+
+    private function get_wishlist_items_service(int $userId)
+    {
+        $wishlist = Wishlist::where('user_id',$userId)->with('items.product')->first();
+        return $wishlist ? $wishlist->items->take(5)->map(fn($item)=> [
+            'id'    => $item->product_id,
+        'name'  => $item->product->name,
+        'price' => $item->product->price,
+        'image' => $item->product->image,
+        'slug'  => $item->product->slug ?? '',
+        ]) : collect([]);
+    }
+    private function get_cart_items(int $userId){
+        $cart = Cart::where('user_id', $userId)->with('items.product')->first();
+        return $cart ? $cart->items->take(5)->map(fn($item)=>[
+'id'       => $item->product_id,
+        'name'     => $item->product->name,
+        'price'    => $item->price,
+        'quantity' => $item->quantity,
+        'image'    => $item->product->image,
+        'slug'     => $item->product->slug ?? '',
+    ]) : collect([]);
+
+    }
+
+    public function customer_order_details_service($order_number){
+          $order = Order::where('order_number', $order_number)
+        ->where('user_id', Auth::id())
+        ->with(['address.district', 'address.upazila', 'address.union', 'items.product', 'payments'])
+        ->firstOrFail();
+
+    // Define status path
+    $statusPath = $order->order_status === 'to_pay'
+        ? ['to_pay', 'Processing', 'packaged', 'shipped', 'delivered']
+        : ['Processing', 'packaged', 'shipped', 'delivered'];
+      // Mark which steps are completed
+    $currentStatusIndex = array_search($order->order_status, $statusPath);
+
+    // Prepare path with status flags
+    $progressSteps = [];
+    foreach ($statusPath as $index => $status) {
+        $progressSteps[] = [
+            'label' => ucfirst(str_replace('_', ' ', $status)),
+            'completed' => $currentStatusIndex !== false && $index < $currentStatusIndex,
+            'is_current' => $index === $currentStatusIndex,
+        ];
+    }
+
+    return [
+        'progressSteps' => $progressSteps,
+        'order' => $order,
+    ];
+    }
+
+    public function customer_order_history_service($userId){
+    $orders = Order::where('user_id', $userId)
+        ->orderBy('created_at', 'desc')
+        ->paginate(10);
+    $orders->setPath('customer-order-history');
+    $orders->appends(request()->query());
+    $orders->links();
+    return $orders;
+    }
+    public function customer_profile_setting_service($user){
+         $profile = [
+            'last_login' => $user && $user->last_login
+                ? Carbon::parse($user->last_login)->diffForHumans()
+                : 'Never',
+        ];
+        return $profile;
+    }
+}

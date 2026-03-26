@@ -7,6 +7,7 @@ use App\Models\Cart;
 use App\Models\Wishlist;
 use App\Models\Order;
 use Carbon\Carbon;
+use App\Services\DashboardService;
 
 class DashboardController extends Controller
 {
@@ -15,7 +16,7 @@ class DashboardController extends Controller
     protected $page_title;
     protected $user_page_title;
 
-	public function __construct(){
+	public function __construct(protected DashboardService $dashboard_service){
 
         $this->page_title = "Admin Panel";
         $this->user_page_title = "Customer Panel";
@@ -25,12 +26,12 @@ class DashboardController extends Controller
     public function dashboard()
     {
         $user = Auth::user();
-
+        $service_data = $this->dashboard_service->dashboard_service();
      if($user->user_type == 'ADMIN'){
                 return view('backend_panel_view_admin.pages.dashboard', [
             'page_title' =>  $this->page_title,
             'page_header' => 'Dashboard',
-            'analytics' => $analytics,
+            'analytics' => $service_data['analytics'],
         ]);
             }
             elseif($user->user_type == 'CUSTOMER'){
@@ -42,52 +43,8 @@ class DashboardController extends Controller
     }
     public function customer_dashboard()
     {
-        $user = Auth::user();
-        $dashboardData['total_order_count'] = DB::table('orders')->where('user_id', $user->id)->count();
-        $dashboardData['completed_order_count'] = DB::table('orders')->where('user_id', $user->id)->where('order_status', 'completed')->count();
-        $dashboardData['pending_order_count'] = DB::table('orders')->where('user_id', $user->id)->where('order_status', 'pending')->count();
-        $dashboardData['cancelled_order_count'] = DB::table('orders')->where('user_id', $user->id)->where('order_status', 'cancelled')->count();
-        $dashboardData['delivered_order_count'] = DB::table('orders')->where('user_id', $user->id)->where('order_status', 'delivered')->count();
-        $dashboardData['shipped_order_count'] = DB::table('orders')->where('user_id', $user->id)->where('order_status', 'shipped')->count();
-        $dashboardData['returned_order_count'] = DB::table('orders')->where('user_id', $user->id)->where('order_status', 'returned')->count();
-        $dashboardData['total_spent'] =$total_spent = DB::table('orders')->where('user_id', $user->id)->sum('total_amount');
-        $dashboardData['total_discount'] = $total_discount= DB::table('orders')->where('user_id', $user->id)->sum('discount');
-        $dashboardData['total_earning'] = $total_earning= $total_spent - $total_discount;
-        $dashboardData['total_earning'] = $total_earning < 0 ? 0 : $total_earning;
-        $dashboardData['total_earning'] = number_format($total_earning, 2, '.', '');
-        $dashboardData['total_spent'] = number_format($total_spent, 2, '.', '');
-        $dashboardData['total_discount'] = number_format($total_discount, 2, '.', '');
-        $dashboardData['total_earning'] = $total_spent - $total_discount;
-        $dashboardData['total_earning'] = $total_earning < 0 ? 0 : $total_earning;
-        $dashboardData['recent_orders'] = DB::table('orders')
-            ->where('user_id', $user->id)
-            ->where('created_at', '>=', now()->subDays(1))
-            ->get();
 
-        // Get wishlist items
-        $wishlist = Wishlist::where('user_id', $user->id)->with('items.product')->first();
-        $dashboardData['wishlist_items'] = $wishlist ? $wishlist->items->take(5)->map(function($item) {
-            return [
-                'id' => $item->product_id,
-                'name' => $item->product->name,
-                'price' => $item->product->price,
-                'image' => $item->product->image,
-                'slug' => $item->product->slug ?? '',
-            ];
-        }) : collect([]);
-
-        // Get cart items
-        $cart = Cart::where('user_id', $user->id)->with('items.product')->first();
-        $dashboardData['cart_items'] = $cart ? $cart->items->take(5)->map(function($item) {
-            return [
-                'id' => $item->product_id,
-                'name' => $item->product->name,
-                'price' => $item->price,
-                'quantity' => $item->quantity,
-                'image' => $item->product->image,
-                'slug' => $item->product->slug ?? '',
-            ];
-        }) : collect([]);
+        $dashboardData = $this->dashboard_service->customer_dashboard_service(Auth::id());
 
         return view('backend_panel_view_customer.pages.dashboard', [
             'page_title' => $this->page_title,
@@ -98,45 +55,19 @@ class DashboardController extends Controller
 
 
 public function customer_order_details($order_number){
-    $order = Order::where('order_number', $order_number)
-        ->where('user_id', Auth::id())
-        ->with(['address.district', 'address.upazila', 'address.union', 'items.product', 'payments'])
-        ->firstOrFail();
-
-    // Define status path
-    $statusPath = $order->order_status === 'to_pay'
-        ? ['to_pay', 'Processing', 'packaged', 'shipped', 'delivered']
-        : ['Processing', 'packaged', 'shipped', 'delivered'];
-      // Mark which steps are completed
-    $currentStatusIndex = array_search($order->order_status, $statusPath);
-
-    // Prepare path with status flags
-    $progressSteps = [];
-    foreach ($statusPath as $index => $status) {
-        $progressSteps[] = [
-            'label' => ucfirst(str_replace('_', ' ', $status)),
-            'completed' => $currentStatusIndex !== false && $index < $currentStatusIndex,
-            'is_current' => $index === $currentStatusIndex,
-        ];
-    }
+  $detailsData =$this->dashboard_service->customer_order_details_service($order_number);
 
       return view('backend_panel_view_customer.pages.order_details', [
         'page_title' => $this->page_title,
         'page_header' => 'Dashboard',
-        'orderData' => $order,
-        'progress_steps' => $progressSteps
+        'orderData' => $detailsData['order'],
+        'progress_steps' => $detailsData['progressSteps']
     ]);
 }
 
 public function customer_order_history()
 {
-    $user = Auth::user();
-    $orders = Order::where('user_id', $user->id)
-        ->orderBy('created_at', 'desc')
-        ->paginate(10);
-    $orders->setPath('customer-order-history');
-    $orders->appends(request()->query());
-    $orders->links();
+    $orders = $this->dashboard_service->customer_dashboard_service(Auth::id());
     return view('backend_panel_view_customer.pages.order_list', [
         'page_title' => $this->page_title,
         'page_header' => 'Dashboard',
@@ -146,13 +77,8 @@ public function customer_order_history()
     public function customer_profile_setting()
     {
 
-       $user = Auth::user();
+        $profile = $this->dashboard_service->customer_profile_setting_service(Auth::user());
 
-        $profile = [
-            'last_login' => $user && $user->last_login
-                ? Carbon::parse($user->last_login)->diffForHumans()
-                : 'Never',
-        ];
 
         return view('backend_panel_view_customer.pages.profile_setting', [
             'page_title' =>  $this->page_title,
