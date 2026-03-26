@@ -1,22 +1,14 @@
 <?php
 
 namespace App\Http\Controllers;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Pagination\Paginator;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Http\File;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Http;
-
-use App\Models\User;
 use App\Models\Cart;
 use App\Models\Wishlist;
 use App\Models\Order;
-use Hash;
-use Session;
 use Carbon\Carbon;
-use Illuminate\Support\Str;
+use App\Services\DashboardService;
+use Illuminate\Support\Facades\Log;
 
 class DashboardController extends Controller
 {
@@ -25,7 +17,7 @@ class DashboardController extends Controller
     protected $page_title;
     protected $user_page_title;
 
-	public function __construct(){
+	public function __construct(protected DashboardService $dashboard_service){
 
         $this->page_title = "Admin Panel";
         $this->user_page_title = "Customer Panel";
@@ -34,174 +26,27 @@ class DashboardController extends Controller
 
     public function dashboard()
     {
-        $currentMonthStart = Carbon::now()->startOfMonth();
-        $currentMonthEnd = Carbon::now()->endOfMonth();
-        $lastMonthStart = Carbon::now()->subMonth()->startOfMonth();
-        $lastMonthEnd = Carbon::now()->subMonth()->endOfMonth();
-
-        // Overview Statistics
-        $analytics = [];
-
-        // Total Orders
-        $analytics['total_orders'] = Order::count();
-        $analytics['today_orders'] = Order::whereDate('created_at', Carbon::today())->count();
-        $analytics['month_orders'] = Order::whereBetween('created_at', [$currentMonthStart, $currentMonthEnd])->count();
-
-        // Revenue Analytics
-        $analytics['total_revenue'] = Order::where('payment_status', 'paid')->sum('total_amount');
-        $analytics['today_revenue'] = Order::where('payment_status', 'paid')->whereDate('created_at', Carbon::today())->sum('total_amount');
-        $analytics['month_revenue'] = Order::where('payment_status', 'paid')->whereBetween('created_at', [$currentMonthStart, $currentMonthEnd])->sum('total_amount');
-        $analytics['last_month_revenue'] = Order::where('payment_status', 'paid')->whereBetween('created_at', [$lastMonthStart, $lastMonthEnd])->sum('total_amount');
-
-        // Calculate profit/loss (Revenue - Purchase Cost)
-        $analytics['total_profit'] = DB::table('order_items')
-            ->join('orders', 'order_items.order_id', '=', 'orders.id')
-            ->join('products', 'order_items.product_id', '=', 'products.id')
-            ->where('orders.payment_status', 'paid')
-            ->select(DB::raw('SUM((order_items.price - products.purchase_price) * order_items.quantity) as profit'))
-            ->value('profit') ?? 0;
-
-        $analytics['month_profit'] = DB::table('order_items')
-            ->join('orders', 'order_items.order_id', '=', 'orders.id')
-            ->join('products', 'order_items.product_id', '=', 'products.id')
-            ->where('orders.payment_status', 'paid')
-            ->whereBetween('orders.created_at', [$currentMonthStart, $currentMonthEnd])
-            ->select(DB::raw('SUM((order_items.price - products.purchase_price) * order_items.quantity) as profit'))
-            ->value('profit') ?? 0;
-
-        // Products Statistics
-        $analytics['total_products'] = DB::table('products')->count();
-        $analytics['low_stock_products'] = DB::table('products')->where('stock', '<', 10)->count();
-        $analytics['out_of_stock'] = DB::table('products')->where('stock', '=', 0)->count();
-
-        // Order Status Breakdown
-        $analytics['pending_orders'] = Order::where('order_status', 'pending')->count();
-        $analytics['processing_orders'] = Order::where('order_status', 'processing')->count();
-        $analytics['shipped_orders'] = Order::where('order_status', 'shipped')->count();
-        $analytics['delivered_orders'] = Order::where('order_status', 'delivered')->count();
-        $analytics['cancelled_orders'] = Order::where('order_status', 'cancelled')->count();
-
-        // Payment Status
-        $analytics['pending_payments'] = Order::where('payment_status', 'pending')->count();
-        $analytics['paid_orders'] = Order::where('payment_status', 'paid')->count();
-
-        // Top Selling Products (Last 30 days)
-        $analytics['top_products'] = DB::table('order_items')
-            ->join('products', 'order_items.product_id', '=', 'products.id')
-            ->join('orders', 'order_items.order_id', '=', 'orders.id')
-            ->where('orders.created_at', '>=', Carbon::now()->subDays(30))
-            ->select('products.id', 'products.name', 'products.image', 'products.price',
-                DB::raw('SUM(order_items.quantity) as total_sold'),
-                DB::raw('SUM(order_items.price * order_items.quantity) as total_revenue'))
-            ->groupBy('products.id', 'products.name', 'products.image', 'products.price')
-            ->orderBy('total_sold', 'desc')
-            ->limit(5)
-            ->get();
-
-        // Recent Orders
-        $analytics['recent_orders'] = Order::with(['user', 'items'])
-            ->orderBy('created_at', 'desc')
-            ->limit(10)
-            ->get();
-
-        // Sales Chart Data (Last 12 months)
-        $analytics['monthly_sales'] = [];
-        for ($i = 11; $i >= 0; $i--) {
-            $monthStart = Carbon::now()->subMonths($i)->startOfMonth();
-            $monthEnd = Carbon::now()->subMonths($i)->endOfMonth();
-            $analytics['monthly_sales'][] = [
-                'month' => $monthStart->format('M Y'),
-                'sales' => Order::where('payment_status', 'paid')
-                    ->whereBetween('created_at', [$monthStart, $monthEnd])
-                    ->sum('total_amount'),
-                'orders' => Order::whereBetween('created_at', [$monthStart, $monthEnd])->count()
-            ];
-        }
-
-        // Profit/Loss Chart Data (Last 12 months)
-        $analytics['monthly_profit'] = [];
-        for ($i = 11; $i >= 0; $i--) {
-            $monthStart = Carbon::now()->subMonths($i)->startOfMonth();
-            $monthEnd = Carbon::now()->subMonths($i)->endOfMonth();
-
-            $profit = DB::table('order_items')
-                ->join('orders', 'order_items.order_id', '=', 'orders.id')
-                ->join('products', 'order_items.product_id', '=', 'products.id')
-                ->where('orders.payment_status', 'paid')
-                ->whereBetween('orders.created_at', [$monthStart, $monthEnd])
-                ->select(DB::raw('SUM((order_items.price - products.purchase_price) * order_items.quantity) as profit'))
-                ->value('profit') ?? 0;
-
-            $analytics['monthly_profit'][] = [
-                'month' => $monthStart->format('M Y'),
-                'profit' => $profit
-            ];
-        }
-     if(Auth::user()->user_type == 'ADMIN'){
+        $user = Auth::user();
+        $service_data = $this->dashboard_service->dashboard_service();
+    //  dd($service_data['top_products']);
+        if($user->user_type == 'ADMIN'){
                 return view('backend_panel_view_admin.pages.dashboard', [
             'page_title' =>  $this->page_title,
             'page_header' => 'Dashboard',
-            'analytics' => $analytics,
+            'analytics' => $service_data,
         ]);
             }
-            elseif(Auth::user()->user_type == 'CUSTOMER'){
+            elseif($user->user_type == 'CUSTOMER'){
                    return view('backend_panel_view_customer.pages.dashboard', [
             'page_title' =>  $this->page_title,
             'page_header' => 'Dashboard',
          ]);
             }
-
-
-
     }
     public function customer_dashboard()
     {
-        $user = Auth::user();
-        $dashboardData['total_order_count'] = DB::table('orders')->where('user_id', $user->id)->count();
-        $dashboardData['completed_order_count'] = DB::table('orders')->where('user_id', $user->id)->where('order_status', 'completed')->count();
-        $dashboardData['pending_order_count'] = DB::table('orders')->where('user_id', $user->id)->where('order_status', 'pending')->count();
-        $dashboardData['cancelled_order_count'] = DB::table('orders')->where('user_id', $user->id)->where('order_status', 'cancelled')->count();
-        $dashboardData['delivered_order_count'] = DB::table('orders')->where('user_id', $user->id)->where('order_status', 'delivered')->count();
-        $dashboardData['shipped_order_count'] = DB::table('orders')->where('user_id', $user->id)->where('order_status', 'shipped')->count();
-        $dashboardData['returned_order_count'] = DB::table('orders')->where('user_id', $user->id)->where('order_status', 'returned')->count();
-        $dashboardData['total_spent'] =$total_spent = DB::table('orders')->where('user_id', $user->id)->sum('total_amount');
-        $dashboardData['total_discount'] = $total_discount= DB::table('orders')->where('user_id', $user->id)->sum('discount');
-        $dashboardData['total_earning'] = $total_earning= $total_spent - $total_discount;
-        $dashboardData['total_earning'] = $total_earning < 0 ? 0 : $total_earning;
-        $dashboardData['total_earning'] = number_format($total_earning, 2, '.', '');
-        $dashboardData['total_spent'] = number_format($total_spent, 2, '.', '');
-        $dashboardData['total_discount'] = number_format($total_discount, 2, '.', '');
-        $dashboardData['total_earning'] = $total_spent - $total_discount;
-        $dashboardData['total_earning'] = $total_earning < 0 ? 0 : $total_earning;
-        $dashboardData['recent_orders'] = DB::table('orders')
-            ->where('user_id', $user->id)
-            ->where('created_at', '>=', now()->subDays(1))
-            ->get();
 
-        // Get wishlist items
-        $wishlist = Wishlist::where('user_id', $user->id)->with('items.product')->first();
-        $dashboardData['wishlist_items'] = $wishlist ? $wishlist->items->take(5)->map(function($item) {
-            return [
-                'id' => $item->product_id,
-                'name' => $item->product->name,
-                'price' => $item->product->price,
-                'image' => $item->product->image,
-                'slug' => $item->product->slug ?? '',
-            ];
-        }) : collect([]);
-
-        // Get cart items
-        $cart = Cart::where('user_id', $user->id)->with('items.product')->first();
-        $dashboardData['cart_items'] = $cart ? $cart->items->take(5)->map(function($item) {
-            return [
-                'id' => $item->product_id,
-                'name' => $item->product->name,
-                'price' => $item->price,
-                'quantity' => $item->quantity,
-                'image' => $item->product->image,
-                'slug' => $item->product->slug ?? '',
-            ];
-        }) : collect([]);
+        $dashboardData = $this->dashboard_service->customer_dashboard_service(Auth::id());
 
         return view('backend_panel_view_customer.pages.dashboard', [
             'page_title' => $this->page_title,
@@ -212,45 +57,19 @@ class DashboardController extends Controller
 
 
 public function customer_order_details($order_number){
-    $order = Order::where('order_number', $order_number)
-        ->where('user_id', Auth::id())
-        ->with(['address.district', 'address.upazila', 'address.union', 'items.product', 'payments'])
-        ->firstOrFail();
-
-    // Define status path
-    $statusPath = $order->order_status === 'to_pay'
-        ? ['to_pay', 'Processing', 'packaged', 'shipped', 'delivered']
-        : ['Processing', 'packaged', 'shipped', 'delivered'];
-      // Mark which steps are completed
-    $currentStatusIndex = array_search($order->order_status, $statusPath);
-
-    // Prepare path with status flags
-    $progressSteps = [];
-    foreach ($statusPath as $index => $status) {
-        $progressSteps[] = [
-            'label' => ucfirst(str_replace('_', ' ', $status)),
-            'completed' => $currentStatusIndex !== false && $index < $currentStatusIndex,
-            'is_current' => $index === $currentStatusIndex,
-        ];
-    }
+  $detailsData =$this->dashboard_service->customer_order_details_service($order_number);
 
       return view('backend_panel_view_customer.pages.order_details', [
         'page_title' => $this->page_title,
         'page_header' => 'Dashboard',
-        'orderData' => $order,
-        'progress_steps' => $progressSteps
+        'orderData' => $detailsData['order'],
+        'progress_steps' => $detailsData['progressSteps']
     ]);
 }
 
 public function customer_order_history()
 {
-    $user = Auth::user();
-    $orders = Order::where('user_id', $user->id)
-        ->orderBy('created_at', 'desc')
-        ->paginate(10);
-    $orders->setPath('customer-order-history');
-    $orders->appends(request()->query());
-    $orders->links();
+    $orders = $this->dashboard_service->customer_order_history_service(Auth::id());
     return view('backend_panel_view_customer.pages.order_list', [
         'page_title' => $this->page_title,
         'page_header' => 'Dashboard',
@@ -260,13 +79,8 @@ public function customer_order_history()
     public function customer_profile_setting()
     {
 
-       $user = Auth::user();
+        $profile = $this->dashboard_service->customer_profile_setting_service(Auth::user());
 
-        $profile = [
-            'last_login' => $user && $user->last_login
-                ? Carbon::parse($user->last_login)->diffForHumans()
-                : 'Never',
-        ];
 
         return view('backend_panel_view_customer.pages.profile_setting', [
             'page_title' =>  $this->page_title,
@@ -275,6 +89,17 @@ public function customer_order_history()
 
         ]);
 
+    }
+
+    public function customer_profile()
+    {
+        $profileData = $this->dashboard_service->customer_profile_service(Auth::user());
+
+        return view('backend_panel_view_customer.pages.profile', [
+            'page_title' => $this->user_page_title,
+            'page_header' => 'My Profile',
+            'profile' => $profileData,
+        ]);
     }
 
 

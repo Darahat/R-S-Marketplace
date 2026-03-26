@@ -76,4 +76,34 @@ class Order extends Model
 
         return $orderNumber;
     }
+    /*
+     generate subtotal order
+    */
+     public function getCalcSubtotalAttribute(): float
+     {
+         return (float) ($this->subtotal ?: $this->items->sum('total'));
+     }
+
+     public function getCalcShippingAttribute(): float
+     {
+         return (float) $this->shipping_cost;
+     }
+
+     public function getCalcTaxAttribute(): float
+     {
+         return (float) $this->tax;
+     }
+
+     public function getCalcDiscountAttribute(): float
+     {
+         return (float) $this->discount;
+     }
+
+     public function getCalcTotalAttribute(): float
+     {
+         if ($this->total_amount) {
+             return (float) $this->total_amount;
+         }
+         return $this->calc_subtotal + $this->calc_shipping + $this->calc_tax - $this->calc_discount;
+     }
 }

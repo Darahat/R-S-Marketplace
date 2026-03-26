@@ -218,4 +218,9 @@ class ProductRepository
             $callback($products);
         });
     }
+
+    public function getCategorizedProduct($product_category_id){
+
+        return Product::with('category')->where('id', $product_category_id)->paginate(12);
+    }
 }

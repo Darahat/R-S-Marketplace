@@ -22,22 +22,14 @@
                   Dashboard
               </a>
 
-              <a href="{{ route('customer.profile_setting') }}"
-              class="@if(Route::is('customer.profile_setting')) bg-white bg-opacity-20 @endif flex items-center px-4 py-3 text-sm font-medium text-white rounded-lg hover:bg-white hover:bg-opacity-10 transition">
-               <i class="fas fa-cog mr-3"></i>
-               Profile
-           </a>
+
            <a href="{{ route('customer.addresses.index') }}"
            class="@if(Route::is('customer.addresses.index')) bg-white bg-opacity-20 @endif flex items-center px-4 py-3 text-sm font-medium text-white rounded-lg hover:bg-white hover:bg-opacity-10 transition">
             <i class="fas fa-cog mr-3"></i>
             Address Book
         </a>
-        <a href="{{ route('customer.orders') }}"
-        class="@if(Route::is('customer.addresses.index')) bg-white bg-opacity-20 @endif flex items-center px-4 py-3 text-sm font-medium text-white rounded-lg hover:bg-white hover:bg-opacity-10 transition">
-         <i class="fas fa-cog mr-3"></i>
-         My Orders
-     </a>
-{{--
+
+
               <a href="{{ route('customer.orders') }}"
                  class="@if(Route::is('customer.orders')) bg-white bg-opacity-20 @endif flex items-center px-4 py-3 text-sm font-medium text-white rounded-lg hover:bg-white hover:bg-opacity-10 transition">
                   <i class="fas fa-shopping-bag mr-3"></i>
@@ -48,7 +40,7 @@
                  class="@if(Route::is('customer.wishlist')) bg-white bg-opacity-20 @endif flex items-center px-4 py-3 text-sm font-medium text-white rounded-lg hover:bg-white hover:bg-opacity-10 transition">
                   <i class="fas fa-heart mr-3"></i>
                   Wishlist
-                  <span class="ml-auto bg-white bg-opacity-20 text-xs rounded-full px-2 py-1">{{ Auth::user()->wishlistItems()->count() }}</span>
+                  <span class="ml-auto bg-white bg-opacity-20 text-xs rounded-full px-2 py-1">{{ $wishlistCount }}</span>
               </a>
 
               <a href="{{ route('customer.profile') }}"
@@ -65,7 +57,7 @@
                       <i class="fas fa-sign-out-alt mr-3"></i>
                       Logout
                   </button>
-              </form> --}}
+              </form>
           </nav>
       </div>
   </div>

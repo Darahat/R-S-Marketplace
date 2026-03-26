@@ -87,5 +87,15 @@ class AppServiceProvider extends ServiceProvider
             $view->with('wishlistCount', $wishlistCount);
         });
 
+        // Share wishlist count with customer sidepanel
+        View::composer('backend_panel_view_customer.components.shared.sidepanel', function ($view) {
+            $wishlistCount = 0;
+            if (Auth::check()) {
+                $wishlist = Wishlist::where('user_id', Auth::id())->first();
+                $wishlistCount = $wishlist ? $wishlist->items()->count() : 0;
+            }
+            $view->with('wishlistCount', $wishlistCount);
+        });
+
     }
 }

@@ -209,33 +209,26 @@
                             <h3 class="card-title mb-0"><i class="fas fa-calculator"></i> Order Summary</h3>
                         </div>
                         <div class="card-body">
-                            @php
-                                $calculatedSubtotal = $order->subtotal ?? $order->items->sum('total');
-                                $calculatedShipping = $order->shipping_cost ?? 0;
-                                $calculatedTax = $order->tax ?? 0;
-                                $calculatedDiscount = $order->discount ?? 0;
-                                $calculatedTotal = $order->total_amount ?? ($calculatedSubtotal + $calculatedShipping + $calculatedTax - $calculatedDiscount);
-                            @endphp
                             <div class="row mb-2">
                                 <div class="col-6"><strong>Subtotal:</strong></div>
-                                <div class="col-6 text-end">৳{{ number_format($calculatedSubtotal, 2) }}</div>
+                                <div class="col-6 text-end">৳{{ number_format($order->calc_subtotal, 2) }}</div>
                             </div>
                             <div class="row mb-2">
                                 <div class="col-6"><strong>Shipping:</strong></div>
-                                <div class="col-6 text-end">৳{{ number_format($calculatedShipping, 2) }}</div>
+                                <div class="col-6 text-end">৳{{ number_format($order->calc_shipping, 2) }}</div>
                             </div>
                             <div class="row mb-2">
                                 <div class="col-6"><strong>Tax:</strong></div>
-                                <div class="col-6 text-end">৳{{ number_format($calculatedTax, 2) }}</div>
+                                <div class="col-6 text-end">৳{{ number_format($order->calc_tax, 2) }}</div>
                             </div>
                             <div class="row mb-3">
                                 <div class="col-6"><strong>Discount:</strong></div>
-                                <div class="col-6 text-end">-৳{{ number_format($calculatedDiscount, 2) }}</div>
+                                <div class="col-6 text-end">-৳{{ number_format($order->calc_discount, 2) }}</div>
                             </div>
                             <hr>
                             <div class="row">
                                 <div class="col-6"><strong>Total Amount:</strong></div>
-                                <div class="col-6 text-end"><strong>৳{{ number_format($calculatedTotal, 2) }}</strong></div>
+                                <div class="col-6 text-end"><strong>৳{{ number_format($order->calc_total, 2) }}</strong></div>
                             </div>
                         </div>
                     </div>

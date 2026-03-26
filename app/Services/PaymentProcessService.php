@@ -62,8 +62,7 @@ class PaymentProcessService{
 
     private function getCheckoutAddress()
     {
-        $address = DB::table('addresses')
-            ->where('id', session('checkout_address_id'))
+        $address = Address::where('id', session('checkout_address_id'))
             ->where('user_id', Auth::id())
             ->first();
 

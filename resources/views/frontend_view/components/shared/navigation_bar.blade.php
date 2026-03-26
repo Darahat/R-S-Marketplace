@@ -143,9 +143,7 @@
                                 <p class="text-xs text-gray-500">{{ Auth::user()->email }}</p>
                             </div>
                             <div class="py-2">
-                                <a href="{{ route('customer.profile_setting') }}" class="flex items-center px-4 py-2.5 text-sm text-gray-700 hover:bg-primary hover:text-white transition-colors duration-150">
-                                    <i class="fas fa-user-circle mr-3 w-4"></i>My Profile
-                                </a>
+
                                 <a href="{{ route('customer.orders') }}" class="flex items-center px-4 py-2.5 text-sm text-gray-700 hover:bg-primary hover:text-white transition-colors duration-150">
                                     <i class="fas fa-shopping-bag mr-3 w-4"></i>My Orders
                                 </a>

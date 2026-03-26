@@ -121,6 +121,7 @@ class WishlistService{
     }
 
     public function removeWishListProduct(int $productId):int{
+        $wishlistCount = 0;
          if (Auth::check()) {
             $wishlist = Wishlist::where('user_id', Auth::id())->first();
             if ($wishlist) {

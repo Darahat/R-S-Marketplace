@@ -49,4 +49,7 @@ protected $fillable = [
     public function getProductsCountAttribute(){
         return $this->products()->count();
     }
+    public function category(){
+        return $this->belongsTo(Category::class);
+    }
 }

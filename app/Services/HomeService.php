@@ -51,7 +51,6 @@ class HomeService{
         foreach ($categories as $category) {
             $category->subcategories = $subcategories->where('parent_id', $category->id)->values();
         }
-        // $data['products'] = DB::table('products')->where('status', 1)->orderBy('id', 'desc')->paginate(10);
         // Hero settings from DB (fallback to defaults)
         $heroDefaults = [
             'headline' => 'Next-Gen Tech for 2025',

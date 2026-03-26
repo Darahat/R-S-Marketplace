@@ -52,7 +52,19 @@ class CartController extends Controller
         return view('frontend_view.pages.cart.cartItems', compact('cartItems', 'total'))->render();
     }
 
+public function cartRefresh(){
 
+
+    // Get cart items based on authentication
+     $cart = $this->getCartItems(); // reuse existing service method
+
+    $totalPriceAmount = 0;
+    $totalItemCount = 0;
+
+    return view('frontend_view.components.cards.cartDropdown',
+        compact('totalPriceAmount', 'totalItemCount', 'cart')
+    )->render();
+    }
 
     public function addToCart(Request $request)
     {
@@ -96,4 +108,6 @@ class CartController extends Controller
 
         return back()->with('success', 'Product removed from cart');
     }
+
+
 }

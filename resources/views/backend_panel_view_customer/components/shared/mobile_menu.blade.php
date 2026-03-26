@@ -27,7 +27,7 @@
                     <i class="fas fa-tachometer-alt mr-3"></i>
                     Dashboard
                 </a>
-{{--
+
                 <a href="{{ route('customer.orders') }}"
                    class="flex items-center px-4 py-3 text-sm font-medium text-white rounded-lg hover:bg-white hover:bg-opacity-10 transition">
                     <i class="fas fa-shopping-bag mr-3"></i>
@@ -46,11 +46,7 @@
                     Profile
                 </a>
 
-                <a href="{{ route('customer.profile_setting') }}"
-                   class="flex items-center px-4 py-3 text-sm font-medium text-white rounded-lg hover:bg-white hover:bg-opacity-10 transition">
-                    <i class="fas fa-cog mr-3"></i>
-                    Settings
-                </a> --}}
+
 
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use PDO;
 
 class Category extends Model
 {
@@ -85,5 +86,11 @@ class Category extends Model
     public function updater()
     {
         return $this->belongsTo(User::class, 'updated_by');
+    }
+    /**
+     * Get brands who which belongs to category
+     */
+    public function brand(){
+        return $this->hasMany(Brand::class);
     }
 }

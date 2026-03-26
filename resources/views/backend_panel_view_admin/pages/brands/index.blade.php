@@ -68,14 +68,14 @@
                                     <td><code>{{ $brand->slug }}</code></td>
                                     <td>
                                         @php
-                                            $cats = $brand->categories();
+                                            // $cats = $brand->categories();
                                         @endphp
-                                        @if($cats->count() > 0)
-                                            @foreach($cats->take(2) as $cat)
-                                                <span class="badge bg-info">{{ $cat->name }}</span>
+                                        @if($brand->category->count() > 0)
+                                            @foreach($brand->category->take(2) as $cat)
+                                                <span class="badge bg-info">{{ $brand->category->name }}</span>
                                             @endforeach
-                                            @if($cats->count() > 2)
-                                                <span class="badge bg-secondary">+{{ $cats->count() - 2 }}</span>
+                                            @if($brand->category->count() > 2)
+                                                <span class="badge bg-secondary">+{{ $brand->category->count() - 2 }}</span>
                                             @endif
                                         @else
                                             <span class="text-muted">All Categories</span>

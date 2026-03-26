@@ -31,7 +31,7 @@ public function syncGuestWishlist($id){
      return $this->wishListService->syncGuestWishlist($id);
 }
     /**
-     * Display wishlist page
+     * Display wishlist page (frontend)
      */
     public function view()
     {
@@ -44,6 +44,19 @@ public function syncGuestWishlist($id){
         return view('frontend_view.pages.wishlist.view', [
             'wishlistItems' => $wishlistItems,
             'data' => $data,
+        ]);
+    }
+
+    /**
+     * Display wishlist page (customer panel)
+     */
+    public function customerWishlist()
+    {
+        $wishlistItems = $this->wishListService->getWishlistItems();
+
+        return view('backend_panel_view_customer.pages.wishlist', [
+            'wishlistItems' => $wishlistItems,
+            'page_title' => $this->siteTitle . 'Wishlist',
         ]);
     }
 

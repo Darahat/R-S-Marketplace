@@ -21,6 +21,7 @@ class CategoryService{
     public function getCategories(){
 // Get all categories with their relationships
         $categories = Category::with(['parent', 'children'])
+            ->withCount('products')
             ->orderBy('name')
             ->paginate(20);
 
