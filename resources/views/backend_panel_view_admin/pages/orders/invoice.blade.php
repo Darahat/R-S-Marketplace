@@ -161,11 +161,13 @@
 
         <!-- Summary -->
         @php
-            $calcSubtotal = $order->subtotal ?? $order->items->sum('total');
+
+            $calcSubtotal = $order->subtotal > 0
+    ? $order->subtotal
+    : $order->items->sum('total');
             $calcShipping = $order->shipping_cost ?? 0;
             $calcTax = $order->tax ?? 0;
             $calcDiscount = $order->discount ?? 0;
-            $calcTotal = $order->total_amount ?? ($calcSubtotal + $calcShipping + $calcTax - $calcDiscount);
         @endphp
         <table class="summary-table">
             <tr>
@@ -188,7 +190,7 @@
             @endif
             <tr class="total-row">
                 <td class="label">TOTAL AMOUNT:</td>
-                <td class="amount">৳{{ number_format($calcTotal, 2) }}</td>
+                <td class="amount">৳{{ number_format($order->calc_total, 2) }}</td>
             </tr>
         </table>
 

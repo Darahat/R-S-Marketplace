@@ -8,6 +8,7 @@ use App\Models\Wishlist;
 use App\Models\Order;
 use Carbon\Carbon;
 use App\Services\DashboardService;
+use Illuminate\Support\Facades\Log;
 
 class DashboardController extends Controller
 {
@@ -27,11 +28,12 @@ class DashboardController extends Controller
     {
         $user = Auth::user();
         $service_data = $this->dashboard_service->dashboard_service();
-     if($user->user_type == 'ADMIN'){
+    //  dd($service_data['top_products']);
+        if($user->user_type == 'ADMIN'){
                 return view('backend_panel_view_admin.pages.dashboard', [
             'page_title' =>  $this->page_title,
             'page_header' => 'Dashboard',
-            'analytics' => $service_data['analytics'],
+            'analytics' => $service_data,
         ]);
             }
             elseif($user->user_type == 'CUSTOMER'){
@@ -67,7 +69,7 @@ public function customer_order_details($order_number){
 
 public function customer_order_history()
 {
-    $orders = $this->dashboard_service->customer_dashboard_service(Auth::id());
+    $orders = $this->dashboard_service->customer_order_history_service(Auth::id());
     return view('backend_panel_view_customer.pages.order_list', [
         'page_title' => $this->page_title,
         'page_header' => 'Dashboard',
@@ -87,6 +89,17 @@ public function customer_order_history()
 
         ]);
 
+    }
+
+    public function customer_profile()
+    {
+        $profileData = $this->dashboard_service->customer_profile_service(Auth::user());
+
+        return view('backend_panel_view_customer.pages.profile', [
+            'page_title' => $this->user_page_title,
+            'page_header' => 'My Profile',
+            'profile' => $profileData,
+        ]);
     }
 
 

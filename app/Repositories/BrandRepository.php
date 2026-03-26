@@ -28,4 +28,7 @@ class BrandRepository{
     public function getBrandByStatus(bool $brandStatus):Collection{
         return Brand::where('status',$brandStatus)->orderBy('name')->get();
     }
+    public function viewPaginatedBrand():Collection{
+        return Brand::paginate(10);
+    }
 }

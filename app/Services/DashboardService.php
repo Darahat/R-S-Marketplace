@@ -70,8 +70,6 @@ class DashboardService{
         ->take(5)
         ->values();
 
-        $analytics['top_products'] = OrderItem::whereHas('order', fn($q)=> $q->where('created_at', '>=', Carbon::now()->subDays(30)));
-
         // Recent Orders
         $analytics['recent_orders'] = Order::with(['user', 'items'])
             ->orderBy('created_at', 'desc')
@@ -109,12 +107,12 @@ class DashboardService{
                 'profit' => $profit
             ];
         }
-
+    return $analytics;
 
     }
     public function customer_dashboard_service($userId){
          $stats = Order::where('user_id', $userId)
-        ->selectRow("COUNT(*) as total_order_count,
+        ->selectRaw("COUNT(*) as total_order_count,
             SUM(CASE WHEN order_status = 'completed' THEN 1 ELSE 0 END) as completed_order_count,
             SUM(CASE WHEN order_status = 'pending' THEN 1 ELSE 0 END) as pending_order_count,
             SUM(CASE WHEN order_status = 'cancelled' THEN 1 ELSE 0 END) as cancelled_order_count,
@@ -217,5 +215,25 @@ class DashboardService{
                 : 'Never',
         ];
         return $profile;
+    }
+
+    public function customer_profile_service($user){
+        return [
+            'name' => $user->name,
+            'email' => $user->email,
+            'mobile' => $user->mobile,
+            'profile_photo' => $user->profile_photo,
+            'member_since' => $user->created_at->format('F d, Y'),
+            'last_login' => $user->last_login
+                ? Carbon::parse($user->last_login)->diffForHumans()
+                : 'Never',
+            'total_orders' => Order::where('user_id', $user->id)->count(),
+            'total_spent' => Order::where('user_id', $user->id)
+                ->where('payment_status', 'paid')
+                ->sum('total_amount'),
+            'address_count' => $user->addresses()->count(),
+            'wishlist_count' => Wishlist::where('user_id', $user->id)
+                ->withCount('items')->first()?->items_count ?? 0,
+        ];
     }
 }

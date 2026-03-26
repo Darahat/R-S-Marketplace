@@ -43,10 +43,9 @@ Route::prefix('cart')->group(function () {
     Route::post('/add', [CartController::class, 'addToCart'])->name('cart.add');
     Route::post('/update', [CartController::class, 'update'])->name('cart.update');
     Route::post('/remove', [CartController::class, 'remove'])->name('cart.remove');
+    Route::get('/refresh', [CartController::class, 'cartRefresh'])->name('cart.refresh');
 
-    Route::get('/refresh', function () {
-        return view('frontend_view.components.cards.cartDropdown');
-    })->name('cart.refresh');
+
 });
 
 // Checkout routes
@@ -184,6 +183,8 @@ Route::group(['prefix' => 'customer', 'middleware' => ['auth:web', 'isCustomer']
     Route::get('/profile/photo', [CustomerProfileApiController::class, 'instant_photo_view'])->name('customer.profile.photo');
     Route::get('/order-details/{id}', [DashboardController::class, 'customer_order_details'])->name('customer.order_details');
     Route::get('/order-history', [DashboardController::class, 'customer_order_history'])->name('customer.orders');
+    Route::get('/wishlist', [WishlistController::class, 'customerWishlist'])->name('customer.wishlist');
+    Route::get('/profile', [DashboardController::class, 'customer_profile'])->name('customer.profile');
 
     // CUSTOMER ROUTES - Full resource routes
     Route::resource('addresses', AddressController::class)

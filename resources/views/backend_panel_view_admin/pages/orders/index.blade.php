@@ -137,13 +137,7 @@
                         </thead>
                         <tbody>
                             @forelse($orders as $order)
-                            @php
-            $calcSubtotal = $order->subtotal ?? $order->items->sum('total');
-            $calcShipping = $order->shipping_cost ?? 0;
-            $calcTax = $order->tax ?? 0;
-            $calcDiscount = $order->discount ?? 0;
-            $calcTotal = $order->total_amount ?? ($calcSubtotal + $calcShipping + $calcTax - $calcDiscount);
-@endphp
+
                                 <tr>
                                     <td>
                                         <strong>{{ $order->order_number }}</strong>
@@ -153,8 +147,7 @@
                                         <small class="text-muted">{{ $order->user->email }}</small>
                                     </td>
                                     <td class="text-center">
-                                        <strong>৳{{ number_format($calcTotal, 2) }}</strong>
-                                    </td>
+                                        <strong>৳{{ number_format($order->calc_total, 2) }}</strong>                                    </td>
                                     <td class="text-center">
                                         <span class="badge
                                             {{ $order->order_status == 'pending' ? 'bg-secondary' : '' }}

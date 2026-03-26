@@ -1,6 +1,6 @@
 @extends('backend_panel_view_customer.layouts.customer')
 
-@section('title', 'My Profile')
+@section('title', 'My Profile Setting')
 
 @section('breadcrumbs')
     <nav class="flex" aria-label="Breadcrumb">

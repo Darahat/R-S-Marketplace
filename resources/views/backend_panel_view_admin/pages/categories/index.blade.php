@@ -97,7 +97,7 @@
                                                 @endif
                                             </td>
                                             <td class="text-center">
-                                                <span class="badge bg-info">{{ $category->products->count() }}</span>
+                                                <span class="badge bg-info">{{$category->products_count }}</span>
                                             </td>
                                             <td class="text-center">
                                                 <div class="form-check form-switch d-inline-block">

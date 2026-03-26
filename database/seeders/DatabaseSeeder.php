@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Brand;
 use App\Models\User;
 use Carbon\Carbon;
 use Database\Seeders\Concerns\ColumnSafeSeeder;
@@ -53,6 +54,9 @@ class DatabaseSeeder extends Seeder
 
         // Seed categories
         $this->call(CategorySeeder::class);
+
+        // Seed brands
+        $this->call(BrandSeeder::class);
 
         // Seed products
         $this->call(ProductSeeder::class);

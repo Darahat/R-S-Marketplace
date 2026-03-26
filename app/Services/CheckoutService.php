@@ -94,8 +94,8 @@ class CheckoutService{
 
     public function review($data){
   // Verify address belongs to user
-        $address = DB::table('addresses')
-            ->where('id', $data['address_id'])
+        $address = Address::
+            where('id', $data['address_id'])
             ->where('user_id', Auth::id())
             ->first();
              if (!$address) {
@@ -166,20 +166,11 @@ class CheckoutService{
 
     private function getUserAddresses(): Collection
     {
-        return DB::table('addresses')
-            ->leftJoin('districts', 'addresses.district_id', '=', 'districts.id')
-            ->leftJoin('upazilas', 'addresses.upazila_id', '=', 'upazilas.id')
-            ->leftJoin('unions', 'addresses.union_id', '=', 'unions.id')
-            ->where('addresses.user_id', Auth::id())
-            ->select(
-                'addresses.*',
-                'districts.name as district_name',
-                'upazilas.name as upazila_name',
-                'unions.name as union_name'
-            )
-            ->orderByDesc('addresses.is_default')
-            ->orderByDesc('addresses.id')
-            ->get();
+        return Address::with('district:id,name','upazila:id,name','union:id,name')
+        ->where('addresses.user_id', Auth::id())
+        ->orderByDesc('addresses.is_default')
+        ->orderByDesc('addresses.id')
+        ->get();
     }
 
      public function updateProductStock($cartItems)

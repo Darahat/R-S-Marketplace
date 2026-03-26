@@ -202,10 +202,12 @@
                                 </thead>
                                 <tbody>
                                     @forelse($analytics['top_products'] as $product)
+
                                     <tr>
                                         <td>
                                             <div class="d-flex align-items-center">
-                                                <img src="{{ asset($product->image) }}" alt="{{ $product->name }}"
+                                                <img src="{{ $product->image ? (filter_var($product->image, FILTER_VALIDATE_URL) ? $product->image : asset('storage/' . $product->image)) : 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500' }}"
+                alt="{{ $product->name }}"
                                                      class="img-thumbnail mr-2" style="width: 40px; height: 40px; object-fit: cover;">
                                                 <span>{{ Str::limit($product->name, 30) }}</span>
                                             </div>

@@ -11,7 +11,7 @@
         <!-- Search Bar -->
         <div class="flex-1 max-w-md mx-4">
             <div class="relative">
-                <input type="text" placeholder="Search..." 
+                <input type="text" placeholder="Search..."
                        class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
                 <div class="absolute left-3 top-2.5 text-gray-400">
                     <i class="fas fa-search"></i>
@@ -28,7 +28,7 @@
                     <span class="absolute top-0 right-0 h-2 w-2 rounded-full bg-red-500"></span>
                 </button>
             </div>
-            
+
             <!-- Messages -->
             <div class="relative">
                 <button class="text-gray-500 hover:text-primary focus:outline-none">
@@ -36,13 +36,13 @@
                     <span class="absolute top-0 right-0 h-2 w-2 rounded-full bg-red-500"></span>
                 </button>
             </div>
-            
+
             <!-- Cart -->
             {{-- <a href="{{ route('cart.view') }}" class="text-gray-500 hover:text-primary relative">
                 <i class="fas fa-shopping-cart text-xl"></i>
                 <span class="absolute -top-2 -right-2 bg-primary text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">{{ Cart::count() }}</span>
             </a> --}}
-            
+
             <!-- User Dropdown -->
             <div class="relative ml-4" x-data="{ open: false }">
                 <button @click="open = !open" class="flex items-center focus:outline-none">
@@ -50,15 +50,15 @@
                     <span class="ml-2 text-sm font-medium text-gray-700 hidden md:inline profile-name-preview">{{ Auth::user()->name }}</span>
                     <i class="fas fa-chevron-down ml-1 text-xs text-gray-500 hidden md:inline"></i>
                 </button>
-                
-                <div x-show="open" @click.away="open = false" 
+
+                <div x-show="open" @click.away="open = false"
                      class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
-                    {{-- <a href="{{ route('customer.profile') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                    <a href="{{ route('customer.profile') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                         <i class="fas fa-user mr-2"></i> Profile
                     </a>
                     <a href="{{ route('customer.profile_setting') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                         <i class="fas fa-cog mr-2"></i> Settings
-                    </a> --}}
+                    </a>
                     <div class="border-t border-gray-200"></div>
                     <form method="POST" action="{{ route('logout') }}">
                         @csrf

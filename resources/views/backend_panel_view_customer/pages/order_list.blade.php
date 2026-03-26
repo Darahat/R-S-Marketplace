@@ -104,7 +104,6 @@
                 'label' => 'Processing'
             ]
         ];
-
         $status = strtolower($order->order_status);
         $config = $statusConfig[$status] ?? [
             'class' => 'bg-gray-100 text-gray-800',

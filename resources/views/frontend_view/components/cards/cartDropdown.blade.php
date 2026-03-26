@@ -1,25 +1,7 @@
 @php
-    use Illuminate\Support\Facades\Auth;
-    use App\Models\Cart;
-
-    // Get cart items based on authentication
-    if (Auth::check()) {
-        $userCart = Cart::where('user_id', Auth::id())->with('items.product')->first();
-        $cart = $userCart ? $userCart->items->map(function($item) {
-            return [
-                'id' => $item->product_id,
-                'name' => $item->product->name,
-                'price' => $item->price,
-                'quantity' => $item->quantity,
-                'image' => $item->product->image
-            ];
-        })->toArray() : [];
-    } else {
-        $cart = session('cart', []);
-    }
-
-    $totalPriceAmount = 0;
-    $totalItemCount = 0;
+    $cart = $cart ?? [];
+    $totalPriceAmount = $totalPriceAmount ?? 0;
+    $totalItemCount = $totalItemCount ?? 0;
 @endphp
 
 <ul class="max-h-64 overflow-y-auto divide-y">
