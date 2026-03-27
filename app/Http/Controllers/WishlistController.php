@@ -88,7 +88,7 @@ public function syncGuestWishlist($id){
 
         $productId = $request->input('product_id');
 
-        $count = $this->wishListService->removeWishListProduct($productId);
+        $count = $this->wishListService->removeWishlistProduct($productId);
 
         if ($request->ajax()) {
             return response()->json([
@@ -103,7 +103,7 @@ public function syncGuestWishlist($id){
 
     public function moveToCart(Request $request){
         $productId = $request->input('product_id');
-        return $this->wishListService->wishListMoveToCart($productId);
+        return $this->wishListService->wishlistMoveToCart($productId);
 
 
 

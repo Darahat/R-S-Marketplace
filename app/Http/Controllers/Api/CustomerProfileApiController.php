@@ -44,7 +44,7 @@ class CustomerProfileApiController extends Controller
 
         return response()->json(['message' => ucfirst($field).' updated successfully']);
     }
-    public function instant_photo_view() {
+    public function instantPhotoView() {
         $user = Auth::user();
         return response()->json([
             'photo_url' => $user->profile_photo

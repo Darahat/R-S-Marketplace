@@ -60,7 +60,7 @@ class Product extends Model
                   ->orWhere('description', 'like', "%$term%");
             });
     }
-    public function Reviews(){
+    public function reviews(){
         return $this->hasMany(Review::class);
     }
 

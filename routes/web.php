@@ -177,14 +177,14 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth:web', 'isAdmin']], fun
 
 
 Route::group(['prefix' => 'customer', 'middleware' => ['auth:web', 'isCustomer']], function () {
-    Route::get('/dashboard', [DashboardController::class, 'customer_dashboard'])->name('customer.dashboard');
-    Route::get('/profile-setting', [DashboardController::class, 'customer_profile_setting'])->name('customer.profile_setting');
+    Route::get('/dashboard', [DashboardController::class, 'customerDashboard'])->name('customer.dashboard');
+    Route::get('/profile-setting', [DashboardController::class, 'customerProfileSetting'])->name('customer.profile_setting');
     Route::post('/profile/update', [CustomerProfileApiController::class, 'update'])->name('customer.profile.update');
-    Route::get('/profile/photo', [CustomerProfileApiController::class, 'instant_photo_view'])->name('customer.profile.photo');
-    Route::get('/order-details/{id}', [DashboardController::class, 'customer_order_details'])->name('customer.order_details');
-    Route::get('/order-history', [DashboardController::class, 'customer_order_history'])->name('customer.orders');
+    Route::get('/profile/photo', [CustomerProfileApiController::class, 'instantPhotoView'])->name('customer.profile.photo');
+    Route::get('/order-details/{id}', [DashboardController::class, 'customerOrderDetails'])->name('customer.order_details');
+    Route::get('/order-history', [DashboardController::class, 'customerOrderHistory'])->name('customer.orders');
     Route::get('/wishlist', [WishlistController::class, 'customerWishlist'])->name('customer.wishlist');
-    Route::get('/profile', [DashboardController::class, 'customer_profile'])->name('customer.profile');
+    Route::get('/profile', [DashboardController::class, 'customerProfile'])->name('customer.profile');
 
     // CUSTOMER ROUTES - Full resource routes
     Route::resource('addresses', AddressController::class)
