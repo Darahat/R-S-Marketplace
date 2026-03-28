@@ -17,7 +17,7 @@ class WelcomeMail extends Mailable
     /**
      * Create a new message instance.
      */
-    public function __construct()
+    public function __construct(public string $message)
     {
         //
     }
@@ -28,7 +28,7 @@ class WelcomeMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Welcome Mail',
+            subject: 'Welcome To Queue testing Mail',
         );
     }
 
@@ -38,7 +38,8 @@ class WelcomeMail extends Mailable
     public function content(): Content
     {
         return new Content(
-            view: 'view.name',
+            view: 'emails.welcome',
+            with: ['welcomeMessage' => $this->message]
         );
     }
 
