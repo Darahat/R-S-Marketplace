@@ -124,7 +124,7 @@ class AuthService{
         Auth::login($user);
         $user = Auth::user();
         if ($user) {
-                SendWelcomeEmailJob::dispatch($user, 'Welcome aboard!');
+                SendWelcomeEmailJob::dispatch($user, 'Welcome aboard!')->delay(now()->addMinutes(2))->onQueue('emails');
                     // Mail::to('admin@example.com')->send(new WelcomeMail("hello i am mail test"));
 
                 $this->recordLoginMetaData($user,$ip,$device);

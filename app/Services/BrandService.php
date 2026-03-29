@@ -4,7 +4,7 @@ use Illuminate\Support\Str;
 use App\Repositories\BrandRepository;
 use App\Models\Brand;
 use Illuminate\Support\Facades\Mail;
-use App\Mail\BrandCreatedNotification;
+use App\Jobs\BrandCreatedNotificationJob;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Http\UploadedFile;
 class BrandService{
@@ -27,10 +27,10 @@ class BrandService{
     if (isset($data['logo']) && $data['logo']) {
         $data['logo'] = $data['logo']->store('brands', 'public');
     }
-
     $brand = $this->repo->createBrand($data);
 
-    Mail::to('admin@example.com')->send(new BrandCreatedNotification($brand));
+    BrandCreatedNotificationJob::dispatch($brand)->delay(now()->addMinutes(2));
+    // Mail::to('admin@example.com')->send(new BrandCreatedNotification($brand));
 
     return $brand;
 }
