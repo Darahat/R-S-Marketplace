@@ -60,6 +60,31 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('/checkout/to-pay', [CheckoutController::class, 'toPayOrders'])->name('checkout.to_pay');
     Route::post('/checkout/{orderNumber}/complete-payment', [PaymentProcessController::class, 'completePayment'])->name('checkout.complete_payment');
+
+        Route::get('/notifications/unread-count', function () {
+        return response()->json([
+            'count' => Auth::user()->unreadNotifications()->count()
+        ]);
+    });
+
+    // Get all unread notifications
+    Route::get('/notifications', function () {
+        return response()->json(
+            auth()->user()->unreadNotifications()->latest()->take(10)->get()
+        );
+    });
+
+    // Mark one as read
+    Route::post('/notifications/{id}/read', function ($id) {
+        auth()->user()->notifications()->findOrFail($id)->markAsRead();
+        return response()->json(['success' => true]);
+    });
+
+    // Mark all as read
+    Route::post('/notifications/read-all', function () {
+        auth()->user()->unreadNotifications()->update(['read_at' => now()]);
+        return response()->json(['success' => true]);
+    });
 });
 
 // Stripe webhook route (must be outside auth middleware)
@@ -210,3 +235,4 @@ Route::get('/clear-cache', function() {
 	Artisan::call('view:clear');
 	 return "Cleared!";
 });
+

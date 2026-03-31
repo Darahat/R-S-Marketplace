@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\SendOrderStatusNotificationJob;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
@@ -121,7 +122,7 @@ class OrderController extends Controller
         }
 
         $order->save();
-
+        SendOrderStatusNotificationJob::dispatch($order, $oldStatus, $request->status)->onQueue('default');
         return response()->json([
             'success' => true,
             'message' => "Order status updated from '{$oldStatus}' to '{$request->status}'",
