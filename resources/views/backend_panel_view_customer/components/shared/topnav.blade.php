@@ -23,10 +23,25 @@
         <div class="flex items-center space-x-4">
             <!-- Notifications -->
             <div class="relative">
-                <button class="text-gray-500 hover:text-primary focus:outline-none">
+                <button id="notification-bell-button" type="button" class="text-gray-500 hover:text-primary focus:outline-none relative">
                     <i class="fas fa-bell text-xl"></i>
-                    <span class="absolute top-0 right-0 h-2 w-2 rounded-full bg-red-500"></span>
+                    <span id="notification-badge" class="absolute -top-2 -right-2 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] leading-[18px] text-center font-semibold hidden">0</span>
                 </button>
+
+                <div id="notification-panel" class="hidden absolute right-0 mt-3 w-80 bg-white rounded-lg shadow-lg border border-gray-100 z-50">
+                    <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+                        <h3 class="text-sm font-semibold text-gray-800">Notifications</h3>
+                        <button id="notification-read-all" type="button" class="text-xs text-primary hover:underline">Mark all as read</button>
+                    </div>
+
+                    <div id="notification-list" class="max-h-80 overflow-y-auto">
+                        <div class="px-4 py-4 text-sm text-gray-500">Loading...</div>
+                    </div>
+
+                    <div class="px-4 py-2 border-t border-gray-100 text-xs text-gray-500">
+                        Showing unread items only
+                    </div>
+                </div>
             </div>
 
             <!-- Messages -->

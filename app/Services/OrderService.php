@@ -42,19 +42,19 @@ when($filters['search'] ?? null, function ($q, $search){
     public function updateStatusService($validator,$id):array{
         $order = Order::findOrFail($id);
         $oldStatus = $order->order_status;
-        $order->order_status = $validator->status;
+        $order->order_status = $validator['status'];
 
         // Set timestamps for certain statuses
-        if ($validator->status == 'shipped' && !$order->shipped_at) {
+        if ($order->order_status == 'shipped' && !$order->shipped_at) {
             $order->shipped_at = now();
         }
 
-        if ($validator->status == 'delivered' && !$order->delivered_at) {
+        if ($order->order_status == 'delivered' && !$order->delivered_at) {
             $order->delivered_at = now();
         }
 
         $order->save();
-        SendOrderStatusNotificationJob::dispatch($order, $oldStatus, $validator->status)->onQueue('default');
+        SendOrderStatusNotificationJob::dispatch($order, $oldStatus, $order->order_status)->onQueue('default');
         return [
             'order_status' =>$order->order_status,
             'oldStatus' => $oldStatus,
