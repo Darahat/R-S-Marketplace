@@ -37,6 +37,7 @@ class SendOrderStatusNotificationJob implements ShouldQueue
                 'order_id' =>$this->order->id,
 
             ]);
+            return;
         }
         // This sends via database + broadcast (as defined in toArray/toBroadcast)
         $user->notify(new OrderStatusChangedNotification(

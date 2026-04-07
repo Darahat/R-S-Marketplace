@@ -1,15 +1,27 @@
 import Echo from 'laravel-echo';
 import Pusher from 'pusher-js';
+import './bootstrap';
 
 window.Pusher = Pusher;
+
+const reverbHost = import.meta.env.VITE_REVERB_HOST || window.location.hostname;
+const reverbPort = Number(import.meta.env.VITE_REVERB_PORT || 8080);
+const reverbScheme = import.meta.env.VITE_REVERB_SCHEME || 'http';
 
 window.Echo = new Echo({
     broadcaster: 'reverb',
     key:import.meta.env.VITE_REVERB_APP_KEY,
-    wsHost: import.meta.env.VITE_REVERB_HOST,
-    wsPort: import.meta.env.VITE_REVERB_PORT,
-    wssPort: import.meta.env.VITE_REVERB_PORT,
-    forceTLS: false,
+    wsHost: reverbHost,
+    wsPort: reverbPort,
+    wssPort: reverbPort,
+    forceTLS: reverbScheme === 'https',
+    authEndpoint: '/broadcasting/auth',
+    withCredentials: true,
+    auth: {
+        headers: {
+            'X-CSRF-TOKEN': getCsrfToken(),
+        },
+    },
     enabledTransports: ['ws', 'wss'],
 });
 
