@@ -3,9 +3,13 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\UpdateOrderNotesRequest;
+use App\Http\Requests\UpdateOrderStatusRequest;
+use App\Http\Requests\UpdatePaymentStatusRequest;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
+use App\Services\OrderService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Carbon\Carbon;
@@ -14,7 +18,7 @@ class OrderController extends Controller
 {
     protected $page_title;
 
-    public function __construct()
+    public function __construct(protected OrderService $order_service)
     {
         $this->page_title = "Order Management";
     }
@@ -25,44 +29,15 @@ class OrderController extends Controller
     public function index(Request $request)
     {
         $query = Order::with(['user', 'address', 'items.product']);
+        $filters = [
+            'status' => $request->input('status'),
+            'payment_status' =>$request->input('payment_status'),
+            'payment_method' =>$request->input('payment_method'),
+            'date_from' =>$request->input('date_from'),
+            'date_to' =>$request->input('date_to'),
+        ];
+        $orders = $this->order_service->getOrdersService($filters);
 
-        // Search by order number or customer name
-        if ($request->has('search') && $request->search != '') {
-            $search = $request->search;
-            $query->where(function($q) use ($search) {
-                $q->where('order_number', 'like', '%' . $search . '%')
-                  ->orWhereHas('user', function($q) use ($search) {
-                      $q->where('name', 'like', '%' . $search . '%')
-                        ->orWhere('email', 'like', '%' . $search . '%');
-                  });
-            });
-        }
-
-        // Filter by status
-        if ($request->has('status') && $request->order_status != '') {
-            $query->where('status', $request->order_status);
-        }
-
-        // Filter by payment status
-        if ($request->has('payment_status') && $request->payment_status != '') {
-            $query->where('payment_status', $request->payment_status);
-        }
-
-        // Filter by payment method
-        if ($request->has('payment_method') && $request->payment_method != '') {
-            $query->where('payment_method', $request->payment_method);
-        }
-
-        // Filter by date range
-        if ($request->has('date_from') && $request->date_from != '') {
-            $query->whereDate('created_at', '>=', $request->date_from);
-        }
-
-        if ($request->has('date_to') && $request->date_to != '') {
-            $query->whereDate('created_at', '<=', $request->date_to);
-        }
-
-        $orders = $query->orderBy('created_at', 'desc')->paginate(20);
 
         return view('backend_panel_view_admin.pages.orders.index', [
             'orders' => $orders,
@@ -93,91 +68,39 @@ class OrderController extends Controller
     /**
      * Update order status
      */
-    public function updateStatus(Request $request, $id)
+    public function updateStatus(UpdateOrderStatusRequest $request, $id)
     {
-        $order = Order::findOrFail($id);
-
-        $validator = Validator::make($request->all(), [
-            'status' => 'required|in:pending,confirmed,processing,shipped,delivered,cancelled,returned',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => $validator->errors()->first()
-            ]);
-        }
-
-        $oldStatus = $order->order_status;
-        $order->order_status = $request->status;
-
-        // Set timestamps for certain statuses
-        if ($request->status == 'shipped' && !$order->shipped_at) {
-            $order->shipped_at = now();
-        }
-
-        if ($request->status == 'delivered' && !$order->delivered_at) {
-            $order->delivered_at = now();
-        }
-
-        $order->save();
+        $validator = $request->validated();
+        $updated_order = $this->order_service->updateStatusService($validator, $id);
 
         return response()->json([
             'success' => true,
-            'message' => "Order status updated from '{$oldStatus}' to '{$request->status}'",
-            'status' => $order->order_status,
+            'message' => "Order status updated from '{$updated_order['oldStatus']}' to '{$updated_order['order_status']}'",
+            'status' => $updated_order['order_status'],
         ]);
     }
 
     /**
      * Update payment status
      */
-    public function updatePaymentStatus(Request $request, $id)
+    public function updatePaymentStatus(UpdatePaymentStatusRequest $request, $id)
     {
-        $order = Order::findOrFail($id);
-
-        $validator = Validator::make($request->all(), [
-            'payment_status' => 'required|in:unpaid,paid,failed',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => $validator->errors()->first()
-            ]);
-        }
-
-        $oldStatus = $order->payment_status;
-        $order->payment_status = $request->payment_status;
-        $order->save();
-
+        $validator = $request->validated();
+        $order = $this->order_service->updatePaymentStatusService($validator,$id);
         return response()->json([
             'success' => true,
-            'message' => "Payment status updated from '{$oldStatus}' to '{$request->payment_status}'",
-            'payment_status' => $order->payment_status,
+            'message' => "Payment status updated from '{$order['oldStatus']}' to '{$order['payment_status']}'",
+            'payment_status' => $order['payment_status'],
         ]);
     }
 
     /**
      * Update order notes
      */
-    public function updateNotes(Request $request, $id)
+    public function updateNotes(UpdateOrderNotesRequest $request, $id)
     {
-        $order = Order::findOrFail($id);
-
-        $validator = Validator::make($request->all(), [
-            'notes' => 'nullable|string|max:1000',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => $validator->errors()->first()
-            ]);
-        }
-
-        $order->notes = $request->notes;
-        $order->save();
+    $validator =$request->validated();
+    $this->order_service->updateNotesService($validator,$id);
 
         return response()->json([
             'success' => true,

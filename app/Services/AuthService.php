@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Services;
+use Illuminate\Support\Facades\Mail;
 
 use App\Models\User;
 use App\Services\WishlistService;
@@ -8,6 +9,9 @@ use App\Services\CartService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Hash;
+use App\Mail\WelcomeMail;
+
+use App\Jobs\SendWelcomeEmailJob;
 class AuthService{
   public function __construct(protected WishlistService $wishlistService, protected CartService $cartService)
     {
@@ -120,8 +124,12 @@ class AuthService{
         Auth::login($user);
         $user = Auth::user();
         if ($user) {
+                SendWelcomeEmailJob::dispatch($user, 'Welcome aboard!')->delay(now()->addMinutes(2))->onQueue('emails');
+                    // Mail::to('admin@example.com')->send(new WelcomeMail("hello i am mail test"));
+
                 $this->recordLoginMetaData($user,$ip,$device);
                 $this->syncUserData($user);
+
             }
         return $user;
     }

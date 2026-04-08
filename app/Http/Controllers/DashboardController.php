@@ -27,7 +27,7 @@ class DashboardController extends Controller
     public function dashboard()
     {
         $user = Auth::user();
-        $service_data = $this->dashboard_service->dashboard_service();
+        $service_data = $this->dashboard_service->dashboardService();
     //  dd($service_data['top_products']);
         if($user->user_type == 'ADMIN'){
                 return view('backend_panel_view_admin.pages.dashboard', [
@@ -43,10 +43,10 @@ class DashboardController extends Controller
          ]);
             }
     }
-    public function customer_dashboard()
+    public function customerDashboard()
     {
 
-        $dashboardData = $this->dashboard_service->customer_dashboard_service(Auth::id());
+        $dashboardData = $this->dashboard_service->customerDashboardService(Auth::id());
 
         return view('backend_panel_view_customer.pages.dashboard', [
             'page_title' => $this->page_title,
@@ -56,8 +56,8 @@ class DashboardController extends Controller
     }
 
 
-public function customer_order_details($order_number){
-  $detailsData =$this->dashboard_service->customer_order_details_service($order_number);
+public function customerOrderDetails($order_number){
+  $detailsData =$this->dashboard_service->customerOrderDetailsService($order_number);
 
       return view('backend_panel_view_customer.pages.order_details', [
         'page_title' => $this->page_title,
@@ -67,19 +67,19 @@ public function customer_order_details($order_number){
     ]);
 }
 
-public function customer_order_history()
+public function customerOrderHistory()
 {
-    $orders = $this->dashboard_service->customer_order_history_service(Auth::id());
+    $orders = $this->dashboard_service->customerOrderHistoryService(Auth::id());
     return view('backend_panel_view_customer.pages.order_list', [
         'page_title' => $this->page_title,
         'page_header' => 'Dashboard',
         'orderData' => $orders,
      ]);
 }
-    public function customer_profile_setting()
+    public function customerProfileSetting()
     {
 
-        $profile = $this->dashboard_service->customer_profile_setting_service(Auth::user());
+        $profile = $this->dashboard_service->customerProfileSettingService(Auth::user());
 
 
         return view('backend_panel_view_customer.pages.profile_setting', [
@@ -91,9 +91,9 @@ public function customer_order_history()
 
     }
 
-    public function customer_profile()
+    public function customerProfile()
     {
-        $profileData = $this->dashboard_service->customer_profile_service(Auth::user());
+        $profileData = $this->dashboard_service->customerProfileService(Auth::user());
 
         return view('backend_panel_view_customer.pages.profile', [
             'page_title' => $this->user_page_title,

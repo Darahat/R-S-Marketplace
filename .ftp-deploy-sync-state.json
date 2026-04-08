@@ -1083,7 +1083,7 @@
         },
         {
             "type": "file",
-            "name": "app/Http/Controllers/Api/CustomerProfileApiController.php",
+            "name": "app/Http/Controllers/Customer/CustomerProfileController.php",
             "size": 1804,
             "hash": "19dcc02a52c876cb00f9f0aee16882a4986f8345d1be6fc8c07bdc8a91841edb"
         },

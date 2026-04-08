@@ -11,18 +11,19 @@ A comprehensive, modern e-commerce marketplace built with Laravel 11 and Tailwin
 
 ## 📋 Table of Contents
 
--   [Features](#-features)
--   [User Roles](#-user-roles)
--   [Requirements](#-requirements)
--   [Installation Guide](#-installation-guide)
--   [How to Run the Project](#-how-to-run-the-project)
--   [Database Setup](#-database-setup)
--   [Login Credentials](#-login-credentials)
--   [How the Project Works](#-how-the-project-works)
--   [Common Issues & Solutions](#-common-issues--solutions)
--   [Project Structure](#-project-structure)
--   [Technology Stack](#-technology-stack)
--   [Support](#-support)
+- [Features](#-features)
+- [User Roles](#-user-roles)
+- [Requirements](#-requirements)
+- [Installation Guide](#-installation-guide)
+- [How to Run the Project](#-how-to-run-the-project)
+- [Daily Startup Commands](#-daily-startup-commands)
+- [Database Setup](#-database-setup)
+- [Login Credentials](#-login-credentials)
+- [How the Project Works](#-how-the-project-works)
+- [Common Issues & Solutions](#-common-issues--solutions)
+- [Project Structure](#-project-structure)
+- [Technology Stack](#-technology-stack)
+- [Support](#-support)
 
 ---
 
@@ -30,27 +31,27 @@ A comprehensive, modern e-commerce marketplace built with Laravel 11 and Tailwin
 
 ### 🛍️ **Customer Features**
 
--   ✅ User Registration & Login
--   ✅ Browse Products with Categories & Subcategories
--   ✅ Advanced Search with Filters (Price Range, Categories)
--   ✅ Shopping Cart Management
--   ✅ Wishlist Functionality
--   ✅ Multiple Address Management (District, Upazila, Union)
--   ✅ Order Placement & Tracking
--   ✅ Product Reviews & Ratings
--   ✅ Responsive Design (Mobile, Tablet, Desktop)
--   ✅ Dynamic Hero Banners
+- ✅ User Registration & Login
+- ✅ Browse Products with Categories & Subcategories
+- ✅ Advanced Search with Filters (Price Range, Categories)
+- ✅ Shopping Cart Management
+- ✅ Wishlist Functionality
+- ✅ Multiple Address Management (District, Upazila, Union)
+- ✅ Order Placement & Tracking
+- ✅ Product Reviews & Ratings
+- ✅ Responsive Design (Mobile, Tablet, Desktop)
+- ✅ Dynamic Hero Banners
 
 ### 👨‍💼 **Admin Features**
 
--   ✅ Complete Dashboard with Statistics
--   ✅ Product Management (CRUD)
--   ✅ Category & Brand Management
--   ✅ Order Management & Status Updates
--   ✅ User Management
--   ✅ Hero Section Control
--   ✅ Review Moderation
--   ✅ Reports & Analytics
+- ✅ Complete Dashboard with Statistics
+- ✅ Product Management (CRUD)
+- ✅ Category & Brand Management
+- ✅ Order Management & Status Updates
+- ✅ User Management
+- ✅ Hero Section Control
+- ✅ Review Moderation
+- ✅ Reports & Analytics
 
 ---
 
@@ -60,21 +61,21 @@ This project has **2 main user roles**:
 
 ### 1. **ADMIN**
 
--   Full access to admin panel
--   Manage products, categories, brands
--   Process orders and update status
--   Manage users and permissions
--   Control website content (hero sections)
--   View analytics and reports
+- Full access to admin panel
+- Manage products, categories, brands
+- Process orders and update status
+- Manage users and permissions
+- Control website content (hero sections)
+- View analytics and reports
 
 ### 2. **CUSTOMER**
 
--   Browse and search products
--   Add items to cart and wishlist
--   Place and track orders
--   Manage profile and addresses
--   Write product reviews
--   View order history
+- Browse and search products
+- Add items to cart and wishlist
+- Place and track orders
+- Manage profile and addresses
+- Write product reviews
+- View order history
 
 ---
 
@@ -82,11 +83,11 @@ This project has **2 main user roles**:
 
 Before installation, ensure you have:
 
--   **PHP** >= 8.2
--   **Composer** (Latest version)
--   **MySQL** >= 5.7 or **MariaDB** >= 10.3
--   **Node.js & NPM** (for frontend assets)
--   **Git** (optional, for cloning)
+- **PHP** >= 8.2
+- **Composer** (Latest version)
+- **MySQL** >= 5.7 or **MariaDB** >= 10.3
+- **Node.js & NPM** (for frontend assets)
+- **Git** (optional, for cloning)
 
 ---
 
@@ -180,10 +181,10 @@ This creates all necessary database tables.
 
 **⚠️ Common Issue:** If migration fails:
 
--   Check database credentials in `.env`
--   Ensure MySQL server is running
--   Verify database exists
--   Try: `php artisan migrate:fresh`
+- Check database credentials in `.env`
+- Ensure MySQL server is running
+- Verify database exists
+- Try: `php artisan migrate:fresh`
 
 ### Step 2: Seed the Database
 
@@ -193,13 +194,13 @@ php artisan db:seed
 
 This will create:
 
--   ✅ Admin user account
--   ✅ Customer user account
--   ✅ Sample products
--   ✅ Categories and brands
--   ✅ Bangladesh location data (Districts, Upazilas, Unions)
--   ✅ Hero sections
--   ✅ Product reviews
+- ✅ Admin user account
+- ✅ Customer user account
+- ✅ Sample products
+- ✅ Categories and brands
+- ✅ Bangladesh location data (Districts, Upazilas, Unions)
+- ✅ Hero sections
+- ✅ Product reviews
 
 **💡 Tip:** To reset and reseed everything:
 
@@ -210,6 +211,102 @@ php artisan migrate:fresh --seed
 ---
 
 ## 🏃 How to Run the Project
+
+This project uses:
+
+- Laravel HTTP server
+- Queue worker (for queued jobs like notifications)
+- Reverb server (for real-time broadcast)
+- Vite dev server (for frontend assets and live updates)
+
+If you only run `php artisan serve`, some features (especially real-time notifications) will not work.
+
+### First Run (One-Time Setup)
+
+Run these once after cloning:
+
+```bash
+composer install
+npm install
+
+# Create env file if missing
+copy .env.example .env
+
+php artisan key:generate
+php artisan storage:link
+php artisan migrate --seed
+php artisan optimize:clear
+```
+
+Add these realtime values in `.env`:
+
+```env
+BROADCAST_CONNECTION=reverb
+QUEUE_CONNECTION=database
+
+REVERB_APP_ID=local-app
+REVERB_APP_KEY=local-key
+REVERB_APP_SECRET=local-secret
+REVERB_HOST=127.0.0.1
+REVERB_PORT=8080
+REVERB_SCHEME=http
+
+VITE_REVERB_APP_KEY="${REVERB_APP_KEY}"
+VITE_REVERB_HOST="${REVERB_HOST}"
+VITE_REVERB_PORT="${REVERB_PORT}"
+VITE_REVERB_SCHEME="${REVERB_SCHEME}"
+```
+
+After editing `.env`, run:
+
+```bash
+php artisan optimize:clear
+```
+
+---
+
+## ⚡ Daily Startup Commands
+
+Each time you start the project locally, open multiple terminals in the project folder and run:
+
+### Terminal 1 (Laravel App)
+
+```bash
+php artisan serve
+```
+
+### Terminal 2 (Queue Worker)
+
+```bash
+php artisan queue:work
+```
+
+### Terminal 3 (Reverb WebSocket Server)
+
+```bash
+php artisan reverb:start
+```
+
+### Terminal 4 (Frontend Assets)
+
+```bash
+npm run dev
+```
+
+If you do not use `npm run dev`, run build manually after frontend changes:
+
+```bash
+npm run build
+```
+
+### Quick Health Check
+
+After starting all services:
+
+- App opens on `http://127.0.0.1:8000`
+- Queue terminal shows no repeated failures
+- Reverb terminal shows `Starting server on 0.0.0.0:8080`
+- Order status updates from admin trigger customer notifications instantly
 
 ### Option 1: Using PHP Built-in Server (Recommended for Development)
 
@@ -364,9 +461,9 @@ php artisan storage:link
 
 **Solution:**
 
--   Verify `.env` database credentials
--   Ensure MySQL is running
--   Check if database exists:
+- Verify `.env` database credentials
+- Ensure MySQL is running
+- Check if database exists:
     ```sql
     CREATE DATABASE marketplace_db;
     ```
@@ -427,6 +524,19 @@ php artisan migrate
 php artisan config:clear
 ```
 
+### 11. **Order Status Notification Not Showing in Real-Time**
+
+**Solution:**
+
+1. Ensure all 4 processes are running:
+    - `php artisan serve`
+    - `php artisan queue:work`
+    - `php artisan reverb:start`
+    - `npm run dev`
+2. Confirm `.env` has Reverb keys and `BROADCAST_CONNECTION=reverb`
+3. Run `php artisan optimize:clear` after changing `.env`
+4. If frontend script is stale, run `npm run build`
+
 ---
 
 ## 📁 Project Structure
@@ -467,23 +577,23 @@ R-S-Marketplace/
 
 **Backend:**
 
--   Laravel 11.x
--   PHP 8.2+
--   MySQL Database
--   Eloquent ORM
+- Laravel 11.x
+- PHP 8.2+
+- MySQL Database
+- Eloquent ORM
 
 **Frontend:**
 
--   Blade Templates
--   Tailwind CSS
--   JavaScript/jQuery
--   AJAX
+- Blade Templates
+- Tailwind CSS
+- JavaScript/jQuery
+- AJAX
 
 **Admin Panel:**
 
--   AdminLTE Theme
--   DataTables
--   Chart.js
+- AdminLTE Theme
+- DataTables
+- Chart.js
 
 ---
 
@@ -491,13 +601,13 @@ R-S-Marketplace/
 
 Add screenshots here:
 
--   Homepage
+- Homepage
 
     ![Homepage - Electronics & Gadgets](./R-SMarketPlace-Home-Electronics-Gadgets-12-11-2025_01_22_PM.png)
 
--   Product Listing
--   Admin Dashboard
--   Cart Page
+- Product Listing
+- Admin Dashboard
+- Cart Page
 
 ---
 

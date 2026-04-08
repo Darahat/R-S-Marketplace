@@ -83,7 +83,7 @@ class WishlistService{
         /**
      * Move wishlist item to cart
      */
-    public function wishListmoveToCart(int $productId):Array
+    public function wishlistMoveToCart(int $productId):Array
     {
 
         // Remove from wishlist
@@ -120,7 +120,7 @@ class WishlistService{
 ];
     }
 
-    public function removeWishListProduct(int $productId):int{
+    public function removeWishlistProduct(int $productId):int{
         $wishlistCount = 0;
          if (Auth::check()) {
             $wishlist = Wishlist::where('user_id', Auth::id())->first();

@@ -61,6 +61,15 @@ class CartService{
         Log::info($productId);
         Log::info($quantity);
         $product = Product::find($productId);
+
+        if (!$product) {
+            return [
+                'error' => 'Product not found.',
+                'totalQuantity' => 0,
+                'cartCount' => 0,
+            ];
+        }
+
         if (Auth::check()) {
             // Database storage for logged-in users
             $cart = Cart::firstOrCreate(['user_id' => Auth::id()]);

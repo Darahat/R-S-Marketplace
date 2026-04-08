@@ -15,7 +15,7 @@ class DashboardService{
     public function __construct()
     {
     }
-    public function dashboard_service(){
+    public function dashboardService(){
        $currentMonthStart = Carbon::now()->startOfMonth();
         $currentMonthEnd = Carbon::now()->endOfMonth();
         $lastMonthStart = Carbon::now()->subMonth()->startOfMonth();
@@ -110,7 +110,7 @@ class DashboardService{
     return $analytics;
 
     }
-    public function customer_dashboard_service($userId){
+    public function customerDashboardService($userId){
          $stats = Order::where('user_id', $userId)
         ->selectRaw("COUNT(*) as total_order_count,
             SUM(CASE WHEN order_status = 'completed' THEN 1 ELSE 0 END) as completed_order_count,
@@ -140,13 +140,13 @@ class DashboardService{
         'recent_orders'         => Order::where('user_id', $userId)
                                     ->where('created_at', '>=', now()->subDays(1))
                                     ->get(),
-        'wishlist_items'        => $this->get_wishlist_items_service($userId),
-        'cart_items'            => $this->get_cart_items($userId),
+        'wishlist_items'        => $this->getWishlistItems($userId),
+        'cart_items'            => $this->getCartItems($userId),
     ];
 
     }
 
-    private function get_wishlist_items_service(int $userId)
+    private function getWishlistItems(int $userId)
     {
         $wishlist = Wishlist::where('user_id',$userId)->with('items.product')->first();
         return $wishlist ? $wishlist->items->take(5)->map(fn($item)=> [
@@ -157,7 +157,7 @@ class DashboardService{
         'slug'  => $item->product->slug ?? '',
         ]) : collect([]);
     }
-    private function get_cart_items(int $userId){
+    private function getCartItems(int $userId){
         $cart = Cart::where('user_id', $userId)->with('items.product')->first();
         return $cart ? $cart->items->take(5)->map(fn($item)=>[
 'id'       => $item->product_id,
@@ -170,7 +170,7 @@ class DashboardService{
 
     }
 
-    public function customer_order_details_service($order_number){
+    public function customerOrderDetailsService($order_number){
           $order = Order::where('order_number', $order_number)
         ->where('user_id', Auth::id())
         ->with(['address.district', 'address.upazila', 'address.union', 'items.product', 'payments'])
@@ -199,7 +199,7 @@ class DashboardService{
     ];
     }
 
-    public function customer_order_history_service($userId){
+    public function customerOrderHistoryService($userId){
     $orders = Order::where('user_id', $userId)
         ->orderBy('created_at', 'desc')
         ->paginate(10);
@@ -208,7 +208,7 @@ class DashboardService{
     $orders->links();
     return $orders;
     }
-    public function customer_profile_setting_service($user){
+    public function customerProfileSettingService($user){
          $profile = [
             'last_login' => $user && $user->last_login
                 ? Carbon::parse($user->last_login)->diffForHumans()
@@ -217,7 +217,7 @@ class DashboardService{
         return $profile;
     }
 
-    public function customer_profile_service($user){
+    public function customerProfileService($user){
         return [
             'name' => $user->name,
             'email' => $user->email,

@@ -21,7 +21,8 @@ use App\Http\Controllers\StripeWebhookController;
 use App\Http\Controllers\Admin\HeroSectionController;
 use App\Http\Controllers\PaymentProcessController;
 use App\Http\Controllers\PaymentMethodController;
- use App\Http\Controllers\Api\CustomerProfileApiController;
+use App\Http\Controllers\Admin\UserManagementController;
+use App\Http\Controllers\Customer\CustomerProfileController;
 
 
 
@@ -60,6 +61,31 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('/checkout/to-pay', [CheckoutController::class, 'toPayOrders'])->name('checkout.to_pay');
     Route::post('/checkout/{orderNumber}/complete-payment', [PaymentProcessController::class, 'completePayment'])->name('checkout.complete_payment');
+
+        Route::get('/notifications/unread-count', function () {
+        return response()->json([
+            'count' => Auth::user()->unreadNotifications()->count()
+        ]);
+    });
+
+    // Get all unread notifications
+    Route::get('/notifications', function () {
+        return response()->json(
+            auth()->user()->unreadNotifications()->latest()->take(10)->get()
+        );
+    });
+
+    // Mark one as read
+    Route::post('/notifications/{id}/read', function ($id) {
+        auth()->user()->notifications()->findOrFail($id)->markAsRead();
+        return response()->json(['success' => true]);
+    });
+
+    // Mark all as read
+    Route::post('/notifications/read-all', function () {
+        auth()->user()->unreadNotifications()->update(['read_at' => now()]);
+        return response()->json(['success' => true]);
+    });
 });
 
 // Stripe webhook route (must be outside auth middleware)
@@ -77,7 +103,7 @@ Route::prefix('wishlist')->group(function () {
 // Guest/Customer Login
 // Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::get('/login', function () {
-    return view('errors.page-not-found');
+    return view('frontend_view.pages.auth.login');
 })->name('login');
 Route::post('/login', [CustomerAuthController::class, 'login'])->name('checklogin');
 
@@ -151,6 +177,12 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth:web', 'isAdmin']], fun
     // Hero Section
     Route::get('/hero', [HeroSectionController::class, 'edit'])->name('admin.hero.edit');
     Route::post('/hero', [HeroSectionController::class, 'update'])->name('admin.hero.update');
+
+    // User Management
+    Route::get('/users', [UserManagementController::class, 'index'])->name('admin.users.index');
+    Route::get('/users/{id}', [UserManagementController::class, 'show'])->name('admin.users.show');
+    Route::post('/users/{id}/update-role', [UserManagementController::class, 'updateRole'])->name('admin.users.update-role');
+
     // ADMIN ROUTES - Resource except create/store/setDefault
     Route::resource('addresses', AddressController::class)
         ->names('admin.addresses')
@@ -177,14 +209,14 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth:web', 'isAdmin']], fun
 
 
 Route::group(['prefix' => 'customer', 'middleware' => ['auth:web', 'isCustomer']], function () {
-    Route::get('/dashboard', [DashboardController::class, 'customer_dashboard'])->name('customer.dashboard');
-    Route::get('/profile-setting', [DashboardController::class, 'customer_profile_setting'])->name('customer.profile_setting');
-    Route::post('/profile/update', [CustomerProfileApiController::class, 'update'])->name('customer.profile.update');
-    Route::get('/profile/photo', [CustomerProfileApiController::class, 'instant_photo_view'])->name('customer.profile.photo');
-    Route::get('/order-details/{id}', [DashboardController::class, 'customer_order_details'])->name('customer.order_details');
-    Route::get('/order-history', [DashboardController::class, 'customer_order_history'])->name('customer.orders');
+    Route::get('/dashboard', [DashboardController::class, 'customerDashboard'])->name('customer.dashboard');
+    Route::get('/profile-setting', [DashboardController::class, 'customerProfileSetting'])->name('customer.profile_setting');
+    Route::post('/profile/update', [CustomerProfileController::class, 'update'])->name('customer.profile.update');
+    Route::get('/profile/photo', [CustomerProfileController::class, 'instantPhotoView'])->name('customer.profile.photo');
+    Route::get('/order-details/{orderNumber}', [DashboardController::class, 'customerOrderDetails'])->name('customer.order_details');
+    Route::get('/order-history', [DashboardController::class, 'customerOrderHistory'])->name('customer.orders');
     Route::get('/wishlist', [WishlistController::class, 'customerWishlist'])->name('customer.wishlist');
-    Route::get('/profile', [DashboardController::class, 'customer_profile'])->name('customer.profile');
+    Route::get('/profile', [DashboardController::class, 'customerProfile'])->name('customer.profile');
 
     // CUSTOMER ROUTES - Full resource routes
     Route::resource('addresses', AddressController::class)
@@ -210,3 +242,4 @@ Route::get('/clear-cache', function() {
 	Artisan::call('view:clear');
 	 return "Cleared!";
 });
+

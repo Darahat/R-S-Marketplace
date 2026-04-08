@@ -41,15 +41,22 @@ class CheckoutService{
 
         $total = $this->calculateTotal($cartItems);
 
-
-        // if (count($cartItems) === 0) {
-        //     return redirect()->route('cart.view')->with('error', 'Your cart is empty');
-        // }
+        if (count($cartItems) === 0) {
+            return [
+                'isEmptyCart' => true,
+                'total' => 0,
+                'cartItems' => [],
+                'addresses' => collect(),
+                'hasAddresses' => false,
+                'defaultAddressId' => null,
+            ];
+        }
 
         $addresses = $this->getUserAddresses();
         $defaultAddress = $addresses->firstWhere('is_default', true) ?? $addresses->first();
 
             return [
+                'isEmptyCart' => false,
                 'total' => $total,
                 'cartItems' => $cartItems,
                 'addresses' => $addresses,
@@ -115,10 +122,20 @@ class CheckoutService{
 
         $cartItems = $isBuyNow ? session('buy_now_items', []) :$this->getCartItems();
 
-
-        // if (count($cartItems) === 0) {
-        //     return redirect()->route('cart.view')->with('error', 'Your cart is empty');
-        // }
+        if (count($cartItems) === 0) {
+            return [
+                'isEmptyCart' => true,
+                'total' => 0,
+                'subtotal' => 0,
+                'shipping' => 0,
+                'address' => null,
+                'cartItems' => [],
+                'savedPaymentMethods' => collect(),
+                'data' => [
+                    'title' => 'R&SMarketPlace | Payment'
+                ],
+            ];
+        }
 
         $total = $this->calculateTotal($cartItems);
         $address = $this->getSelectedAddress();
@@ -127,6 +144,7 @@ class CheckoutService{
             ->orderBy('created_at', 'desc')
             ->get();
         return [
+            'isEmptyCart' => false,
             'total' => $total,
             'subtotal' => $total,
             'shipping' => 0,
@@ -318,14 +336,21 @@ return Order::where('user_id', Auth::id())
     public function toCheckSingleOrder($orderNumber){
         // Get all "to_pay" orders for the user
         try{
-return   Order::where('order_number', $orderNumber)
+        $order = Order::where('order_number', $orderNumber)
             ->where('user_id', Auth::id())
             ->where('order_status', 'to_pay')
             ->first();
+
+        if (!$order) {
+            return null;
+        }
+
         session([
             'payment_order_id' => $order->id,
             'payment_order_number' => $orderNumber,
         ]);
+
+        return $order;
         }
         catch (\Exception $e) {
             Log::warning('Fallback get Order info check failed: ' . $e->getMessage());

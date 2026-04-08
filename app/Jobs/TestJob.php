@@ -5,7 +5,7 @@ namespace App\Jobs;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
-class UserAddressJob implements ShouldQueue
+class TestJob implements ShouldQueue
 {
     use Queueable;
 
@@ -22,6 +22,8 @@ class UserAddressJob implements ShouldQueue
      */
     public function handle(): void
     {
-        //
+        logger('TestJob started at ' . now());
+        sleep(5);
+        logger('TestJob finished at' . now());
     }
 }
