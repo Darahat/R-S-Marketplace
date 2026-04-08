@@ -203,12 +203,12 @@
             <div class="bg-gray-50 p-4 rounded-lg">
                 <h3 class="font-medium text-gray-800 mb-2"><i class="fas fa-question-circle mr-2 text-blue-500"></i>Order Questions</h3>
                 <p class="text-gray-600 text-sm mb-2">If you have any questions about your order, our customer service team is happy to help.</p>
-                <a href="#" class="text-blue-600 text-sm hover:underline">Contact Customer Support</a>
+                <a href="{{ route('support') }}" class="text-blue-600 text-sm hover:underline">Contact Customer Support</a>
             </div>
             <div class="bg-gray-50 p-4 rounded-lg">
                 <h3 class="font-medium text-gray-800 mb-2"><i class="fas fa-undo mr-2 text-blue-500"></i>Returns & Exchanges</h3>
                 <p class="text-gray-600 text-sm mb-2">Not satisfied with your purchase? Learn about our easy return policy.</p>
-                <a href="#" class="text-blue-600 text-sm hover:underline">View Return Policy</a>
+                <a href="{{ route('return.policy') }}" class="text-blue-600 text-sm hover:underline">View Return Policy</a>
             </div>
         </div>
     </div>

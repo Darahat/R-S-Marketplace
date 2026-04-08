@@ -34,6 +34,16 @@ Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/category/{slug}', [HomeController::class, 'category'])->name('category');
 Route::get('/product/{slug}', [HomeController::class, 'product'])->name('product');
 Route::get('/search', [HomeController::class, 'search'])->name('search');
+Route::get('/support', function () {
+    return view('frontend_view.pages.support', [
+        'data' => ['title' => 'Customer Support'],
+    ]);
+})->name('support');
+Route::get('/return-policy', function () {
+    return view('frontend_view.pages.return_policy', [
+        'data' => ['title' => 'Return Policy'],
+    ]);
+})->name('return.policy');
 
 
 
