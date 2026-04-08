@@ -82,6 +82,10 @@ public function process(PaymentProcessRequest $request)
     {
 
         $order = $this->checkout_service->toCheckSingleOrder($orderNumber);
+        if (!$order) {
+            return redirect()->route('checkout.to_pay')
+                ->with('error', 'Order not found or is not eligible for payment.');
+        }
         // Store order data in session for payment process
         $validData= $request->validated();
 

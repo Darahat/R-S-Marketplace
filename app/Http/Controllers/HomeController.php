@@ -84,10 +84,10 @@ $filters = [
 
 
         return view('frontend_view.pages.product_view', [
-            'data' =>  $serviceData['data'],
+            'data' =>  $data,
             'product' => $serviceData['product'],
             'reviews' => $serviceData['reviews'],
-            'averageRating' => round($serviceData['$averageRating'], 1),
+            'averageRating' => round($serviceData['averageRating'], 1),
             'reviewCount' => $serviceData['reviewCount'],
         ]);
     }

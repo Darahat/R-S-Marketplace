@@ -21,7 +21,8 @@ use App\Http\Controllers\StripeWebhookController;
 use App\Http\Controllers\Admin\HeroSectionController;
 use App\Http\Controllers\PaymentProcessController;
 use App\Http\Controllers\PaymentMethodController;
- use App\Http\Controllers\Api\CustomerProfileApiController;
+use App\Http\Controllers\Admin\UserManagementController;
+use App\Http\Controllers\Customer\CustomerProfileController;
 
 
 
@@ -102,7 +103,7 @@ Route::prefix('wishlist')->group(function () {
 // Guest/Customer Login
 // Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::get('/login', function () {
-    return view('errors.page-not-found');
+    return view('frontend_view.pages.auth.login');
 })->name('login');
 Route::post('/login', [CustomerAuthController::class, 'login'])->name('checklogin');
 
@@ -176,6 +177,12 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth:web', 'isAdmin']], fun
     // Hero Section
     Route::get('/hero', [HeroSectionController::class, 'edit'])->name('admin.hero.edit');
     Route::post('/hero', [HeroSectionController::class, 'update'])->name('admin.hero.update');
+
+    // User Management
+    Route::get('/users', [UserManagementController::class, 'index'])->name('admin.users.index');
+    Route::get('/users/{id}', [UserManagementController::class, 'show'])->name('admin.users.show');
+    Route::post('/users/{id}/update-role', [UserManagementController::class, 'updateRole'])->name('admin.users.update-role');
+
     // ADMIN ROUTES - Resource except create/store/setDefault
     Route::resource('addresses', AddressController::class)
         ->names('admin.addresses')
@@ -204,9 +211,9 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth:web', 'isAdmin']], fun
 Route::group(['prefix' => 'customer', 'middleware' => ['auth:web', 'isCustomer']], function () {
     Route::get('/dashboard', [DashboardController::class, 'customerDashboard'])->name('customer.dashboard');
     Route::get('/profile-setting', [DashboardController::class, 'customerProfileSetting'])->name('customer.profile_setting');
-    Route::post('/profile/update', [CustomerProfileApiController::class, 'update'])->name('customer.profile.update');
-    Route::get('/profile/photo', [CustomerProfileApiController::class, 'instantPhotoView'])->name('customer.profile.photo');
-    Route::get('/order-details/{id}', [DashboardController::class, 'customerOrderDetails'])->name('customer.order_details');
+    Route::post('/profile/update', [CustomerProfileController::class, 'update'])->name('customer.profile.update');
+    Route::get('/profile/photo', [CustomerProfileController::class, 'instantPhotoView'])->name('customer.profile.photo');
+    Route::get('/order-details/{orderNumber}', [DashboardController::class, 'customerOrderDetails'])->name('customer.order_details');
     Route::get('/order-history', [DashboardController::class, 'customerOrderHistory'])->name('customer.orders');
     Route::get('/wishlist', [WishlistController::class, 'customerWishlist'])->name('customer.wishlist');
     Route::get('/profile', [DashboardController::class, 'customerProfile'])->name('customer.profile');

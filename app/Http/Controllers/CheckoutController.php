@@ -33,6 +33,10 @@ class CheckoutController extends Controller
         }
 
     $checkoutindex = $this->checkout_service->index();
+        if (($checkoutindex['isEmptyCart'] ?? false) === true) {
+            return redirect()->route('cart.view')->with('error', 'Your cart is empty');
+        }
+
     $data['title'] = $this->siteTitle . 'Checkout';
         return view('frontend_view.pages.checkout.index', [
             'cartItems' => $checkoutindex['cartItems'],
@@ -108,6 +112,9 @@ class CheckoutController extends Controller
         $data['title'] = $this->siteTitle . 'Payment';
 
         $checkoutData = $this->checkout_service->getPaymentPageData();
+        if (($checkoutData['isEmptyCart'] ?? false) === true) {
+            return redirect()->route('cart.view')->with('error', 'Your cart is empty');
+        }
 
         return view('frontend_view.pages.checkout.payment', [
             'total' => $checkoutData['total'],

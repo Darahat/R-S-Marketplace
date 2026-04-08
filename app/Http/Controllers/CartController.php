@@ -70,6 +70,16 @@ public function cartRefresh(){
     {
        $cart = $this->cartService->addToCart($request->input('product_id'),$request->input('quantity', 1));
 
+       if (isset($cart['error'])) {
+            if ($request->ajax()) {
+                return response()->json([
+                    'error' => $cart['error'],
+                ], 404);
+            }
+
+            return back()->with('error', $cart['error']);
+       }
+
         if ($request->ajax()) {
             return response()->json([
                 'success' => 'Product added to cart!',

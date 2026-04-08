@@ -146,13 +146,6 @@ class CategoryController extends Controller
     public function toggleStatus($id)
     {
         $categoryStatus = $this->category_service->toggleStatus($id);
-        if(!$categoryStatus){
-            return response()->json([
-            'success' => false,
-            'status' => $categoryStatus,
-            'message' => 'Category status update failed!'
-        ]);
-        }
         return response()->json([
             'success' => true,
             'status' => $categoryStatus,

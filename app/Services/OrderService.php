@@ -29,9 +29,9 @@ when($filters['search'] ?? null, function ($q, $search){
                   });
     });
 })
-->when($filters['status'] ?? null, fn($q, $v)=> $q->where('status', $v))
-->when($filters['payment_status'] ?? null, fn($q, $v)=> $q->where('status', $v))
-->when($filters['payment_method'] ?? null, fn($q, $v)=> $q->where('status', $v))
+->when($filters['status'] ?? null, fn($q, $v)=> $q->where('order_status', $v))
+->when($filters['payment_status'] ?? null, fn($q, $v)=> $q->where('payment_status', $v))
+->when($filters['payment_method'] ?? null, fn($q, $v)=> $q->where('payment_method', $v))
 ->when($filters['date_from'] ?? null, fn($q, $v) => $q->whereDate('created_at', '>=', $v))
 ->when($filters['date_to'] ?? null, fn($q, $v) => $q->whereDate('created_at', '<=', $v))
 ->latest()
@@ -63,7 +63,7 @@ when($filters['search'] ?? null, function ($q, $search){
     public function updatePaymentStatusService($validator,$id):array{
         $order = Order::findOrFail($id);
         $oldStatus = $order->payment_status;
-        $order->payment_status = $validator->payment_status;
+        $order->payment_status = $validator['payment_status'];
          $order->save();
          return [
             'payment_status' =>$order->payment_status,
@@ -74,7 +74,7 @@ when($filters['search'] ?? null, function ($q, $search){
 
 
         $order = Order::findOrFail($id);
-        $order->notes = $validator->notes;
+        $order->notes = $validator['notes'] ?? null;
         return $order->save();
 
 }
