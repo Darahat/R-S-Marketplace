@@ -193,12 +193,12 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth:web', 'isAdmin']], fun
     Route::get('/users/{id}', [UserManagementController::class, 'show'])->name('admin.users.show');
     Route::post('/users/{id}/update-role', [UserManagementController::class, 'updateRole'])->name('admin.users.update-role');
 
-    // ADMIN ROUTES - Resource except create/store/setDefault
+    // ADMIN ROUTES - explicit route must come BEFORE resource to avoid {address} wildcard swallowing it
+    Route::get('addresses/getAll', [AddressController::class, 'allAddressList'])->name('addresses.getAll');
+
     Route::resource('addresses', AddressController::class)
         ->names('admin.addresses')
-        ->except(['index','create', 'store','setDefault']);
-
-        Route::get('addresses/getAll', [AddressController::class, 'allAddressList'])->name('addresses.getAll');
+        ->except(['index', 'create', 'store', 'show','setDefault']);
 
 
 /// These routes user role managed by policy

@@ -200,13 +200,11 @@ class DashboardService{
     }
 
     public function customerOrderHistoryService($userId){
-    $orders = Order::where('user_id', $userId)
+    return Order::with(['items.product'])
+        ->where('user_id', $userId)
         ->orderBy('created_at', 'desc')
-        ->paginate(10);
-    $orders->setPath('customer-order-history');
-    $orders->appends(request()->query());
-    $orders->links();
-    return $orders;
+        ->paginate(10)
+        ->withQueryString();
     }
     public function customerProfileSettingService($user){
          $profile = [

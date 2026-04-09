@@ -31,6 +31,10 @@
 <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
     <div class="flex flex-col md:flex-row md:justify-between md:items-center mb-6">
         <div>
+            <a href="{{ route('customer.orders') }}" class="inline-flex items-center text-sm font-medium text-primary-600 hover:text-primary-800 mb-3">
+                <i class="fas fa-arrow-left mr-2"></i>
+                Back to Orders
+            </a>
             <h1 class="text-2xl font-bold text-gray-800">Order #{{ $orderData->order_number }}</h1>
             <p class="text-gray-600">Placed on {{ \Carbon\Carbon::parse($orderData->created_at)->format('F j, Y') }}</p>
         </div>

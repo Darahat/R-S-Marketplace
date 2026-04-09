@@ -134,8 +134,23 @@
     <script>
         // Global loading indicator
         document.addEventListener('DOMContentLoaded', function() {
+            const loadingIndicator = document.getElementById('loading');
+
+            const showLoading = function() {
+                loadingIndicator?.classList.remove('hidden');
+            };
+
+            const hideLoading = function() {
+                loadingIndicator?.classList.add('hidden');
+            };
+
+            hideLoading();
+
+            window.addEventListener('load', hideLoading);
+            window.addEventListener('pageshow', hideLoading);
+
             window.addEventListener('beforeunload', function() {
-                document.getElementById('loading').classList.remove('hidden');
+                showLoading();
             });
 
             // Toggle password visibility

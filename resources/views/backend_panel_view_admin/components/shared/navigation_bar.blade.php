@@ -147,9 +147,9 @@
             </a>
           </li>
         <li class="nav-item">
-            <a href="{{ route('customer.addresses.index') }}" class="nav-link {{ Request::routeIs('admin.hero.*') ? 'active' : '' }}">
-              <i class="nav-icon fas fa-image"></i>
-              <p>Address</p>
+            <a href="{{ route('addresses.getAll') }}" class="nav-link {{ Request::routeIs('addresses.*') ? 'active' : '' }}">
+              <i class="nav-icon fas fa-map-marker-alt"></i>
+              <p>Addresses</p>
             </a>
           </li>
           <li class="nav-item">
