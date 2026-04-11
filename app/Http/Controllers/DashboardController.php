@@ -102,5 +102,28 @@ public function customerOrderHistory()
         ]);
     }
 
+    public function cancelOrder($order_id)
+    {
+        try {
+            $order = Order::findOrFail($order_id);
 
+            // Verify the order belongs to the authenticated user
+            if ($order->user_id !== Auth::id()) {
+                return response()->json(['message' => 'Unauthorized'], 403);
+            }
+
+            // Only allow cancellation of pending or processing orders
+            if (!in_array(strtolower($order->order_status), ['pending', 'processing'])) {
+                return response()->json(['message' => 'This order cannot be cancelled'], 422);
+            }
+
+            // Update order status to cancelled
+            $order->update(['order_status' => 'cancelled']);
+
+            return response()->json(['message' => 'Order cancelled successfully'], 200);
+        } catch (\Exception $e) {
+            Log::error('Order cancellation error: ' . $e->getMessage());
+            return response()->json(['message' => 'Error cancelling order'], 500);
+        }
+    }
 }

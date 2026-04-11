@@ -27,7 +27,10 @@ class PaymentMethodService
     }
 
     private function delete(UserPaymentMethod $method):void{
-        DetachStripePaymentMethodJob::dispatch($method)->onQueue('critical');
+        DetachStripePaymentMethodJob::dispatch(
+            $method->stripe_payment_method_id,
+            $method->id,
+        )->onQueue('critical');
         $method->delete();
     }
 

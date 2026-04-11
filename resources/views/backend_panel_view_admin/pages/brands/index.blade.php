@@ -72,7 +72,7 @@
                                         @endphp
                                         @if($brand->category->count() > 0)
                                             @foreach($brand->category->take(2) as $cat)
-                                                <span class="badge bg-info">{{ $brand->category->name }}</span>
+                                                <span class="badge bg-info">{{ $cat->name }}</span>
                                             @endforeach
                                             @if($brand->category->count() > 2)
                                                 <span class="badge bg-secondary">+{{ $brand->category->count() - 2 }}</span>

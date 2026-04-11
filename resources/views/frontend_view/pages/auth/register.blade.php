@@ -103,7 +103,7 @@
                         <input id="terms" name="terms" type="checkbox" required
                                class="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded mt-0.5">
                         <label for="terms" class="ml-2 block text-xs sm:text-sm text-gray-900">
-                            I agree to the <a href="#" class="text-primary hover:text-secondary underline">Terms</a> and <a href="#" class="text-primary hover:text-secondary underline">Privacy Policy</a>
+                            I agree to the <a href="{{ route('terms') }}" class="text-primary hover:text-secondary underline">Terms</a> and <a href="{{ route('privacy.policy') }}" class="text-primary hover:text-secondary underline">Privacy Policy</a>
                         </label>
                     </div>
                 </div>

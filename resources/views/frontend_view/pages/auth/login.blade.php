@@ -80,15 +80,15 @@
 
                 <div class="mt-4 grid grid-cols-2 gap-3">
                     <div>
-                        <a href="#" class="w-full inline-flex justify-center items-center py-2.5 px-3 border border-gray-300 rounded-lg shadow-sm bg-white text-xs font-medium text-gray-500 hover:bg-gray-50 transition-all active:scale-95">
+                        <button type="button" disabled title="Facebook login coming soon" class="w-full inline-flex justify-center items-center py-2.5 px-3 border border-gray-300 rounded-lg shadow-sm bg-white text-xs font-medium text-gray-400 cursor-not-allowed opacity-70">
                             <i class="fab fa-facebook-f text-blue-600 text-base"></i>
-                        </a>
+                        </button>
                     </div>
 
                     <div>
-                        <a href="#" class="w-full inline-flex justify-center items-center py-2.5 px-3 border border-gray-300 rounded-lg shadow-sm bg-white text-xs font-medium text-gray-500 hover:bg-gray-50 transition-all active:scale-95">
+                        <button type="button" disabled title="Google login coming soon" class="w-full inline-flex justify-center items-center py-2.5 px-3 border border-gray-300 rounded-lg shadow-sm bg-white text-xs font-medium text-gray-400 cursor-not-allowed opacity-70">
                             <i class="fab fa-google text-red-600 text-base"></i>
-                        </a>
+                        </button>
                     </div>
                 </div>
             </div>

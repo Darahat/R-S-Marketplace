@@ -27,31 +27,21 @@ class AdminAuthController extends Controller
             'email' => $request->email ?? 'no email'
         ]);
 
-        // Handle admin login on POST
-        $credentials = $request->validated();
+        // Attempt admin login via service
+        $user = $this->service->attemptAdminLogin(
+            $request->validated(),
+            $request->boolean('remember'),
+            $request->ip(),
+            $request->header('User-Agent')
+        );
 
-        if (Auth::attempt($credentials, $request->remember)) {
-            /** @var User|null $user */
-            $user = Auth::user();
-
-            // Check if user is admin
-            if (!$user || !$user->isAdmin()) {
-                Auth::logout();
-                return back()->withErrors([
-                    'email' => 'You do not have admin access.',
-                ])->onlyInput('email');
-            }
-
-            // Update login details
-            $this->service->recordLoginMetaData($user,$request->ip(),$request->header('User-Agent'));
-
-            session()->regenerate();
-            return redirect()->intended($this->service->redirectByRole($user));
+        if (!$user) {
+            return back()->withErrors([
+                'email' => 'The provided credentials do not match our records, or you do not have admin access.',
+            ])->onlyInput('email');
         }
 
-        return back()->withErrors([
-            'email' => 'The provided credentials do not match our records.',
-        ])->onlyInput('email');
+        return redirect()->intended($this->service->redirectByRole($user));
     }
 
 

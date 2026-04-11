@@ -15,9 +15,9 @@ class BrandCreatedNotificationJob implements ShouldQueue
     /**
      * Create a new job instance.
      */
-    public function __construct(public Brand $method)
+    public function __construct(public Brand $brand)
     {
-        $this->method = $method;
+        $this->brand = $brand;
     }
 
     /**
@@ -25,6 +25,6 @@ class BrandCreatedNotificationJob implements ShouldQueue
      */
     public function handle(): void
     {
-        Mail::to('admin@example.com')->send(new BrandCreatedNotification($this->method));
+        Mail::to('admin@example.com')->send(new BrandCreatedNotification($this->brand));
     }
 }

@@ -1,11 +1,11 @@
 # 🛒 R&S Marketplace - E-Commerce Platform
 
-![Laravel](https://img.shields.io/badge/Laravel-11.x-red.svg)
+![Laravel](https://img.shields.io/badge/Laravel-12.x-red.svg)
 ![PHP](https://img.shields.io/badge/PHP-8.2+-blue.svg)
 ![MySQL](https://img.shields.io/badge/MySQL-5.7+-orange.svg)
 ![License](https://img.shields.io/badge/License-MIT-green.svg)
 
-A comprehensive, modern e-commerce marketplace built with Laravel 11 and Tailwind CSS. Features a powerful admin panel, user-friendly shopping experience, and robust backend functionality.
+A comprehensive, modern e-commerce marketplace built with Laravel 12 and Tailwind CSS. Features a powerful admin panel, user-friendly shopping experience, and robust backend functionality.
 
 ---
 
@@ -97,7 +97,7 @@ Before installation, ensure you have:
 
 ```bash
 # If you have Git installed
-git clone https://github.com/yourusername/R-S-Marketplace.git
+git clone https://github.com/Darahat/R-S-Marketplace.git
 cd R-S-Marketplace
 
 # Or download ZIP and extract it
@@ -343,7 +343,7 @@ http://r-s-marketplace.test
 
 ### Admin Access
 
-**URL:** `http://127.0.0.1:8000/admin/login`
+**URL:** `http://127.0.0.1:8000/admin-login`
 
 ```
 Email: admin@marketplace.com
@@ -577,7 +577,7 @@ R-S-Marketplace/
 
 **Backend:**
 
-- Laravel 11.x
+- Laravel 12.x
 - PHP 8.2+
 - MySQL Database
 - Eloquent ORM

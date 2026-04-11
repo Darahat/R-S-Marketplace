@@ -1,19 +1,22 @@
 <?php
 
 namespace App\Services;
-use Illuminate\Support\Facades\Mail;
 
 use App\Models\User;
+use App\Repositories\AuthRepository;
 use App\Services\WishlistService;
 use App\Services\CartService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Hash;
-use App\Mail\WelcomeMail;
 
 use App\Jobs\SendWelcomeEmailJob;
+use App\Jobs\RecordLoginMetaDataJob;
 class AuthService{
-  public function __construct(protected WishlistService $wishlistService, protected CartService $cartService)
+    public function __construct(
+                protected WishlistService $wishlistService,
+                protected CartService $cartService,
+                protected AuthRepository $authRepository,
+        )
     {
 
     }
@@ -25,9 +28,33 @@ class AuthService{
         session()->regenerate();
         $user = Auth::user();
         if ($user) {
-                $this->recordLoginMetaData($user,$ip,$userAgent);
+                RecordLoginMetaDataJob::dispatch($user->id, $ip, $userAgent)->onQueue('default');
                 $this->syncUserData($user);
             }
+        return $user;
+
+    }
+
+    public function attemptAdminLogin(array $userCredential, bool $isRemember = false, string $ip, string $userAgent): ?User{
+
+        if(!Auth::attempt($userCredential, $isRemember)){
+            return null;
+        };
+        session()->regenerate();
+        /** @var User|null $user */
+        $user = Auth::user();
+
+        // Check if user is admin
+        if (!$user || !$user->isAdmin()) {
+            Auth::logout();
+            return null;
+        }
+
+        // Dispatch async job for admin metadata recording
+        if ($user) {
+            RecordLoginMetaDataJob::dispatch($user->id, $ip, $userAgent)->onQueue('default');
+        }
+
         return $user;
 
     }
@@ -35,11 +62,7 @@ class AuthService{
 
     $device = $this->parseDeviceName($userAgent);
 
-    $success = $user->update([
-        'last_login' => now(),
-        'last_ip' => $ip,
-        'last_device' => $device
-    ]);
+    $success = $this->authRepository->updateLoginMetaData($user, $ip, $device);
     Log::info('User login metadata updated', [
         'user_id' => $user->id,
         'updated' => $success,
@@ -114,20 +137,14 @@ class AuthService{
     }
 
     public function register(array $data,string $ip,string $device):User{
-          $user = User::create([
-            'name' => $data['name'],
-            'email' => $data['email'],
-            'password' => Hash::make($data['password']),
-            'mobile' => $data['mobile'],
-            'user_type' => 'CUSTOMER',
-        ]);
+            $user = $this->authRepository->createCustomer($data);
         Auth::login($user);
         $user = Auth::user();
         if ($user) {
                 SendWelcomeEmailJob::dispatch($user, 'Welcome aboard!')->delay(now()->addMinutes(2))->onQueue('emails');
                     // Mail::to('admin@example.com')->send(new WelcomeMail("hello i am mail test"));
 
-                $this->recordLoginMetaData($user,$ip,$device);
+                RecordLoginMetaDataJob::dispatch($user->id, $ip, $device)->onQueue('default');
                 $this->syncUserData($user);
 
             }

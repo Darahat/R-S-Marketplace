@@ -44,6 +44,16 @@ Route::get('/return-policy', function () {
         'data' => ['title' => 'Return Policy'],
     ]);
 })->name('return.policy');
+Route::get('/terms', function () {
+    return view('frontend_view.pages.terms', [
+        'data' => ['title' => 'Terms and Conditions'],
+    ]);
+})->name('terms');
+Route::get('/privacy-policy', function () {
+    return view('frontend_view.pages.privacy_policy', [
+        'data' => ['title' => 'Privacy Policy'],
+    ]);
+})->name('privacy.policy');
 
 
 
@@ -226,6 +236,7 @@ Route::group(['prefix' => 'customer', 'middleware' => ['auth:web', 'isCustomer']
     Route::get('/order-details/{orderNumber}', [DashboardController::class, 'customerOrderDetails'])->name('customer.order_details');
     Route::get('/order-history', [DashboardController::class, 'customerOrderHistory'])->name('customer.orders');
     Route::get('/wishlist', [WishlistController::class, 'customerWishlist'])->name('customer.wishlist');
+        Route::post('/order/{order_id}/cancel', [DashboardController::class, 'cancelOrder'])->name('customer.order.cancel');
     Route::get('/profile', [DashboardController::class, 'customerProfile'])->name('customer.profile');
 
     // CUSTOMER ROUTES - Full resource routes

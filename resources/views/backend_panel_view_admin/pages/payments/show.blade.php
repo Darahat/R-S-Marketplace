@@ -194,7 +194,7 @@
                                     <strong>Phone:</strong> {{ $payment->user->phone }}
                                 </p>
                             @endif
-                            <a href="#" class="btn btn-info btn-sm w-100">
+                            <a href="{{ route('admin.users.show', $payment->user->id) }}" class="btn btn-info btn-sm w-100">
                                 <i class="fas fa-user-circle"></i> View Profile
                             </a>
                         </div>

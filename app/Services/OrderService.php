@@ -8,6 +8,7 @@ use App\Models\Wishlist;
 use App\Models\Category;
 use App\Models\Order;
 use App\Jobs\SendOrderStatusNotificationJob;
+use App\Jobs\SendPaymentStatusNotificationJob;
 
 use Illuminate\Support\Facades\Storage;
 class OrderService{
@@ -65,6 +66,9 @@ when($filters['search'] ?? null, function ($q, $search){
         $oldStatus = $order->payment_status;
         $order->payment_status = $validator['payment_status'];
          $order->save();
+         if ($oldStatus !== $order->payment_status) {
+             SendPaymentStatusNotificationJob::dispatch($order, $oldStatus, $order->payment_status)->onQueue('default');
+         }
          return [
             'payment_status' =>$order->payment_status,
             'oldStatus' => $oldStatus,
