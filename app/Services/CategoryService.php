@@ -1,35 +1,25 @@
 <?php
 namespace App\Services;
+
 use Illuminate\Support\Str;
 use App\Repositories\CategoryRepository;
-use Illuminate\Support\Facades\Mail;
-use App\Mail\BrandCreatedNotification;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
-use App\Models\Wishlist;
-use App\Models\Category;
-use App\Models\Brand;
-use App\Models\Product;
+
 class CategoryService{
         protected $siteTitle;
-  public function __construct(protected HomeService $home_service)
+
+    public function __construct(
+            protected HomeService $home_service,
+            protected CategoryRepository $repo
+    )
     {        $this->siteTitle = 'R&SMarketPlace | ';
 
     }
     public function getCategories(){
-// Get all categories with their relationships
-        $categories = Category::with(['parent', 'children'])
-            ->withCount('products')
-            ->orderBy('name')
-            ->paginate(20);
-
-        // Get root categories for tree view
-        $rootCategories = Category::with('children.children')
-            ->whereNull('parent_id')
-            ->orderBy('name')
-            ->get();
+        $categories = $this->repo->getPaginatedCategories(20);
+        $rootCategories = $this->repo->getRootCategoriesTree();
 
             return [
                 'categories' => $categories,
@@ -38,7 +28,7 @@ class CategoryService{
     }
         public function getCategoriesWithLevel($excludeId = null)
     {
-        $categories = Category::with('parent')->orderBy('name')->get();
+        $categories = $this->repo->getCategoriesWithParent();
         $result = [];
 
         foreach ($categories as $category) {
@@ -70,18 +60,17 @@ class CategoryService{
         $data['is_new'] = $data['is_new'] ?? false;
         $data['discount_price'] = $data['discount_price'] ?? 0;
         $data['created_by'] = Auth::id();
-        return Category::create($data);
+        return $this->repo->createCategory($data);
     }
     public function getCategoryDetails($id){
-        return Category::with(['parent', 'children', 'products', 'creator', 'updater'])
-            ->findOrFail($id);
+        return $this->repo->findCategoryDetailsOrFail((int) $id);
     }
 
     public function updateCategory(array $data,int $id){
         Log::info($data);
                 Log::info($id);
 // Prevent circular reference
-        $category = Category::findOrFail($id);
+        $category = $this->repo->findCategoryOrFail($id);
         $category->name = $data['name'];
         $category->slug = Str::slug($data['name']);
         $category->description = $data['description'];
@@ -98,42 +87,35 @@ class CategoryService{
         $category->image = $data['image'];
     }
         $category->updated_by = Auth::id();
-        $updatedCategory = $category->save();
+        $updatedCategory = $this->repo->saveCategory($category);
         return [
             'updatedCategory' =>$updatedCategory,
         ];
     }
     public function toggleStatus(int $id):int{
 
-        $category = Category::findOrFail($id);
+        $category = $this->repo->findCategoryOrFail($id);
         Log::info($category->status);
         $category->status = !$category->status;
         $category->updated_by = Auth::id();
-        $category->save();
+        $this->repo->saveCategory($category);
         return (int) $category->status;
     }
     public function toggleFeature(int $id):int{
-        $category = Category::findOrFail($id);
+        $category = $this->repo->findCategoryOrFail($id);
         $category->is_featured = !$category->is_featured;
         $category->updated_by = Auth::id();
-         $category->save();
+         $this->repo->saveCategory($category);
         return (int) $category->is_featured;
     }
     public function getTree():Array{
-        $categories = Category::with('children.children')
-            ->whereNull('parent_id')
-            ->where('status', true)
-            ->orderBy('name')
-            ->get();
-        return $categories;
+        $categories = $this->repo->getActiveCategoryTree();
+        return $categories->all();
     }
         public function getCategoryPageData(string $slug, array $filters){
-            $category = Category::where('slug', $slug)->firstOrFail();
+            $category = $this->repo->findCategoryBySlugOrFail($slug);
 
-        $allCategories = Category::
-            where('status', true)
-            ->orderBy('name', 'asc')
-            ->get();
+        $allCategories = $this->repo->getActiveCategories();
 
         $categories = $allCategories->whereNull('parent_id');
         $subcategories = $allCategories->whereNotNull('parent_id');
@@ -142,19 +124,8 @@ class CategoryService{
             $cat->subcategories = $subcategories->where('parent_id', $cat->id)->values();
         }
 
-        $brands = Brand::where('category_id', $category->id)
-            ->where('status', true)
-            ->orderBy('name', 'asc')
-            ->get();
-        $productsQuery = Product::where('category_id', $category->id);
-
-    if (!empty($filters['brandIds'])) {
-        $productsQuery->whereIn('brand_id', $filters['brandIds']);
-    };
-    if (!empty($filters['search'])) {
-        $productsQuery->where('name', 'like', '%' . $filters['search'] . '%');
-    }
-$products = $productsQuery->paginate(10);
+        $brands = $this->repo->getActiveBrandsByCategoryId($category->id);
+        $products = $this->repo->getProductsByCategoryAndFilters($category->id, $filters, 10);
  $wishlistIds = $this->home_service->getWishlistProductIds();
 
     $products->setCollection(

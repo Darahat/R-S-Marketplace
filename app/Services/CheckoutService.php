@@ -17,6 +17,7 @@ use Stripe\Stripe;
 use App\Models\Address;
 use Illuminate\Support\Collection;
 use Stripe\Checkout\Session as StripeSession;
+use App\Jobs\UpdateProductSalesMetricsJob;
 class CheckoutService{
      public function __construct()
     {
@@ -193,12 +194,22 @@ class CheckoutService{
 
      public function updateProductStock($cartItems)
     {
+        $metricsPayload = [];
+
         foreach ($cartItems as $item) {
             $product = Product::find($item['id']);
             if ($product) {
                 $product->stock -= $item['quantity'];
                 $product->save();
+                $metricsPayload[] = [
+                    'product_id' => (int) $item['id'],
+                    'quantity' => (int) $item['quantity'],
+                ];
             }
+        }
+
+        if (!empty($metricsPayload)) {
+            UpdateProductSalesMetricsJob::dispatch($metricsPayload)->onQueue('default');
         }
     }
     public function createOrderData($address, $total, $paymentMethod,$cartItems):Order{
