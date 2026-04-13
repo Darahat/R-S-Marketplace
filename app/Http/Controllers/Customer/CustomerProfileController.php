@@ -3,15 +3,19 @@
 namespace App\Http\Controllers\Customer;
 
 use App\Http\Controllers\Controller;
+use App\Services\CustomerProfileService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 
 class CustomerProfileController extends Controller
 {
+    public function __construct(private CustomerProfileService $service)
+    {
+    }
+
     public function update(Request $request)
     {
-        $user = Auth::user();
+        $user = $this->service->getAuthenticatedUser();
 
         if (!$user) {
             return response()->json(['message' => 'Unauthenticated.'], 401);
@@ -29,28 +33,11 @@ class CustomerProfileController extends Controller
             }
 
             $file = $request->file('profile_photo');
-            $fileName = 'profile_' . $user->id . '_' . time() . '.' . $file->getClientOriginalExtension();
-            $destinationPath = public_path('profile_photos');
-
-            if (!is_dir($destinationPath)) {
-                mkdir($destinationPath, 0755, true);
-            }
-
-            $file->move($destinationPath, $fileName);
-
-            if (!empty($user->profile_photo)) {
-                $oldPath = public_path($user->profile_photo);
-                if (is_file($oldPath)) {
-                    @unlink($oldPath);
-                }
-            }
-
-            $user->profile_photo = 'profile_photos/' . $fileName;
-            $user->save();
+            $photoUrl = $this->service->updateProfilePhoto($user, $file);
 
             return response()->json([
                 'message' => 'Profile photo updated successfully.',
-                'photo_url' => asset($user->profile_photo),
+                'photo_url' => $photoUrl,
             ]);
         }
 
@@ -73,8 +60,7 @@ class CustomerProfileController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $user->{$field} = $request->input('value');
-        $user->save();
+        $this->service->updateField($user, $field, $request->input('value'));
 
         return response()->json([
             'message' => ucfirst($field) . ' updated successfully.',
@@ -83,16 +69,14 @@ class CustomerProfileController extends Controller
 
     public function instantPhotoView()
     {
-        $user = Auth::user();
+        $user = $this->service->getAuthenticatedUser();
 
         if (!$user) {
             return response()->json(['message' => 'Unauthenticated.'], 401);
         }
 
-        $photoPath = $user->profile_photo ?: 'images/default-avatar.png';
-
         return response()->json([
-            'photo_url' => asset($photoPath),
+            'photo_url' => $this->service->getPhotoUrl($user),
         ]);
     }
 }

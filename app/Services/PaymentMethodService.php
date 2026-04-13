@@ -21,17 +21,19 @@ class PaymentMethodService
         };
     }
 
-    private function setDefault(int $userId, UserPaymentMethod $method):void{
+    private function setDefault(int $userId, UserPaymentMethod $method): void
+    {
         $this->repo->clearDefault($userId);
-        $method->update(['is_default' => true]);
+        $this->repo->setDefault($method);
     }
 
-    private function delete(UserPaymentMethod $method):void{
+    private function delete(UserPaymentMethod $method): void
+    {
         DetachStripePaymentMethodJob::dispatch(
             $method->stripe_payment_method_id,
             $method->id,
         )->onQueue('critical');
-        $method->delete();
+        $this->repo->delete($method);
     }
 
     public function formatForCheckout($methods){

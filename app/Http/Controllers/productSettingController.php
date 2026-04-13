@@ -1,19 +1,7 @@
 <?php
 
 namespace App\Http\Controllers;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Pagination\Paginator;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Http\File;
-use Illuminate\Support\Facades\Auth;
-
-use App\Models\User;
-use App\Repositories\BrandRepository;
-use Hash;
-use Session;
-use Carbon\Carbon;
-use Illuminate\Support\Str;
+use App\Services\BrandService;
 
 class ProductSettingController extends Controller
 {
@@ -21,7 +9,7 @@ class ProductSettingController extends Controller
     protected $db_controller;
     protected $page_title;
 
-	public function __construct(protected BrandRepository $brand_repo){
+	public function __construct(protected BrandService $brand_service){
 
         $this->page_title = "Admin Panel";
 
@@ -29,7 +17,7 @@ class ProductSettingController extends Controller
 
     public function viewBrand(){
 
-        $brands = $this->brand_repo->viewPaginatedBrand();
+        $brands = $this->brand_service->viewPaginatedBrand();
         return view('backend_panel_view_admin.pages.addBrand', compact('brands')+ [
             'page_title' =>  $this->page_title,
             'page_header' => 'Brand List',
@@ -39,7 +27,7 @@ class ProductSettingController extends Controller
 
     public function destroy($id)
     {
-        $this->brand_repo->destroyBrand($id);
+        $this->brand_service->destroy($id);
         return redirect()->back()->with('success', 'Product deleted successfully.');
     }
 

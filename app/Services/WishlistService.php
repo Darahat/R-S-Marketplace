@@ -1,14 +1,14 @@
 <?php
 namespace App\Services;
-use App\Models\Wishlist;
-use App\Models\WishlistItem;
+use App\Repositories\WishlistRepository;
 use Illuminate\Support\Facades\Auth;
-use App\Models\Product;
 use App\Services\CartService;
-use Illuminate\Support\Facades\Log;
 
 class WishlistService{
-  public function __construct(protected CartService $cartService)
+    public function __construct(
+            protected CartService $cartService,
+            protected WishlistRepository $repo,
+    )
     {
 
     }
@@ -21,13 +21,10 @@ class WishlistService{
     {
         if (session()->has('wishlist')) {
             $guestWishlist = session('wishlist', []);
-            $wishlist = Wishlist::firstOrCreate(['user_id' => $id]);
+            $wishlist = $this->repo->firstOrCreateForUser($id);
 
             foreach ($guestWishlist as $productId) {
-                WishlistItem::firstOrCreate([
-                    'wishlist_id' => $wishlist->id,
-                    'product_id' => $productId
-                ]);
+                $this->repo->firstOrCreateItem($wishlist->id, (int) $productId);
             }
 
             session()->forget('wishlist');
@@ -36,8 +33,8 @@ class WishlistService{
     public function getWishlistItems():Array
     {
         if (Auth::check()) {
-            $wishlist = Wishlist::firstOrCreate(['user_id' => Auth::id()]);
-            return $wishlist->items()->with('product')->get()->map(function ($item) {
+            $wishlist = $this->repo->firstOrCreateForUser(Auth::id());
+            return $this->repo->getItemsWithProduct($wishlist)->map(function ($item) {
                 return [
                     'id' => $item->product_id,
                     'name' => $item->product->name,
@@ -53,7 +50,7 @@ class WishlistService{
         $wishlistItems = [];
 
         foreach ($sessionWishlist as $productId) {
-            $product = Product::find($productId);
+            $product = $this->repo->findProduct((int) $productId);
             if ($product) {
                 $wishlistItems[] = [
                     'id' => $product->id,
@@ -74,8 +71,8 @@ class WishlistService{
     public function getWishlistCount():Int
     {
         if (Auth::check()) {
-            $wishlist = Wishlist::where('user_id', Auth::id())->first();
-            return $wishlist ? $wishlist->items->count() : 0;
+            $wishlist = $this->repo->findForUser(Auth::id());
+            return $wishlist ? $this->repo->countItems($wishlist) : 0;
         }
 
         return count(session('wishlist', []));
@@ -88,18 +85,15 @@ class WishlistService{
 
         // Remove from wishlist
         if (Auth::check()) {
-            $wishlist = Wishlist::where('user_id', Auth::id())->first();
+            $wishlist = $this->repo->findForUser(Auth::id());
             if ($wishlist) {
-                WishlistItem::where('wishlist_id', $wishlist->id)
-                    ->where('product_id', $productId)
-                    ->delete();
+                $this->repo->deleteItem($wishlist->id, $productId);
                 $wishlist->refresh(); // Refresh to get updated count
-                $wishlistCount = $wishlist->items->count();
+                $wishlistCount = $this->repo->countItems($wishlist);
             } else {
                 $wishlistCount = 0;
             }
         } else {
-            Log::info('I am hitted');
             $wishlistSession = session()->get('wishlist', []);
             $wishlistSession = array_diff($wishlistSession, [$productId]);
             session()->put('wishlist', $wishlistSession);
@@ -123,13 +117,11 @@ class WishlistService{
     public function removeWishlistProduct(int $productId):int{
         $wishlistCount = 0;
          if (Auth::check()) {
-            $wishlist = Wishlist::where('user_id', Auth::id())->first();
+            $wishlist = $this->repo->findForUser(Auth::id());
             if ($wishlist) {
-                WishlistItem::where('wishlist_id', $wishlist->id)
-                    ->where('product_id', $productId)
-                    ->delete();
+                $this->repo->deleteItem($wishlist->id, $productId);
 
-                $wishlistCount = $wishlist->items->count();
+                $wishlistCount = $this->repo->countItems($wishlist);
             }
         } else {
             $wishlist = session()->get('wishlist', []);
@@ -146,23 +138,18 @@ class WishlistService{
 
         if (Auth::check()) {
             // Database storage for logged-in users
-            $wishlist = Wishlist::firstOrCreate(['user_id' => Auth::id()]);
-            $wishlistItem = WishlistItem::where('wishlist_id', $wishlist->id)
-                ->where('product_id', $productId)
-                ->first();
+            $wishlist = $this->repo->firstOrCreateForUser(Auth::id());
+            $wishlistItem = $this->repo->findItem($wishlist->id, $productId);
 
             if ($wishlistItem) {
-                $wishlistItem->delete();
+                $this->repo->deleteWishlistItem($wishlistItem);
                 $is_wishlisted = false;
             } else {
-                WishlistItem::create([
-                    'wishlist_id' => $wishlist->id,
-                    'product_id' => $productId
-                ]);
+                $this->repo->createItem($wishlist->id, $productId);
                 $is_wishlisted = true;
             }
 
-            $count = $wishlist->items->count();
+            $count = $this->repo->countItems($wishlist);
         } else {
             // Session storage for guests
             $wishlist = session()->get('wishlist', []);

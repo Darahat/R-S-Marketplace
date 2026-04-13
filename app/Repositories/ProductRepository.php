@@ -10,6 +10,52 @@ use Illuminate\Database\Eloquent\Builder;
 
 class ProductRepository
 {
+    public function applyIndexFilters(Builder $query, array $filters): Builder
+    {
+        // Search functionality
+        if (!empty($filters['search'])) {
+            $search = $filters['search'];
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', '%' . $search . '%')
+                    ->orWhere('slug', 'like', '%' . $search . '%')
+                    ->orWhere('description', 'like', '%' . $search . '%');
+            });
+        }
+
+        // Category filter
+        if (!empty($filters['category'])) {
+            $query->where('category_id', $filters['category']);
+        }
+
+        // Brand filter
+        if (!empty($filters['brand'])) {
+            $query->where('brand_id', $filters['brand']);
+        }
+
+        // Status filter
+        if (!empty($filters['status'])) {
+            switch ($filters['status']) {
+                case 'featured':
+                    $query->where('featured', true);
+                    break;
+                case 'best_selling':
+                    $query->where('is_best_selling', true);
+                    break;
+                case 'latest':
+                    $query->where('is_latest', true);
+                    break;
+                case 'flash_sale':
+                    $query->where('is_flash_sale', true);
+                    break;
+                case 'low_stock':
+                    $query->where('stock', '<', 10);
+                    break;
+            }
+        }
+
+        return $query;
+    }
+
     /**
      * Get all products with relationships
      */
@@ -217,6 +263,11 @@ class ProductRepository
         ->chunk($size, function ($products) use ($callback) {
             $callback($products);
         });
+    }
+
+    public function deleteModel(Product $product): bool
+    {
+        return $product->delete();
     }
 
     public function getCategorizedProduct($product_category_id){

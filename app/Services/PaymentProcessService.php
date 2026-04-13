@@ -1,28 +1,20 @@
 <?php
 namespace App\Services;
 
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Validator;
-use App\Models\Cart;
-use App\Models\CartItem;
-use App\Models\Product;
-use App\Models\Order;
-use App\Models\OrderItem;
-use App\Models\UserPaymentMethod;
-use App\Repositories\CheckoutRepository;
+use App\Repositories\PaymentProcessRepository;
 use Stripe\Stripe;
 use Stripe\Customer as StripeCustomer;
-use App\Models\Address;
-use Illuminate\Support\Collection;
 use Stripe\Checkout\Session as StripeSession;
-use App\Models\Payment;
-class PaymentProcessService{
-     public function __construct(protected CheckoutService $checkout_service)
-    {
-     }
+
+class PaymentProcessService
+{
+    public function __construct(
+        protected CheckoutService $checkout_service,
+        protected PaymentProcessRepository $repo,
+    ) {
+    }
 
     public function index(){}
 
@@ -35,7 +27,7 @@ class PaymentProcessService{
         }
 
         if (Auth::check()) {
-            $userCart = Cart::where('user_id', Auth::id())->with('items.product')->first();
+            $userCart = $this->repo->getCartWithItems(Auth::id());
             return $userCart ? $userCart->items->map(function($item) {
                 return [
                     'id' => $item->product_id,
@@ -53,7 +45,7 @@ class PaymentProcessService{
     private function verifyProductAvailability($cartItems)
     {
         foreach ($cartItems as $item) {
-            $product = Product::find($item['id']);
+            $product = $this->repo->findProduct($item['id']);
             if (!$product || $product->stock < $item['quantity']) {
                 throw new \Exception("{$item['name']} is no longer available in the requested quantity");
             }
@@ -62,9 +54,7 @@ class PaymentProcessService{
 
     private function getCheckoutAddress()
     {
-        $address = Address::where('id', session('checkout_address_id'))
-            ->where('user_id', Auth::id())
-            ->first();
+        $address = $this->repo->findAddressForUser(session('checkout_address_id'), Auth::id());
 
         if (!$address) {
             throw new \Exception('Address not found');
@@ -179,10 +169,10 @@ class PaymentProcessService{
         );
             // dd($session); // Commented out to prevent halting flow
 
-        $order->update(['stripe_session_id' => $session->id]);
+        $this->repo->updateOrderStripeSession($order, $session->id);
 
         // Create payment record with pending status
-        Payment::create([
+        $this->repo->createPayment([
             'order_id' => $order->id,
             'user_id' => Auth::id(),
             'transaction_id' => $session->id, // Stripe session ID as initial transaction ID
@@ -220,8 +210,7 @@ class PaymentProcessService{
                 'app_user_id' => $user->id,
             ],
         ]);
-        $user->stripe_customer_id = $customer->id;
-        $user->save();
+        $this->repo->saveUserStripeCustomerId($user, $customer->id);
         return $customer->id;
     }
 
@@ -264,9 +253,9 @@ class PaymentProcessService{
     {
         if (!$isBuyNow) {
             if (Auth::check()) {
-                $userCart = Cart::where('user_id', Auth::id())->first();
+                $userCart = $this->repo->getCartForUser(Auth::id());
                 if ($userCart) {
-                    CartItem::where('cart_id', $userCart->id)->delete();
+                    $this->repo->clearCartItems($userCart->id);
                 }
             }
             session()->forget('cart');
@@ -274,8 +263,9 @@ class PaymentProcessService{
 
         session()->forget(['checkout_address_id', 'checkout_notes', 'is_buy_now', 'buy_now_items']);
     }
-    public function paymentCreate($orderId,$payment_method,$total){
-        return Payment::create([
+    public function paymentCreate($orderId, $payment_method, $total)
+    {
+        return $this->repo->createPayment([
             'order_id' => $orderId,
             'user_id' => Auth::id(),
             'transaction_id' => 'TXN-' . strtoupper(uniqid()), // Generate transaction ID
@@ -293,7 +283,7 @@ class PaymentProcessService{
             $order->payment_method = $data['payment_method'];
             $order->order_status = 'confirmed';
             $order->payment_status = $data['payment_method'] === 'cash' ? 'pending' : 'pending';
-            $order->save();
+            $this->repo->saveOrder($order);
 
             // Clear session
             session()->forget(['payment_order_id', 'payment_order_number']);

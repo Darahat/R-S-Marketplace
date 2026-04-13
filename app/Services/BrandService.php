@@ -11,6 +11,12 @@ class BrandService{
   public function __construct(private BrandRepository $repo)
     {
     }
+
+    public function viewPaginatedBrand()
+    {
+        return $this->repo->viewPaginatedBrand();
+    }
+
       public function createBrand(array $data): ?Brand
 {
     Log::info('Creating brand with data:', $data);

@@ -17,7 +17,18 @@ class UserPaymentMethodRepository
             ->firstOrFail();
         return  $paymentMethod;
     }
-    public function clearDefault(int $userId):void{
+    public function clearDefault(int $userId): void
+    {
         UserPaymentMethod::where('user_id', $userId)->update(['is_default' => false]);
+    }
+
+    public function setDefault(UserPaymentMethod $method): void
+    {
+        $method->update(['is_default' => true]);
+    }
+
+    public function delete(UserPaymentMethod $method): bool
+    {
+        return $method->delete();
     }
 }

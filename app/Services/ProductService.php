@@ -16,48 +16,9 @@ class ProductService
     {
     }
 
-    public function index(Builder $query,array $filters): Builder{
- // Search functionality
-        if (!empty($filters['search'])) {
-            $search = $filters['search'];
-            $query->where(function($q) use ($search) {
-                $q->where('name', 'like', '%' . $search . '%')
-                  ->orWhere('slug', 'like', '%' . $search . '%')
-                  ->orWhere('description', 'like', '%' . $search . '%');
-            });
-        }
-
-        // Category filter
-        if (!empty($filters['category'])) {
-            $query->where('category_id', $filters['category']);
-        }
-
-        // Brand filter
-        if  (!empty($filters['brand'])){
-            $query->where('brand_id', $filters['brand']);
-        }
-
-        // Status filter
-        if (!empty($filters['status'])) {
-            switch ($filters['status']) {
-                case 'featured':
-                    $query->where('featured', true);
-                    break;
-                case 'best_selling':
-                    $query->where('is_best_selling', true);
-                    break;
-                case 'latest':
-                    $query->where('is_latest', true);
-                    break;
-                case 'flash_sale':
-                    $query->where('is_flash_sale', true);
-                    break;
-                case 'low_stock':
-                    $query->where('stock', '<', 10);
-                    break;
-            }
-        }
-        return  $query;
+    public function index(Builder $query, array $filters): Builder
+    {
+        return $this->repo->applyIndexFilters($query, $filters);
     }
     /**
      * Create a new product
@@ -185,7 +146,7 @@ class ProductService
             if ($product->image && Storage::disk('public')->exists($product->image)) {
                 Storage::disk('public')->delete($product->image);
             }
-            $product->delete();
+            $this->repo->deleteModel($product);
 
         }
         });
