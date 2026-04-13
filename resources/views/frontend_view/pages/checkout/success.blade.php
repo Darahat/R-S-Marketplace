@@ -96,11 +96,20 @@
             <div class="mb-6 pb-6 border-b">
                 <h3 class="font-semibold text-gray-900 mb-3">Shipping Address</h3>
                 <div class="bg-gray-50 rounded-lg p-4 text-sm">
-                    <p class="font-medium text-gray-900">{{ $order->address->full_name }}</p>
-                    <p class="text-gray-600">{{ $order->address->street_address }}</p>
-                    <p class="text-gray-600">{{ $order->address->union->name }}, {{ $order->address->upazila->name }}</p>
-                    <p class="text-gray-600">{{ $order->address->district->name }} - {{ $order->address->postal_code }}</p>
-                    <p class="text-gray-600">{{ $order->address->phone }}</p>
+                    @php
+                        $unionName = $order->address?->union?->name;
+                        $upazilaName = $order->address?->upazila?->name;
+                        $districtName = $order->address?->district?->name;
+
+                        $areaLine = collect([$unionName, $upazilaName])->filter()->implode(', ');
+                        $districtLine = trim(($districtName ?? '') . (!empty($order->address?->postal_code) ? ' - ' . $order->address->postal_code : ''));
+                    @endphp
+
+                    <p class="font-medium text-gray-900">{{ $order->address?->full_name ?? 'N/A' }}</p>
+                    <p class="text-gray-600">{{ $order->address?->street_address ?? 'Address not available' }}</p>
+                    <p class="text-gray-600">{{ $areaLine !== '' ? $areaLine : 'Area not available' }}</p>
+                    <p class="text-gray-600">{{ $districtLine !== '' ? $districtLine : 'District and postal code not available' }}</p>
+                    <p class="text-gray-600">{{ $order->address?->phone ?? 'Phone not available' }}</p>
                 </div>
             </div>
 

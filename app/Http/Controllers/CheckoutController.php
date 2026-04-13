@@ -137,6 +137,7 @@ class CheckoutController extends Controller
         // dd($request->all());
         $data = $request->validated();
         $order = $this->checkout_service->paymentSuccessData($data);
+        //dd($order->address->union);
         return view('frontend_view.pages.checkout.success', [
             'order' => $order,
             'data' => ['title' => $this->siteTitle . 'Order Success'],

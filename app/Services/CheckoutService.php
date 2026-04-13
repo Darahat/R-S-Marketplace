@@ -1,32 +1,22 @@
 <?php
 namespace App\Services;
 
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Validator;
-use App\Models\Cart;
-use App\Models\CartItem;
-use App\Models\Product;
 use App\Models\Order;
-use App\Models\OrderItem;
-use App\Models\UserPaymentMethod;
 use App\Repositories\CheckoutRepository;
 use Stripe\Stripe;
-use App\Models\Address;
 use Illuminate\Support\Collection;
-use Stripe\Checkout\Session as StripeSession;
 use App\Jobs\UpdateProductSalesMetricsJob;
 class CheckoutService{
-     public function __construct()
+    public function __construct(protected CheckoutRepository $repo)
     {
      }
 
     public function index(){
          // Get cart items from database or session
         if (Auth::check()) {
-            $userCart = Cart::where('user_id', Auth::id())->with('items.product')->first();
+            $userCart = $this->repo->getUserCartWithItems((int) Auth::id());
             $cartItems = $userCart ? $userCart->items->map(function($item) {
                 return [
                     'id' => $item->product_id,
@@ -102,10 +92,7 @@ class CheckoutService{
 
     public function review($data){
   // Verify address belongs to user
-        $address = Address::
-            where('id', $data['address_id'])
-            ->where('user_id', Auth::id())
-            ->first();
+        $address = $this->repo->findUserAddress((int) $data['address_id'], (int) Auth::id());
              if (!$address) {
         return null;
     }
@@ -140,10 +127,7 @@ class CheckoutService{
 
         $total = $this->calculateTotal($cartItems);
         $address = $this->getSelectedAddress();
-        $savedPaymentMethods = UserPaymentMethod::where('user_id', Auth::id())
-            ->orderBy('is_default', 'desc')
-            ->orderBy('created_at', 'desc')
-            ->get();
+        $savedPaymentMethods = $this->repo->getSavedPaymentMethods((int) Auth::id());
         return [
             'isEmptyCart' => false,
             'total' => $total,
@@ -159,10 +143,7 @@ class CheckoutService{
     }
     public function getSelectedAddress(): object
     {
-    $address = Address::with(['district', 'upazila', 'union'])
-        ->where('id', session('checkout_address_id'))
-        ->where('user_id', Auth::id())
-        ->first();
+    $address = $this->repo->findUserAddressWithRelations((int) session('checkout_address_id'), (int) Auth::id());
 
     if (!$address) {
         throw new \Exception('Address not found');
@@ -171,7 +152,7 @@ class CheckoutService{
     }
 
     public function getCartItems(){
-    $userCart = Cart::where('user_id', Auth::id())->with('items.product')->first();
+    $userCart = $this->repo->getUserCartWithItems((int) Auth::id());
                     return $userCart ? $userCart->items->map(function ($item) {
                     return [
                         'id' => $item->product_id,
@@ -185,11 +166,7 @@ class CheckoutService{
 
     private function getUserAddresses(): Collection
     {
-        return Address::with('district:id,name','upazila:id,name','union:id,name')
-        ->where('addresses.user_id', Auth::id())
-        ->orderByDesc('addresses.is_default')
-        ->orderByDesc('addresses.id')
-        ->get();
+        return $this->repo->getUserAddresses((int) Auth::id());
     }
 
      public function updateProductStock($cartItems)
@@ -197,10 +174,10 @@ class CheckoutService{
         $metricsPayload = [];
 
         foreach ($cartItems as $item) {
-            $product = Product::find($item['id']);
+            $product = $this->repo->findProductById((int) $item['id']);
             if ($product) {
                 $product->stock -= $item['quantity'];
-                $product->save();
+                $this->repo->saveProduct($product);
                 $metricsPayload[] = [
                     'product_id' => (int) $item['id'],
                     'quantity' => (int) $item['quantity'],
@@ -213,26 +190,26 @@ class CheckoutService{
         }
     }
     public function createOrderData($address, $total, $paymentMethod,$cartItems):Order{
-         $order = new Order();
-        $order->user_id = Auth::id();
-        $order->order_number = 'ORD-' . strtoupper(uniqid());
-        $order->address_id = $address->id;
-        $order->order_status = $paymentMethod === 'stripe' ? 'to_pay' : 'Processing';
-        $order->total_amount = $total;
-        $order->payment_method = $paymentMethod;
-        $order->payment_status = 'pending';
-        $order->notes = session('checkout_notes', '');
-        $order->save();
+         $order = $this->repo->createOrder([
+            'user_id' => Auth::id(),
+            'order_number' => 'ORD-' . strtoupper(uniqid()),
+            'address_id' => $address->id,
+            'order_status' => $paymentMethod === 'stripe' ? 'to_pay' : 'Processing',
+            'total_amount' => $total,
+            'payment_method' => $paymentMethod,
+            'payment_status' => 'pending',
+            'notes' => session('checkout_notes', ''),
+        ]);
 
         foreach ($cartItems as $item) {
             $itemTotal = $item['price'] * $item['quantity'];
-            $orderItem = new OrderItem();
-            $orderItem->order_id = $order->id;
-            $orderItem->product_id = $item['id'];
-            $orderItem->quantity = $item['quantity'];
-            $orderItem->price = $item['price'];
-            $orderItem->total = $itemTotal;
-            $orderItem->save();
+            $this->repo->createOrderItem([
+                'order_id' => $order->id,
+                'product_id' => $item['id'],
+                'quantity' => $item['quantity'],
+                'price' => $item['price'],
+                'total' => $itemTotal,
+            ]);
         }
         return $order;
     }
@@ -260,7 +237,7 @@ class CheckoutService{
                     $order->stripe_session_id = $sessionId;
                     $order->stripe_payment_intent_id = $paymentIntentId;
                     $order->payment_status = $order->payment_status === 'paid' ? $order->payment_status : 'paid';
-                    $order->save();
+                    $this->repo->saveOrder($order);
 
                     // Fallback: save payment method if webhook hasn't done it yet
                     $this->savePaymentMethodFromIntent($paymentIntentId, $order->user_id);
@@ -274,10 +251,7 @@ class CheckoutService{
     }
     public function checkOrder($data):Order{
         $orderNumber = $data['order'];
-        $order = Order::where('order_number', $orderNumber)
-            ->where('user_id', Auth::id())
-            ->with(['items.product', 'address.district', 'address.upazila', 'address.union'])
-            ->first();
+        $order = $this->repo->findUserOrderByNumber($orderNumber, (int) Auth::id());
              if (!$order) {
         throw new \Exception('Address not found');
     }
@@ -302,16 +276,16 @@ class CheckoutService{
             $paymentMethodId = $paymentIntent->payment_method;
 
             // Already saved?
-            if (UserPaymentMethod::where('user_id', $userId)->where('stripe_payment_method_id', $paymentMethodId)->exists()) {
+            if ($this->repo->savedPaymentMethodExists((int) $userId, (string) $paymentMethodId)) {
                 return;
             }
 
             $stripeMethod = \Stripe\PaymentMethod::retrieve($paymentMethodId);
 
             if ($stripeMethod->type === 'card') {
-                $isFirst = UserPaymentMethod::where('user_id', $userId)->count() === 0;
+                $isFirst = $this->repo->countSavedPaymentMethods((int) $userId) === 0;
 
-                UserPaymentMethod::create([
+                $this->repo->createSavedPaymentMethod([
                     'user_id' => $userId,
                     'stripe_payment_method_id' => $paymentMethodId,
                     'card_brand' => $stripeMethod->card->brand,
@@ -334,11 +308,7 @@ class CheckoutService{
     public function toPayOrder(){
         // Get all "to_pay" orders for the user
         try{
-return Order::where('user_id', Auth::id())
-            ->where('order_status', 'to_pay')
-            ->with(['items.product', 'address.district', 'address.upazila', 'address.union'])
-            ->orderBy('created_at', 'desc')
-            ->paginate(10);
+return $this->repo->getToPayOrdersByUser((int) Auth::id(), 10);
         }
         catch (\Exception $e) {
             Log::warning('Fallback get Order info check failed: ' . $e->getMessage());
@@ -347,10 +317,7 @@ return Order::where('user_id', Auth::id())
     public function toCheckSingleOrder($orderNumber){
         // Get all "to_pay" orders for the user
         try{
-        $order = Order::where('order_number', $orderNumber)
-            ->where('user_id', Auth::id())
-            ->where('order_status', 'to_pay')
-            ->first();
+        $order = $this->repo->findToPayOrderByNumber((string) $orderNumber, (int) Auth::id());
 
         if (!$order) {
             return null;
