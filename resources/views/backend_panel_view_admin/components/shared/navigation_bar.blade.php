@@ -140,6 +140,14 @@
               <p>Hero Section</p>
             </a>
           </li>
+
+          <li class="nav-item">
+            <a href="{{ route('admin.login-audits') }}" class="nav-link {{ Request::routeIs('admin.login-audits') ? 'active' : '' }}">
+              <i class="nav-icon fas fa-shield-alt"></i>
+              <p>Login Audits</p>
+            </a>
+          </li>
+
           <li class="nav-item">
             <a href="{{ route('admin.users.index') }}" class="nav-link {{ Request::routeIs('admin.users.*') ? 'active' : '' }}">
               <i class="nav-icon fas fa-users-cog"></i>

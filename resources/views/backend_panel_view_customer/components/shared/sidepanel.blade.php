@@ -49,6 +49,18 @@
                   Profile
               </a>
 
+              <a href="{{ route('customer.profile_setting') }}"
+                 class="@if(Route::is('customer.profile_setting')) bg-white bg-opacity-20 @endif flex items-center px-4 py-3 text-sm font-medium text-white rounded-lg hover:bg-white hover:bg-opacity-10 transition">
+                  <i class="fas fa-user-cog mr-3"></i>
+                  Profile Settings
+              </a>
+
+              <a href="{{ route('customer.payment_methods.index') }}"
+                 class="@if(Route::is('customer.payment_methods.*')) bg-white bg-opacity-20 @endif flex items-center px-4 py-3 text-sm font-medium text-white rounded-lg hover:bg-white hover:bg-opacity-10 transition">
+                  <i class="fas fa-credit-card mr-3"></i>
+                  Payment Methods
+              </a>
+
 
 
               <form method="POST" action="{{ route('logout') }}">

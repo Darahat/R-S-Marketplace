@@ -392,6 +392,19 @@
                 $(this).addClass('hidden').removeClass('flex');
             }
         });
+
+        // Auto-open login modal when redirected with ?auth=login
+        const url = new URL(window.location.href);
+        if (url.searchParams.get('auth') === 'login') {
+            $('#loginModal').removeClass('hidden').addClass('flex');
+            url.searchParams.delete('auth');
+            window.history.replaceState({}, '', url.pathname + (url.searchParams.toString() ? '?' + url.searchParams.toString() : '') + url.hash);
+        }
+
+        const flashStatus = @json(session('status'));
+        if (flashStatus && typeof toastr !== 'undefined') {
+            toastr.success(flashStatus);
+        }
     });
 </script>
 @endpush

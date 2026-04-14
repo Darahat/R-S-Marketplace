@@ -123,7 +123,7 @@ Route::prefix('wishlist')->group(function () {
 // Guest/Customer Login
 // Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::get('/login', function () {
-    return view('frontend_view.pages.auth.login');
+    return redirect()->route('home', ['auth' => 'login']);
 })->name('login');
 Route::post('/login', [CustomerAuthController::class, 'login'])->name('checklogin');
 
@@ -144,10 +144,16 @@ Route::post('/logout', [CustomerAuthController::class, 'logout'])->name('logout'
 Route::middleware('guest')->group(function () {
     Route::get('/register', [CustomerAuthController::class, 'showRegister'])->name('register');
     Route::post('/register', [CustomerAuthController::class, 'register']);
+
+    Route::get('/forgot-password', [CustomerAuthController::class, 'showForgotPassword'])->name('password.request');
+    Route::post('/forgot-password', [CustomerAuthController::class, 'sendPasswordResetLink'])->name('password.email');
+    Route::get('/reset-password/{token}', [CustomerAuthController::class, 'showResetPassword'])->name('password.reset');
+    Route::post('/reset-password', [CustomerAuthController::class, 'resetPassword'])->name('password.update');
 });
 
 Route::group(['prefix' => 'admin', 'middleware' => ['auth:web', 'isAdmin']], function () {
     Route::get('/dashboard', [DashboardController::class, 'dashboard'])->name('admin.dashboard');
+    Route::get('/login-audits', [AdminAuthController::class, 'loginAudits'])->name('admin.login-audits');
 
     // Product Management
      Route::delete('/products/{id}', [ProductController::class, 'destroy'])->name('products.destroy');

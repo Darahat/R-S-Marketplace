@@ -52,6 +52,12 @@
                             Remember me
                         </label>
                     </div>
+
+                    <div>
+                        <a href="{{ route('password.request') }}" class="text-xs sm:text-sm font-medium text-primary hover:text-secondary transition-colors">
+                            Forgot password?
+                        </a>
+                    </div>
                 </div>
 
                 <!-- Submit Button -->

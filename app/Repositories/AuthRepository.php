@@ -23,6 +23,21 @@ class AuthRepository
         return User::find($userId);
     }
 
+    public function findCustomerByEmail(string $email): ?User
+    {
+        return User::where('email', $email)
+            ->where('user_type', User::CUSTOMER)
+            ->first();
+    }
+
+    public function updatePassword(User $user, string $password, string $rememberToken): bool
+    {
+        return $user->update([
+            'password' => Hash::make($password),
+            'remember_token' => $rememberToken,
+        ]);
+    }
+
     public function updateLoginMetaData(User $user, string $ip, string $device): bool
     {
         return $user->update([

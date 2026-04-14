@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
 
 use App\Models\User;
 use App\Services\AuthService;
@@ -50,6 +51,17 @@ class AdminAuthController extends Controller
     {
         $this->service->logout();
         return redirect('/');
+    }
+
+    public function loginAudits(Request $request)
+    {
+        $audits = $this->service->getLoginAudits($request->all(), 20);
+
+        return view('backend_panel_view_admin.pages.auth.login_audits', [
+            'page_title' => 'Login Audits',
+            'page_header' => 'Authentication Audit Trail',
+            'audits' => $audits,
+        ]);
     }
 
 

@@ -4,7 +4,7 @@ namespace App\Jobs;
 
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
-use App\Models\User;
+use App\Repositories\AuthRepository;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\WelcomeMail;
 use Illuminate\Support\Facades\Log;
@@ -17,8 +17,10 @@ class SendWelcomeEmailJob implements ShouldQueue, ShouldBeUnique
     /**
      * Create a new job instance.
      */
-    public function __construct(public User $user,
-        public string $message)
+    public function __construct(
+        public int $userId,
+        public string $message,
+    )
     {}
 
     public int $tries= 3;
@@ -29,11 +31,19 @@ class SendWelcomeEmailJob implements ShouldQueue, ShouldBeUnique
      */
     public function uniqueId(): string
     {
-        return 'welcome_email_user_' . $this->user->id;
+        return 'welcome_email_user_' . $this->userId;
     }
-    public function handle(): void
+
+    public function handle(AuthRepository $authRepository): void
     {
-        Mail::to($this->user->email)->send(new WelcomeMail($this->message));
+        $user = $authRepository->findUserById($this->userId);
+
+        if (!$user) {
+            Log::warning('SendWelcomeEmailJob: user not found', ['user_id' => $this->userId]);
+            return;
+        }
+
+        Mail::to($user->email)->send(new WelcomeMail($this->message));
     }
 
     // Called when All retries are exhausted
