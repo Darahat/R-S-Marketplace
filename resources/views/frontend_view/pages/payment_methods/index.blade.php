@@ -1,8 +1,8 @@
-@extends('frontend_view.layout.master')
+@extends('backend_panel_view_customer.layouts.customer')
 
-@section('page_title', 'Saved Payment Methods')
+@section('title', 'Saved Payment Methods')
 
-@section('content')
+@section('panel-content')
 <div class="container mx-auto px-4 py-8 max-w-4xl">
     <h1 class="text-3xl font-bold mb-6">Saved Payment Methods</h1>
 
@@ -68,7 +68,7 @@
                     <!-- Actions -->
                     <div class="flex items-center space-x-2">
                         @if(!$method->is_default)
-                            <form action="{{ route('payment_methods.set_default', $method->id) }}" method="POST">
+                            <form action="{{ route('customer.payment_methods.set_default', $method->id) }}" method="POST">
                                 @csrf
                                 <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition text-sm">
                                     Set as Default
@@ -76,7 +76,7 @@
                             </form>
                         @endif
 
-                        <form action="{{ route('payment_methods.destroy', $method->id) }}" method="POST"
+                        <form action="{{ route('customer.payment_methods.destroy', $method->id) }}" method="POST"
                               onsubmit="return confirm('Are you sure you want to remove this payment method?')">
                             @csrf
                             @method('DELETE')
