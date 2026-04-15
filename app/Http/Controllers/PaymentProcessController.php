@@ -2,27 +2,16 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Http\Requests\PaymentProcessRequest;
-use App\Models\Cart;
-use App\Models\CartItem;
-use App\Models\Product;
-use App\Models\Order;
-use App\Models\OrderItem;
-use App\Models\Payment;
-use Stripe\Stripe;
- use Stripe\Customer;
- use App\Services\CheckoutService;
+use App\Services\CheckoutService;
 use App\Services\PaymentProcessService;
 use App\Http\Requests\CompletePaymentRequest;
-use Stripe\Checkout\Session as StripeSession;
 
 class PaymentProcessController extends Controller
 {
-      function __construct(protected PaymentProcessRequest $request,protected CheckoutService $checkout_service,protected PaymentProcessService $payment_process_service)
+    function __construct(protected CheckoutService $checkout_service,protected PaymentProcessService $payment_process_service)
     {
 
     }

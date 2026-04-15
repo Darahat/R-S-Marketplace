@@ -20,6 +20,11 @@ class OrderService
         return $this->repo->getFilteredOrders($filters);
     }
 
+    public function findDetailedByIdOrFail(int $id)
+    {
+        return $this->repo->findDetailedByIdOrFail($id);
+    }
+
     public function updateStatusService(array $validator, int $id): array
     {
         $order = $this->repo->findOrFail($id);
@@ -36,7 +41,7 @@ class OrderService
         }
 
         $this->repo->save($order);
-        SendOrderStatusNotificationJob::dispatch($order, $oldStatus, $order->order_status)->onQueue('default');
+        SendOrderStatusNotificationJob::dispatch($order->id, $oldStatus, $order->order_status)->onQueue('default');
 
         return [
             'order_status' => $order->order_status,
@@ -53,7 +58,7 @@ class OrderService
         $this->repo->save($order);
 
         if ($oldStatus !== $order->payment_status) {
-            SendPaymentStatusNotificationJob::dispatch($order, $oldStatus, $order->payment_status)->onQueue('default');
+            SendPaymentStatusNotificationJob::dispatch($order->id, $oldStatus, $order->payment_status)->onQueue('default');
         }
 
         return [
@@ -68,5 +73,10 @@ class OrderService
         $order->notes = $validator['notes'] ?? null;
 
         return $this->repo->save($order);
+    }
+
+    public function getStatisticsService(): array
+    {
+        return $this->repo->getStatistics();
     }
 }

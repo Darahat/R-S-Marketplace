@@ -6,13 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\UpdateOrderNotesRequest;
 use App\Http\Requests\UpdateOrderStatusRequest;
 use App\Http\Requests\UpdatePaymentStatusRequest;
-use App\Models\Order;
-use App\Models\OrderItem;
-use App\Models\Product;
 use App\Services\OrderService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
-use Carbon\Carbon;
 
 class OrderController extends Controller
 {
@@ -28,7 +23,6 @@ class OrderController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Order::with(['user', 'address', 'items.product']);
         $filters = [
             'status' => $request->input('status'),
             'payment_status' =>$request->input('payment_status'),
@@ -54,7 +48,7 @@ class OrderController extends Controller
      */
     public function show($id)
     {
-        $order = Order::with(['user', 'address', 'items.product'])->findOrFail($id);
+        $order = $this->order_service->findDetailedByIdOrFail((int) $id);
         return view('backend_panel_view_admin.pages.orders.show', [
             'order' => $order,
             'page_title' => $this->page_title,
@@ -70,8 +64,8 @@ class OrderController extends Controller
      */
     public function updateStatus(UpdateOrderStatusRequest $request, $id)
     {
-        $validator = $request->validated();
-        $updated_order = $this->order_service->updateStatusService($validator, $id);
+        $validated = $request->validated();
+        $updated_order = $this->order_service->updateStatusService($validated, $id);
 
         return response()->json([
             'success' => true,
@@ -113,7 +107,7 @@ class OrderController extends Controller
      */
     public function printInvoice($id)
     {
-        $order = Order::with(['user', 'address', 'items.product'])->findOrFail($id);
+        $order = $this->order_service->findDetailedByIdOrFail((int) $id);
 
         return view('backend_panel_view_admin.pages.orders.invoice', [
             'order' => $order,
@@ -125,16 +119,7 @@ class OrderController extends Controller
      */
     public function getStatistics()
     {
-        $statistics = [
-            'total_orders' => Order::count(),
-            'pending_orders' => Order::where('status', 'pending')->count(),
-            'processing_orders' => Order::where('status', 'processing')->count(),
-            'shipped_orders' => Order::where('status', 'shipped')->count(),
-            'delivered_orders' => Order::where('status', 'delivered')->count(),
-            'cancelled_orders' => Order::where('status', 'cancelled')->count(),
-            'total_revenue' => Order::where('payment_status', 'paid')->sum('total'),
-            'pending_payment' => Order::where('payment_status', 'unpaid')->sum('total'),
-        ];
+        $statistics = $this->order_service->getStatisticsService();
 
         return response()->json($statistics);
     }

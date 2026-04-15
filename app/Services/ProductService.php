@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class ProductService
 {
@@ -19,6 +20,11 @@ class ProductService
     public function index(Builder $query, array $filters): Builder
     {
         return $this->repo->applyIndexFilters($query, $filters);
+    }
+
+    public function getFilteredPaginatedProducts(array $filters, int $perPage = 20): LengthAwarePaginator
+    {
+        return $this->repo->getFilteredPaginatedProducts($filters, $perPage);
     }
     /**
      * Create a new product

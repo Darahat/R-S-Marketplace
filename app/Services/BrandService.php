@@ -35,7 +35,7 @@ class BrandService{
     }
     $brand = $this->repo->createBrand($data);
 
-    BrandCreatedNotificationJob::dispatch($brand)->delay(now()->addMinutes(2));
+    BrandCreatedNotificationJob::dispatch($brand->id)->delay(now()->addMinutes(2));
     // Mail::to('admin@example.com')->send(new BrandCreatedNotification($brand));
 
     return $brand;

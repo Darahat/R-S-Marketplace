@@ -2,8 +2,8 @@
 
 namespace App\Jobs;
 
-use App\Models\Order;
 use App\Notifications\PaymentStatusChangedNotification;
+use App\Repositories\OrderRepository;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Log;
@@ -19,7 +19,7 @@ class SendPaymentStatusNotificationJob implements ShouldQueue
      * Create a new job instance.
      */
     public function __construct(
-        public Order $order,
+        public int $orderId,
         public string $oldStatus,
         public string $newStatus,
     ) {
@@ -29,25 +29,34 @@ class SendPaymentStatusNotificationJob implements ShouldQueue
     /**
      * Execute the job.
      */
-    public function handle(): void
+    public function handle(OrderRepository $orderRepository): void
     {
-        $user = $this->order->user;
+        $order = $orderRepository->findWithUserById($this->orderId);
+
+        if (!$order) {
+            Log::warning('SendPaymentStatusNotificationJob: order not found', [
+                'order_id' => $this->orderId,
+            ]);
+            return;
+        }
+
+        $user = $order->user;
 
         if (!$user) {
             Log::warning('SendPaymentStatusNotificationJob: No user found', [
-                'order_id' => $this->order->id,
+                'order_id' => $order->id,
             ]);
             return;
         }
 
         $user->notify(new PaymentStatusChangedNotification(
-            $this->order,
+            $order,
             $this->oldStatus,
             $this->newStatus,
         ));
 
         Log::info('Payment status notification sent', [
-            'order_id' => $this->order->id,
+            'order_id' => $order->id,
             'user_id' => $user->id,
             'old_status' => $this->oldStatus,
             'new_status' => $this->newStatus,
@@ -57,7 +66,7 @@ class SendPaymentStatusNotificationJob implements ShouldQueue
     public function failed(\Throwable $e): void
     {
         Log::error('SendPaymentStatusNotificationJob FAILED', [
-            'order_id' => $this->order->id,
+            'order_id' => $this->orderId,
             'error' => $e->getMessage(),
         ]);
     }

@@ -4,13 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use App\Http\Requests\BulkDeleteProductsRequest;
 use App\Http\Requests\ProductRequest;
-use App\Models\Product;
-use App\Models\Category;
-use App\Models\Brand;
-use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Log;
 use App\Services\ProductService;
 use App\Repositories\ProductRepository;
 use App\Repositories\BrandRepository;
@@ -32,16 +27,13 @@ class ProductController extends Controller
 
     public function index(Request $request)
     {
-        $query = Product::with(['category', 'brand']);
         $filters = $request->only([
             'search',
             'category',
             'brand',
             'status'
         ]);
-        $query = $this->service->index($query, $filters);
-
-        $products = $query->orderBy('created_at', 'desc')->paginate(20);
+        $products = $this->service->getFilteredPaginatedProducts($filters, 20);
         $categories = $this->brandRepo->getAllCategory();
         $brands =  $this->brandRepo->getAllBrands();
 
@@ -163,16 +155,11 @@ class ProductController extends Controller
     /**
      * Bulk delete products
      */
-    public function bulkDelete(Request $request)
+    public function bulkDelete(BulkDeleteProductsRequest $request)
     {
-         $ids = $request->ids;
+        $validated = $request->validated();
+        $ids = $validated['ids'];
 
-        if (empty($ids)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No products selected!'
-            ]);
-        }
         $success = $this->service->bulkDelete($ids);
 
         if( $success ){

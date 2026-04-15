@@ -1,35 +1,44 @@
 <?php
 namespace App\Services;
-use Stripe\Stripe;
-use App\Repositories\UserAddressRepository;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
-use App\Models\Wishlist;
-use Stripe\Refund;
-use App\Models\Order;
-use App\Jobs\SendOrderStatusNotificationJob;
-use App\Models\Payment;
-use Illuminate\Support\Facades\Storage;
-use Carbon\Carbon;
 
-class AdminPartPaymentService{
-      use AuthorizesRequests;
-       protected $siteTitle;
-    public function __construct(protected ProductService $product_service)
+use App\Repositories\PaymentRepository;
+use Carbon\Carbon;
+use Stripe\Stripe;
+use Stripe\Refund;
+
+class AdminPartPaymentService
+{
+    public function __construct(private PaymentRepository $repo)
     {
-        $this->siteTitle = '';
     }
-    public function markFailedService($validator, $id){
-          $payment = Payment::findOrFail($id);
-            $payment->payment_status = 'failed';
-        if ($validator->notes) {
-            $payment->notes = $validator->notes;
+
+    public function getPaymentsService(array $filters)
+    {
+        return $this->repo->getFilteredPayments($filters);
+    }
+
+    public function getPaymentDetailsService(int $id)
+    {
+        return $this->repo->findDetailedByIdOrFail($id);
+    }
+
+    public function markFailedService(array $validator, int $id): string
+    {
+        $payment = $this->repo->findOrFail($id);
+        $payment->payment_status = 'failed';
+
+        if (!empty($validator['notes'])) {
+            $payment->notes = $validator['notes'];
         }
-        $payment->save();
+
+        $this->repo->save($payment);
+
         return $payment->payment_status;
     }
-    public function processService($id,$payment){
 
+    public function processService(int $id): string
+    {
+        $payment = $this->repo->findOrFail($id);
 
         // Pull the related order first to sync identifiers
         $order = $payment->order;
@@ -40,19 +49,24 @@ class AdminPartPaymentService{
         if ($order && empty($payment->stripe_payment_intent_id) && !empty($order->stripe_payment_intent_id)) {
             $payment->stripe_payment_intent_id = $order->stripe_payment_intent_id;
         }
-        $payment->save();
+        $this->repo->save($payment);
 
         // Update order payment status
         if ($order) {
             $order->payment_status = 'paid';
             $order->save();
         }
+
         return $order->payment_status;
     }
-    public function refundService(array $validator,Payment $payment){
+
+    public function refundService(array $validator, int $id): array
+    {
+        $payment = $this->repo->findOrFail($id);
 
         $order = $payment->order;
-        if ($payment->payment_status != 'completed') {
+
+        if ($payment->payment_status !== 'completed') {
             return [
                 'success' => false,
                 'message' => 'Only completed payments can be refunded!'
@@ -65,120 +79,91 @@ class AdminPartPaymentService{
                 'message' => 'Refund amount cannot be greater than payment amount!'
             ];
         }
+
         Stripe::setApiKey(config('services.stripe.secret'));
-        try{
-             $refund = Refund::create([
+        try {
+            $refund = Refund::create([
                 'payment_intent' => $payment->stripe_payment_intent_id,
                 'amount' => (int) ($validator['refund_amount'] * 100),
             ]);
+
             // Save refund id and mark status pending until finalized
-           $payment->update([
-            'payment_status' => 'refund_pending',
-            'stripe_refund_id' => $refund->id ?? null,
-            'notes' => $validator['notes'],
-        ]);
+            $this->repo->update($payment, [
+                'payment_status' => 'refund_pending',
+                'stripe_refund_id' => $refund->id ?? null,
+                'notes' => $validator['notes'] ?? null,
+            ]);
 
-        // Update order payment status if fully refunded
-        if ($validator['refund_amount'] == $payment->amount && $payment->order) {
-
-            if ($order) {
-                $order->payment_status = 'unpaid';
-                $order->save();
+            // Update order payment status if fully refunded
+            if ($validator['refund_amount'] == $payment->amount && $payment->order) {
+                if ($order) {
+                    $order->payment_status = 'unpaid';
+                    $order->save();
+                }
             }
-        }
 
-        return [
-            'success' => true,
-            'message' => 'Payment refunded successfully',
-            'payment_status' => $payment->payment_status,
-        ];
-
-        }catch(\Exception $e){
             return [
-            'success' => false,
-            'message' => 'Stripe refund failed: ' . $e->getMessage()
+                'success' => true,
+                'message' => 'Payment refunded successfully',
+                'payment_status' => $payment->fresh()->payment_status,
+            ];
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'message' => 'Stripe refund failed: ' . $e->getMessage()
             ];
         }
     }
 
-    public function updateNotesService($validator, $id){
-        $payment = Payment::findOrFail($id);
-        $payment->notes = $validator->notes;
-        $payment->save();
+    public function updateNotesService(array $validator, int $id): array
+    {
+        $payment = $this->repo->findOrFail($id);
+        $payment->notes = $validator['notes'] ?? null;
+        $this->repo->save($payment);
 
-          return [
+        return [
             'success' => true,
             'message' => 'Payment notes updated successfully',
         ];
     }
 
-    public function getStatisticsService()
+    public function getStatisticsService(): array
     {
         $today = Carbon::now()->format('Y-m-d');
-        $thisMonth = Carbon::now()->format('Y-m');
 
-        $statistics = [
-            'total_payments' => Payment::count(),
-            'completed_payments' => Payment::where('payment_status', 'completed')->count(),
-            'pending_payments' => Payment::where('payment_status', 'pending')->count(),
-            'failed_payments' => Payment::where('payment_status', 'failed')->count(),
-            'refunded_payments' => Payment::where('payment_status', 'refunded')->count(),
-            'total_amount' => Payment::sum('amount'),
-            'completed_amount' => Payment::where('payment_status', 'completed')->sum('amount'),
-            'pending_amount' => Payment::where('payment_status', 'pending')->sum('amount'),
-            'today_amount' => Payment::whereDate('created_at', $today)->sum('amount'),
-            'month_amount' => Payment::whereYear('created_at', date('Y'))
-                ->whereMonth('created_at', date('m'))
-                ->sum('amount'),
-        ];
-
-        return $statistics;
+        return $this->repo->getStatistics($today);
     }
-     public function getTrendsService()
+
+    public function getTrendsService(): array
     {
         $trends = [];
 
         for ($i = 11; $i >= 0; $i--) {
             $date = now()->subMonths($i);
-            $month = $date->format('Y-m');
-            $label = $date->format('M Y');
-
-            $completed = Payment::where('payment_status', 'completed')
-                ->whereYear('created_at', $date->year)
-                ->whereMonth('created_at', $date->month)
-                ->sum('amount');
-
-            $failed = Payment::where('payment_status', 'failed')
-                ->whereYear('created_at', $date->year)
-                ->whereMonth('created_at', $date->month)
-                ->sum('amount');
 
             $trends[] = [
-                'month' => $label,
-                'completed' => (float)$completed,
-                'failed' => (float)$failed,
+                'month' => $date->format('M Y'),
+                'completed' => $this->repo->sumCompletedForMonth($date->year, $date->month),
+                'failed' => $this->repo->sumFailedForMonth($date->year, $date->month),
             ];
         }
 
         return $trends;
     }
-      public function getMethodBreakdownService()
+
+    public function getMethodBreakdownService(): array
     {
         $methods = ['cod', 'card', 'bkash', 'stripe'];
         $breakdown = [];
 
         foreach ($methods as $method) {
-            $count = Payment::where('payment_method', $method)->count();
-            $amount = Payment::where('payment_method', $method)->sum('amount');
-
             $breakdown[] = [
                 'method' => strtoupper($method),
-                'count' => $count,
-                'amount' => (float)$amount,
+                'count' => $this->repo->countByMethod($method),
+                'amount' => $this->repo->sumByMethod($method),
             ];
         }
 
         return $breakdown;
     }
-
 }

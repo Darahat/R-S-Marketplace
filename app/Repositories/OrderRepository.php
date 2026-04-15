@@ -37,4 +37,28 @@ class OrderRepository
     {
         return $order->save();
     }
+
+    public function findDetailedByIdOrFail(int $id): Order
+    {
+        return Order::with(['user', 'address', 'items.product'])->findOrFail($id);
+    }
+
+    public function findWithUserById(int $id): ?Order
+    {
+        return Order::with('user')->find($id);
+    }
+
+    public function getStatistics(): array
+    {
+        return [
+            'total_orders' => Order::count(),
+            'pending_orders' => Order::where('status', 'pending')->count(),
+            'processing_orders' => Order::where('status', 'processing')->count(),
+            'shipped_orders' => Order::where('status', 'shipped')->count(),
+            'delivered_orders' => Order::where('status', 'delivered')->count(),
+            'cancelled_orders' => Order::where('status', 'cancelled')->count(),
+            'total_revenue' => Order::where('payment_status', 'paid')->sum('total'),
+            'pending_payment' => Order::where('payment_status', 'unpaid')->sum('total'),
+        ];
+    }
 }

@@ -2,11 +2,10 @@
 
 // app/Http/Controllers/CartController.php
 namespace App\Http\Controllers;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Auth;
-use App\Models\Cart;
-use App\Models\CartItem;
 
+use App\Http\Requests\CartRequest;
+use App\Http\Requests\RemoveFromCartRequest;
+use App\Http\Requests\UpdateCartRequest;
 use App\Services\CartService;
 use Illuminate\Http\Request;
 
@@ -66,9 +65,10 @@ public function cartRefresh(){
     )->render();
     }
 
-    public function addToCart(Request $request)
+    public function addToCart(CartRequest $request)
     {
-       $cart = $this->cartService->addToCart($request->input('product_id'),$request->input('quantity', 1));
+       $validated = $request->validated();
+       $cart = $this->cartService->addToCart($validated['product_id'], $validated['quantity']);
 
        if (isset($cart['error'])) {
             if ($request->ajax()) {
@@ -92,10 +92,10 @@ public function cartRefresh(){
     }
 
 
-    public function update(Request $request)
+    public function update(UpdateCartRequest $request)
     {
-
-        $updatedCart = $this->cartService->update( $request->itemId,(int) $request->quantity);
+        $validated = $request->validated();
+        $updatedCart = $this->cartService->update((int) $validated['itemId'], (int) $validated['quantity']);
 
 
         return response()->json([
@@ -105,9 +105,9 @@ public function cartRefresh(){
         ]);
     }
 
-    public function remove(Request $request)
+    public function remove(RemoveFromCartRequest $request)
     {
-         $cart = $this->cartService->remove($request->input('item'));
+         $cart = $this->cartService->remove((int) $request->validated()['item']);
 
     if ($request->ajax()) {
             return response()->json([

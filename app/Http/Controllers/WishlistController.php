@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\WishlistItemRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Wishlist;
 use App\Models\WishlistItem;
-use App\Models\Product;
 use App\Services\WishlistService;
 class WishlistController extends Controller
 {
@@ -63,13 +63,10 @@ public function syncGuestWishlist($id){
     /**
      * Toggle product in wishlist
      */
-    public function toggle(Request $request)
+    public function toggle(WishlistItemRequest $request)
     {
-        $productId = $request->product_id;
+        $productId = (int) $request->validated()['product_id'];
 
-       if (!Product::find($productId)) {
-            return response()->json(['error' => 'Product not found.'], 404);
-        }
         $wishlist = $this->wishListService->wishlistToggle($productId);
 
         return response()->json([
@@ -82,11 +79,9 @@ public function syncGuestWishlist($id){
     /**
      * Remove product from wishlist
      */
-    public function remove(Request $request)
+    public function remove(WishlistItemRequest $request)
     {
-
-
-        $productId = $request->input('product_id');
+        $productId = (int) $request->validated()['product_id'];
 
         $count = $this->wishListService->removeWishlistProduct($productId);
 
@@ -101,11 +96,9 @@ public function syncGuestWishlist($id){
     }
 
 
-    public function moveToCart(Request $request){
-        $productId = $request->input('product_id');
+    public function moveToCart(WishlistItemRequest $request)
+    {
+        $productId = (int) $request->validated()['product_id'];
         return $this->wishListService->wishlistMoveToCart($productId);
-
-
-
     }
 }

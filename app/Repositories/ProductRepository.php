@@ -7,9 +7,18 @@ use App\Models\Brand;
 use App\Models\Category;
 use Illuminate\Support\Collection;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class ProductRepository
 {
+    public function getFilteredPaginatedProducts(array $filters, int $perPage = 20): LengthAwarePaginator
+    {
+        $query = Product::with(['category', 'brand']);
+        $this->applyIndexFilters($query, $filters);
+
+        return $query->orderBy('created_at', 'desc')->paginate($perPage);
+    }
+
     public function applyIndexFilters(Builder $query, array $filters): Builder
     {
         // Search functionality
@@ -30,6 +39,29 @@ class ProductRepository
         // Brand filter
         if (!empty($filters['brand'])) {
             $query->where('brand_id', $filters['brand']);
+        }
+
+        // Multi-brand filter (used by storefront search)
+        if (!empty($filters['brands']) && is_array($filters['brands'])) {
+            $query->whereIn('brand_id', $filters['brands']);
+        }
+
+        // Multi-category filter (used by storefront search)
+        if (!empty($filters['categories'])) {
+            $categories = is_array($filters['categories'])
+                ? $filters['categories']
+                : explode(',', (string) $filters['categories']);
+
+            $query->whereIn('category_id', array_filter($categories));
+        }
+
+        // Price range filter (used by storefront search)
+        if (isset($filters['min_price']) && $filters['min_price'] !== '') {
+            $query->where('price', '>=', $filters['min_price']);
+        }
+
+        if (isset($filters['max_price']) && $filters['max_price'] !== '') {
+            $query->where('price', '<=', $filters['max_price']);
         }
 
         // Status filter
