@@ -4,7 +4,6 @@ namespace App\Services;
 use App\Repositories\PaymentProcessRepository;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
-use Stripe\Stripe;
 use Stripe\Checkout\Session as StripeSession;
 
 class StripeSessionService
@@ -12,7 +11,6 @@ class StripeSessionService
     public function __construct(
         protected PaymentProcessRepository $repo,
     ) {
-        Stripe::setApiKey(config('services.stripe.secret'));
     }
 
     /**

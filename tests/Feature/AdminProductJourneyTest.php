@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\User;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 
@@ -163,5 +164,34 @@ class AdminProductJourneyTest extends TestCase
         $response->assertJson(['success' => true]);
         $this->assertDatabaseMissing('products', ['id' => $productA->id]);
         $this->assertDatabaseMissing('products', ['id' => $productB->id]);
+    }
+
+    public function test_admin_product_image_allows_up_to_five_megabytes(): void
+    {
+        $admin = User::factory()->create([
+            'user_type' => User::ADMIN,
+            'mobile' => '01810000007',
+        ]);
+
+        $category = Category::factory()->active()->create();
+
+        $payload = [
+            'name' => 'Product With Large Image',
+            'slug' => 'product-with-large-image',
+            'description' => 'Test product description',
+            'price' => 1200,
+            'purchase_price' => 900,
+            'discount_price' => 1000,
+            'stock' => 10,
+            'category_id' => $category->id,
+            'brand_id' => null,
+            'featured' => true,
+            'is_latest' => true,
+            'image' => UploadedFile::fake()->image('product.jpg')->size(5000),
+        ];
+
+        $response = $this->actingAs($admin)->post(route('admin.products.store'), $payload);
+
+        $response->assertSessionDoesntHaveErrors('image');
     }
 }

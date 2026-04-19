@@ -125,17 +125,15 @@ Route::prefix('wishlist')->group(function () {
 Route::get('/login', function () {
     return redirect()->route('home', ['auth' => 'login']);
 })->name('login');
-Route::post('/login', [CustomerAuthController::class, 'login'])->name('checklogin');
-
-// Test route - remove this later
-Route::get('/admin-login-test', function() {
-    Log::info('Test route hit!');
-    return 'Test route works! User: ' . (Auth::check() ? Auth::user()->email : 'guest');
-});
+Route::post('/login', [CustomerAuthController::class, 'login'])
+    ->middleware('throttle:5,1')
+    ->name('checklogin');
 
 // Admin Login - separate GET and POST
 Route::get('/admin-login', [AdminAuthController::class, 'showAdminLogin'])->name('admin.login');
-Route::post('/admin-login', [AdminAuthController::class, 'adminLogin'])->name('admin.checklogin');
+Route::post('/admin-login', [AdminAuthController::class, 'adminLogin'])
+    ->middleware('throttle:3,1')
+    ->name('admin.checklogin');
 
 // Logout - POST only to avoid accidental logout/session invalidation from GET requests
 Route::post('/logout', [CustomerAuthController::class, 'logout'])->name('logout');

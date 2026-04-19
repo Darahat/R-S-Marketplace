@@ -34,8 +34,8 @@ class ProductRequest extends FormRequest
             'category_id' => 'required|exists:categories,id',
             'brand_id' => 'nullable|exists:brands,id',
             'image' => $this->isMethod('POST')
-                ? 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048'
-                : 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+                ? 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120'
+                : 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
             'rating' => 'nullable|numeric|min:0|max:5',
             'featured' => 'nullable|boolean',
             'is_best_selling' => 'nullable|boolean',
@@ -68,7 +68,7 @@ class ProductRequest extends FormRequest
             'brand_id.exists' => 'Selected brand does not exist',
             'image.image' => 'File must be an image',
             'image.mimes' => 'Image must be jpeg, png, jpg, gif, or webp',
-            'image.max' => 'Image size must not exceed 2MB',
+            'image.max' => 'Image size must not exceed 5MB',
             'rating.numeric' => 'Rating must be a number',
             'rating.min' => 'Rating cannot be less than 0',
             'rating.max' => 'Rating cannot exceed 5',

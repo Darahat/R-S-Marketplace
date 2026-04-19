@@ -4,7 +4,6 @@ namespace App\Jobs;
 
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
-use Stripe\Stripe;
 use Stripe\PaymentMethod as StripePaymentMethod;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 
@@ -34,7 +33,6 @@ class DetachStripePaymentMethodJob implements ShouldQueue, ShouldBeUnique
     }
     public function handle(): void
     {
-        Stripe::setApiKey(config('services.stripe.secret'));
         StripePaymentMethod::retrieve($this->stripePaymentMethodId)->detach();
     }
 }

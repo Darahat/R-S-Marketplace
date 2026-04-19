@@ -64,7 +64,7 @@ class CustomerAuthFlowTest extends TestCase
     {
         $response = $this->get(route('login'));
 
-        $response->assertStatus(200);
+        $response->assertRedirect(route('home', ['auth' => 'login']));
     }
 
     public function test_customer_can_login_with_valid_credentials(): void

@@ -4,7 +4,6 @@ namespace App\Services;
 use App\Repositories\PaymentProcessRepository;
 use App\Repositories\CheckoutRepository;
 use Illuminate\Support\Facades\Log;
-use Stripe\Stripe;
 use Stripe\Customer as StripeCustomer;
 use Stripe\PaymentIntent;
 use Stripe\PaymentMethod;
@@ -15,7 +14,6 @@ class StripeCustomerService
         protected PaymentProcessRepository $payment_repo,
         protected CheckoutRepository $checkout_repo,
     ) {
-        Stripe::setApiKey(config('services.stripe.secret'));
     }
 
     /**

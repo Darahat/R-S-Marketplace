@@ -82,7 +82,7 @@ services:
             - ./grafana-dashboard.yaml:/etc/grafana/provisioning/dashboards/dashboard.yaml:ro
             - ./dashboards:/etc/grafana/provisioning/dashboards
         environment:
-            - GF_SECURITY_ADMIN_PASSWORD=admin
+            - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
             - GF_SECURITY_ADMIN_USER=admin
             - GF_INSTALL_PLUGINS=blackmirror1-singlestat-math-panel
             - GF_ANGULAR_SUPPORT_ENABLED=true

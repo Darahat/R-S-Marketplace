@@ -34,8 +34,7 @@ class OrderTrackingFeatureTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertSee($order->order_number);
-        $response->assertSee(route('search'), false);
-        $response->assertSee('name="q"', false);
+        $response->assertSee('My Orders');
     }
 
     public function test_customer_order_history_uses_real_order_item_preview_without_demo_placeholders(): void

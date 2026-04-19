@@ -82,6 +82,14 @@ class AdminAuthService
 
     private function notifyAdminOnLogin(User $user, string $ip, string $device): void
     {
+        if (!$user->email_verified_at) {
+            Log::warning('Skipped admin login alert notification because the email is not verified.', [
+                'user_id' => $user->id,
+            ]);
+
+            return;
+        }
+
         try {
             $user->notify(new AdminLoginAlertNotification(
                 $ip,

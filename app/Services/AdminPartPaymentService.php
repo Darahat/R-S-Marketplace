@@ -3,7 +3,6 @@ namespace App\Services;
 
 use App\Repositories\PaymentRepository;
 use Carbon\Carbon;
-use Stripe\Stripe;
 use Stripe\Refund;
 
 class AdminPartPaymentService
@@ -80,7 +79,6 @@ class AdminPartPaymentService
             ];
         }
 
-        Stripe::setApiKey(config('services.stripe.secret'));
         try {
             $refund = Refund::create([
                 'payment_intent' => $payment->stripe_payment_intent_id,

@@ -3,7 +3,6 @@ namespace App\Services;
 
 use Illuminate\Support\Str;
 use App\Repositories\CategoryRepository;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 
@@ -67,8 +66,6 @@ class CategoryService{
     }
 
     public function updateCategory(array $data,int $id){
-        Log::info($data);
-                Log::info($id);
 // Prevent circular reference
         $category = $this->repo->findCategoryOrFail($id);
         $category->name = $data['name'];
@@ -95,7 +92,6 @@ class CategoryService{
     public function toggleStatus(int $id):int{
 
         $category = $this->repo->findCategoryOrFail($id);
-        Log::info($category->status);
         $category->status = !$category->status;
         $category->updated_by = Auth::id();
         $this->repo->saveCategory($category);

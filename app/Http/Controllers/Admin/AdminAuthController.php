@@ -21,17 +21,12 @@ class AdminAuthController extends Controller
     // Show Admin Login Form (GET)
     public function showAdminLogin()
     {
-        Log::info('Show Admin Login Form called');
         return view('backend_panel_view_admin.pages.auth.admin_login');
     }
 
     // Handle Admin Login (POST)
     public function adminLogin(LoginRequest $request)
     {
-        Log::info('AdminLogin POST called', [
-            'email' => $request->email ?? 'no email'
-        ]);
-
         // Attempt admin login via service
         $user = $this->adminAuthService->attemptLogin(
             $request->validated(),

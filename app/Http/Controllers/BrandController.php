@@ -8,7 +8,6 @@ use App\Services\BrandService;
 use App\Repositories\BrandRepository;
 use App\Http\Requests\BrandRequest;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
-use Illuminate\Support\Facades\Log;
 class BrandController extends Controller
 {
     use AuthorizesRequests;
@@ -56,7 +55,6 @@ public function __construct(private BrandRepository $repo, private BrandService 
      */
     public function store(BrandRequest $request)
     {
-        Log::info("message");
         ///authorize
         $this->authorize('create', Brand::class);
         /// validate data

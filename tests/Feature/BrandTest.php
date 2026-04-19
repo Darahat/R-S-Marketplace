@@ -55,8 +55,8 @@ $this->repository = new BrandRepository();
      public function test_regular_user_cannot_view_brands_index(){
         // Act: Try to visit as regular user
         $response = $this->actingAs($this->regularUser)->get(route('admin.brands.index'));
-        // Assert: Should be denied
-        $response->assertStatus(403); /// HTTP 403 Forbidden
+                    // Assert: Middleware blocks access for non-admin users
+                    $response->assertStatus(403);
 
      }
 
@@ -64,8 +64,7 @@ $this->repository = new BrandRepository();
         // Act: Visit without logging in
         $response = $this->get(route('admin.brands.index'));
         // Assert: Redirected to login
-        // Assert: Forbidden
-        $response->assertStatus(403);
+          $response->assertRedirect(route('login'));
      }
      public function test_admin_can_create_brand(){
         // Arrange: Create categories first
@@ -177,7 +176,7 @@ $this->repository = new BrandRepository();
             'status' => true
         ]);
 
-        // Assert: Forbidden (policy denies access)
+        // Assert: Middleware blocks access for non-admin users
         $response->assertStatus(403);
 
         //Should Not be in database
@@ -273,7 +272,7 @@ $this->repository = new BrandRepository();
         // Act: Try to toggle as regular user
         $response = $this->actingAs($this->regularUser)->patch(route('admin.brands.toggle-status', $brand->id));
 
-        // Assert: Forbidden
+        // Assert: Middleware blocks access for non-admin users
         $response->assertStatus(403);
 
         // Status should Not have changed
@@ -303,9 +302,6 @@ $this->repository = new BrandRepository();
              'category_id' => [$category1->id],
              'status' => true,
         ]);
-        dump('Response Status:', $response->status());
-    dump('Response Content:', $response->getContent());
-    dump('Session Errors:', session('errors'));
     // Assert: Check email was "sent"
     Mail::assertSent(BrandCreatedNotification::class, function($mail){
         return $mail->hasTo('admin@example.com');
@@ -330,7 +326,9 @@ public function test_can_upload_brand_logo()
                      ]);
 
     // Assert: File was stored
-    Storage::disk('public')->assertExists('brands/' . $file->hashName());
+    /** @var \Illuminate\Filesystem\FilesystemAdapter $disk */
+    $disk = Storage::disk('public');
+    $disk->assertExists('brands/' . $file->hashName());
 }
 public function test_brand_syncs_with_external_api(){
     // Arrange: Mock the HTTP client

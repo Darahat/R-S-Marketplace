@@ -50,7 +50,7 @@ class CartUserJourneyTest extends TestCase
         ]);
 
         $response->assertRedirect(route('cart.view'));
-        $response->assertSessionHas('error', 'Product not found.');
+        $response->assertSessionHasErrors('product_id');
         $this->assertEmpty(session('cart', []));
     }
 

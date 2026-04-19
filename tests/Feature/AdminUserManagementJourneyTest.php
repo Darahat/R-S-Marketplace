@@ -88,6 +88,6 @@ class AdminUserManagementJourneyTest extends TestCase
 
         $response = $this->actingAs($customer)->get(route('admin.users.index'));
 
-        $response->assertRedirect(route('home'));
+        $response->assertStatus(403);
     }
 }

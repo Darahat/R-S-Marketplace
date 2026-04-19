@@ -2,10 +2,11 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\User;
 use Closure;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Support\Facades\Auth;
+use Symfony\Component\HttpFoundation\Response;
 
 class IsAdmin
 {
@@ -16,18 +17,11 @@ class IsAdmin
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // Check if user is authenticated and is an admin
-        if (!Auth::check()) {
-            return redirect()->route('home');
-        }
-
+        /** @var User|null $user */
         $user = Auth::user();
 
-        if ($user->user_type !== 'ADMIN') {
-            Auth::logout();
-            return redirect()->route('home')->withErrors([
-                'message' => 'You do not have permission to access the admin panel.',
-            ]);
+        if (!$user || !$user->isAdmin()) {
+            abort(403, 'Unauthorized access');
         }
 
         return $next($request);

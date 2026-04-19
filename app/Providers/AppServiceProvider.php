@@ -19,6 +19,7 @@ use App\Policies\BrandPolicy;
  use App\Policies\ProductPolicy;
  use App\Policies\CategoryPolicy;
 use Illuminate\Support\ServiceProvider;
+use Stripe\Stripe;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -35,6 +36,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        if (config('services.stripe.secret')) {
+            Stripe::setApiKey(config('services.stripe.secret'));
+        }
+
         // Register Policies
         Gate::policy(UserPaymentMethod::class, PaymentMethodPolicy::class);
         Gate::policy(Address::class, UserAddressPolicy::class);

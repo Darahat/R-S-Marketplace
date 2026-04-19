@@ -6,10 +6,10 @@ use App\Repositories\StripeWebhookRepository;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Stripe\Exception\SignatureVerificationException;
 use Stripe\Checkout\Session as StripeSession;
 use Stripe\PaymentIntent;
 use Stripe\PaymentMethod as StripePaymentMethod;
-use Stripe\Stripe;
 use Stripe\Webhook;
 
 class StripeWebhookService
@@ -20,32 +20,15 @@ class StripeWebhookService
 
     public function handle(Request $request): JsonResponse
     {
-        Stripe::setApiKey(config('services.stripe.secret'));
-
         $payload = $request->getContent();
         $sigHeader = $request->header('Stripe-Signature');
-        $endpointSecret = env('STRIPE_WEBHOOK_SECRET');
-
-        // Early log to confirm the endpoint is actually hit
-        Log::warning('Stripe webhook hit (pre-verify)', [
-            'raw_length' => strlen($payload),
-            'sig_header_present' => $sigHeader ? true : false,
-        ]);
+        $endpointSecret = config('services.stripe.webhook_secret');
 
         try {
             $event = Webhook::constructEvent($payload, $sigHeader, $endpointSecret);
 
             if ($event->type === 'checkout.session.completed') {
                 $session = $event->data->object;
-
-                // Log the entire session for debugging (use warning so it logs even if LOG_LEVEL=error)
-                Log::warning('Stripe session object received', [
-                    'session_id' => $session->id,
-                    'payment_intent' => $session->payment_intent ?? 'NULL',
-                    'payment_status' => $session->payment_status ?? 'NULL',
-                    'mode' => $session->mode ?? 'NULL',
-                    'all_keys' => array_keys((array) $session),
-                ]);
 
                 $orderNumber = $session->metadata->order_number;
                 $order = $this->repo->findOrderByNumber($orderNumber);
@@ -61,12 +44,6 @@ class StripeWebhookService
                             $fullSession = StripeSession::retrieve([
                                 'id' => $session->id,
                                 'expand' => ['payment_intent', 'invoice.payment_intent'],
-                            ]);
-                            Log::warning('Retrieved full session from Stripe', [
-                                'session_id' => $session->id,
-                                'payment_intent_from_full' => isset($fullSession->payment_intent) ? (is_string($fullSession->payment_intent) ? $fullSession->payment_intent : ($fullSession->payment_intent->id ?? 'OBJ')) : 'NULL',
-                                'subscription' => $fullSession->subscription ?? 'NULL',
-                                'invoice' => isset($fullSession->invoice) ? (is_string($fullSession->invoice) ? $fullSession->invoice : ($fullSession->invoice->id ?? 'OBJ')) : 'NULL',
                             ]);
 
                             // Determine PI based on mode
@@ -133,12 +110,18 @@ class StripeWebhookService
             }
 
             return response()->json(['status' => 'success']);
-        } catch (\Exception $e) {
-            Log::error('Stripe webhook error: ' . $e->getMessage(), [
-                'raw_payload_sample' => substr($payload, 0, 500),
-            ]);
+        } catch (SignatureVerificationException $e) {
+            Log::warning('Invalid Stripe webhook signature.');
 
-            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 400);
+            return response()->json(['status' => 'error', 'message' => 'Invalid signature.'], 403);
+        } catch (\UnexpectedValueException $e) {
+            Log::warning('Invalid Stripe webhook payload.');
+
+            return response()->json(['status' => 'error', 'message' => 'Invalid payload.'], 400);
+        } catch (\Exception $e) {
+            Log::error('Stripe webhook processing error: ' . $e->getMessage());
+
+            return response()->json(['status' => 'error', 'message' => 'Webhook processing failed.'], 400);
         }
     }
 
@@ -221,7 +204,6 @@ class StripeWebhookService
             Log::error('Failed to save payment method: ' . $e->getMessage(), [
                 'payment_intent_id' => $paymentIntentId,
                 'user_id' => $userId,
-                'trace' => $e->getTraceAsString(),
             ]);
         }
     }

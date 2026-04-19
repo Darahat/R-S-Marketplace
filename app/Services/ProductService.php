@@ -34,8 +34,6 @@ class ProductService
      */
     public function createProduct(array $data): ?Product
     {
-        Log::info('Creating product with data:', $data);
-
         // Generate slug if not provided
         if (!isset($data['slug']) || empty($data['slug'])) {
             $data['slug'] = Str::slug($data['name']);
@@ -94,7 +92,6 @@ class ProductService
 
             // Delete old image if exists
             if ($product->image && Storage::disk('public')->exists($product->image)) {
-                 Log::info('I am inside');
                 Storage::disk('public')->delete($product->image);
             }
             $data['image'] = $this->uploadImage($data['image'], $data['name'] ?? $product->name);

@@ -1,4 +1,4 @@
-@import 'tailwindcss';
+@import "tailwindcss";
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
@@ -6,6 +6,146 @@
 @source '../**/*.js';
 
 @theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-sans:
+        "Instrument Sans", ui-sans-serif, system-ui, sans-serif,
+        "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol",
+        "Noto Color Emoji";
+}
+
+@layer base {
+    :root {
+        --theme-primary: #3b82f6;
+        --theme-primary-light: #60a5fa;
+        --theme-primary-dark: #2563eb;
+        --theme-secondary: #8b5cf6;
+        --theme-secondary-light: #a78bfa;
+        --theme-secondary-dark: #7c3aed;
+        --theme-success: #10b981;
+        --theme-warning: #f59e0b;
+        --theme-danger: #ef4444;
+        --theme-accent: #60a5fa;
+    }
+}
+
+@layer utilities {
+    .bg-primary {
+        background-color: var(--theme-primary);
+    }
+    .bg-primary-dark {
+        background-color: var(--theme-primary-dark);
+    }
+    .bg-primary-50 {
+        background-color: color-mix(in srgb, var(--theme-primary) 10%, white);
+    }
+    .bg-primary-100 {
+        background-color: color-mix(in srgb, var(--theme-primary) 20%, white);
+    }
+    .bg-primary-200 {
+        background-color: color-mix(in srgb, var(--theme-primary) 35%, white);
+    }
+    .bg-primary-600 {
+        background-color: var(--theme-primary);
+    }
+    .bg-primary-700 {
+        background-color: var(--theme-primary-dark);
+    }
+    .bg-secondary {
+        background-color: var(--theme-secondary);
+    }
+    .text-primary {
+        color: var(--theme-primary);
+    }
+    .text-primary-600 {
+        color: var(--theme-primary);
+    }
+    .text-primary-700 {
+        color: var(--theme-primary-dark);
+    }
+    .text-primary-800 {
+        color: color-mix(in srgb, var(--theme-primary-dark) 85%, black);
+    }
+    .text-secondary {
+        color: var(--theme-secondary);
+    }
+    .text-danger {
+        color: var(--theme-danger);
+    }
+    .fill-danger {
+        fill: var(--theme-danger);
+    }
+    .border-primary {
+        border-color: var(--theme-primary);
+    }
+    .border-primary-500 {
+        border-color: var(--theme-primary);
+    }
+    .ring-primary,
+    .focus\:ring-primary:focus,
+    .focus\:ring-primary-500:focus {
+        --tw-ring-color: var(--theme-primary);
+    }
+    .focus\:border-primary:focus,
+    .focus\:border-primary-500:focus {
+        border-color: var(--theme-primary);
+    }
+    .from-primary {
+        --tw-gradient-from: var(--theme-primary)
+            var(--tw-gradient-from-position);
+        --tw-gradient-to: color-mix(
+                in srgb,
+                var(--theme-primary) 0%,
+                transparent
+            )
+            var(--tw-gradient-to-position);
+        --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+    }
+    .via-primary-dark {
+        --tw-gradient-to: color-mix(
+                in srgb,
+                var(--theme-primary-dark) 0%,
+                transparent
+            )
+            var(--tw-gradient-to-position);
+        --tw-gradient-stops:
+            var(--tw-gradient-from),
+            var(--theme-primary-dark) var(--tw-gradient-via-position),
+            var(--tw-gradient-to);
+    }
+    .to-secondary {
+        --tw-gradient-to: var(--theme-secondary) var(--tw-gradient-to-position);
+    }
+    .to-accent {
+        --tw-gradient-to: var(--theme-accent) var(--tw-gradient-to-position);
+    }
+    .hover\:bg-primary-dark:hover {
+        background-color: var(--theme-primary-dark);
+    }
+    .hover\:bg-secondary:hover {
+        background-color: var(--theme-secondary);
+    }
+    .hover\:text-primary:hover {
+        color: var(--theme-primary);
+    }
+    .hover\:text-secondary:hover {
+        color: var(--theme-secondary);
+    }
+    .hover\:text-primary-800:hover {
+        color: color-mix(in srgb, var(--theme-primary-dark) 85%, black);
+    }
+    .hover\:bg-primary-200:hover {
+        background-color: color-mix(in srgb, var(--theme-primary) 35%, white);
+    }
+    .animate-float {
+        animation: float 3s ease-in-out infinite;
+    }
+}
+
+@keyframes float {
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-10px);
+    }
 }

@@ -661,6 +661,8 @@ If you encounter any issues:
 
 This project is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
 
+Third-party frontend assets, fonts, and CDN-delivered libraries used by the application are tracked in [THIRD_PARTY_ASSETS.md](THIRD_PARTY_ASSETS.md).
+
 ---
 
 ## 🌟 Key Features Summary
