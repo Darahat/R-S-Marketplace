@@ -5,7 +5,6 @@ namespace App\Repositories;
 use App\Models\Address;
 use App\Models\Cart;
 use App\Models\Order;
-use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\UserPaymentMethod;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -60,27 +59,9 @@ class CheckoutRepository
         return $product->save();
     }
 
-    public function createOrder(array $attributes): Order
-    {
-        return Order::create($attributes);
-    }
-
-    public function createOrderItem(array $attributes): OrderItem
-    {
-        return OrderItem::create($attributes);
-    }
-
     public function saveOrder(Order $order): bool
     {
         return $order->save();
-    }
-
-    public function findUserOrderByNumber(string $orderNumber, int $userId): ?Order
-    {
-        return Order::where('order_number', $orderNumber)
-            ->where('user_id', $userId)
-            ->with(['items.product', 'address.district', 'address.upazila', 'address.union'])
-            ->first();
     }
 
     public function savedPaymentMethodExists(int $userId, string $paymentMethodId): bool
@@ -98,22 +79,5 @@ class CheckoutRepository
     public function createSavedPaymentMethod(array $attributes): UserPaymentMethod
     {
         return UserPaymentMethod::create($attributes);
-    }
-
-    public function getToPayOrdersByUser(int $userId, int $perPage = 10): LengthAwarePaginator
-    {
-        return Order::where('user_id', $userId)
-            ->where('order_status', 'to_pay')
-            ->with(['items.product', 'address.district', 'address.upazila', 'address.union'])
-            ->orderBy('created_at', 'desc')
-            ->paginate($perPage);
-    }
-
-    public function findToPayOrderByNumber(string $orderNumber, int $userId): ?Order
-    {
-        return Order::where('order_number', $orderNumber)
-            ->where('user_id', $userId)
-            ->where('order_status', 'to_pay')
-            ->first();
     }
 }

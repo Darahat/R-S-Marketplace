@@ -3,6 +3,7 @@
 namespace App\Repositories;
 
 use App\Models\Order;
+use App\Models\OrderItem;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class OrderRepository
@@ -60,5 +61,40 @@ class OrderRepository
             'total_revenue' => Order::where('payment_status', 'paid')->sum('total'),
             'pending_payment' => Order::where('payment_status', 'unpaid')->sum('total'),
         ];
+    }
+
+    public function createOrder(array $attributes): Order
+    {
+        return Order::create($attributes);
+    }
+
+    public function createOrderItem(array $attributes): OrderItem
+    {
+        return OrderItem::create($attributes);
+    }
+
+    public function findUserOrderByNumber(string $orderNumber, int $userId): ?Order
+    {
+        return Order::where('order_number', $orderNumber)
+            ->where('user_id', $userId)
+            ->with(['items.product', 'address.district', 'address.upazila', 'address.union'])
+            ->first();
+    }
+
+    public function getToPayOrdersByUser(int $userId, int $perPage = 10): LengthAwarePaginator
+    {
+        return Order::where('user_id', $userId)
+            ->where('order_status', 'to_pay')
+            ->with(['items.product', 'address.district', 'address.upazila', 'address.union'])
+            ->orderBy('created_at', 'desc')
+            ->paginate($perPage);
+    }
+
+    public function findToPayOrderByNumber(string $orderNumber, int $userId): ?Order
+    {
+        return Order::where('order_number', $orderNumber)
+            ->where('user_id', $userId)
+            ->where('order_status', 'to_pay')
+            ->first();
     }
 }

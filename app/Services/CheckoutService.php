@@ -5,11 +5,16 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use App\Models\Order;
 use App\Repositories\CheckoutRepository;
-use Stripe\Stripe;
 use Illuminate\Support\Collection;
-use App\Jobs\UpdateProductSalesMetricsJob;
+
 class CheckoutService{
-    public function __construct(protected CheckoutRepository $repo)
+    public function __construct(
+        protected CheckoutRepository $repo,
+        protected OrderService $order_service,
+        protected StockManagementService $stock_service,
+        protected StripeCustomerService $stripe_customer_service,
+        protected StripeSessionService $stripe_session_service,
+    )
     {
      }
 
@@ -168,70 +173,25 @@ class CheckoutService{
     {
         return $this->repo->getUserAddresses((int) Auth::id());
     }
-
-     public function updateProductStock($cartItems)
+    /**
+     * Handle payment success page - retrieve order and resolve Stripe payment intent if needed.
+     */
+    public function paymentSuccessData($data): Order
     {
-        $metricsPayload = [];
+        // Get order
+        $orderNumber = $data['order'];
+        $order = $this->order_service->findUserOrderByNumber($orderNumber, (int) Auth::id());
 
-        foreach ($cartItems as $item) {
-            $product = $this->repo->findProductById((int) $item['id']);
-            if ($product) {
-                $product->stock -= $item['quantity'];
-                $this->repo->saveProduct($product);
-                $metricsPayload[] = [
-                    'product_id' => (int) $item['id'],
-                    'quantity' => (int) $item['quantity'],
-                ];
-            }
+        if (!$order) {
+            throw new \Exception('Order not found');
         }
 
-        if (!empty($metricsPayload)) {
-            UpdateProductSalesMetricsJob::dispatch($metricsPayload)->onQueue('default');
-        }
-    }
-    public function createOrderData($address, $total, $paymentMethod,$cartItems):Order{
-         $order = $this->repo->createOrder([
-            'user_id' => Auth::id(),
-            'order_number' => 'ORD-' . strtoupper(uniqid()),
-            'address_id' => $address->id,
-            'order_status' => $paymentMethod === 'stripe' ? 'to_pay' : 'Processing',
-            'total_amount' => $total,
-            'payment_method' => $paymentMethod,
-            'payment_status' => 'pending',
-            'notes' => session('checkout_notes', ''),
-        ]);
-
-        foreach ($cartItems as $item) {
-            $itemTotal = $item['price'] * $item['quantity'];
-            $this->repo->createOrderItem([
-                'order_id' => $order->id,
-                'product_id' => $item['id'],
-                'quantity' => $item['quantity'],
-                'price' => $item['price'],
-                'total' => $itemTotal,
-            ]);
-        }
-        return $order;
-    }
-    public function paymentSuccessData($data):Order{
-         $order = $this->checkOrder($data);
-
-         // Optional fallback: if we have session_id and no PI yet, try to resolve it now
+        // Optional fallback: if we have session_id and no PI yet, try to resolve it now
         try {
             $sessionId = $data['session_id'] ?? null;
             if ($sessionId && empty($order->stripe_payment_intent_id)) {
-                Stripe::setApiKey(config('services.stripe.secret'));
-                $fullSession = \Stripe\Checkout\Session::retrieve([
-                    'id' => $sessionId,
-                    'expand' => ['payment_intent', 'invoice.payment_intent']
-                ]);
-
-                $paymentIntentId = null;
-                if (!empty($fullSession->payment_intent)) {
-                    $paymentIntentId = is_string($fullSession->payment_intent) ? $fullSession->payment_intent : ($fullSession->payment_intent->id ?? null);
-                } elseif (!empty($fullSession->invoice) && isset($fullSession->invoice->payment_intent)) {
-                    $paymentIntentId = is_string($fullSession->invoice->payment_intent) ? $fullSession->invoice->payment_intent : ($fullSession->invoice->payment_intent->id ?? null);
-                }
+                $fullSession = $this->stripe_session_service->retrieveSessionWithPaymentIntent($sessionId);
+                $paymentIntentId = $this->stripe_session_service->extractPaymentIntentId($fullSession);
 
                 if ($paymentIntentId) {
                     $order->stripe_session_id = $sessionId;
@@ -240,98 +200,13 @@ class CheckoutService{
                     $this->repo->saveOrder($order);
 
                     // Fallback: save payment method if webhook hasn't done it yet
-                    $this->savePaymentMethodFromIntent($paymentIntentId, $order->user_id);
+                    $this->stripe_customer_service->savePaymentMethodFromIntent($paymentIntentId, $order->user_id);
                 }
             }
             return $order;
         } catch (\Exception $e) {
             Log::warning('Checkout success page PI resolve failed: ' . $e->getMessage());
             return $order;
-        }
-    }
-    public function checkOrder($data):Order{
-        $orderNumber = $data['order'];
-        $order = $this->repo->findUserOrderByNumber($orderNumber, (int) Auth::id());
-             if (!$order) {
-        throw new \Exception('Address not found');
-    }
-    return $order;
-    }
-    /**
-     * Save payment method from a PaymentIntent (fallback when webhook hasn't fired).
-     */
-    private function savePaymentMethodFromIntent($paymentIntentId, $userId)
-    {
-        if (!$paymentIntentId || !$userId) {
-            return;
-        }
-
-        try {
-            $paymentIntent = \Stripe\PaymentIntent::retrieve($paymentIntentId);
-
-            if (empty($paymentIntent->payment_method)) {
-                return;
-            }
-
-            $paymentMethodId = $paymentIntent->payment_method;
-
-            // Already saved?
-            if ($this->repo->savedPaymentMethodExists((int) $userId, (string) $paymentMethodId)) {
-                return;
-            }
-
-            $stripeMethod = \Stripe\PaymentMethod::retrieve($paymentMethodId);
-
-            if ($stripeMethod->type === 'card') {
-                $isFirst = $this->repo->countSavedPaymentMethods((int) $userId) === 0;
-
-                $this->repo->createSavedPaymentMethod([
-                    'user_id' => $userId,
-                    'stripe_payment_method_id' => $paymentMethodId,
-                    'card_brand' => $stripeMethod->card->brand,
-                    'card_last4' => $stripeMethod->card->last4,
-                    'card_exp_month' => $stripeMethod->card->exp_month,
-                    'card_exp_year' => $stripeMethod->card->exp_year,
-                    'is_default' => $isFirst,
-                ]);
-
-                Log::info('Payment method saved via success fallback', [
-                    'user_id' => $userId,
-                    'payment_method_id' => $paymentMethodId,
-                ]);
-            }
-        } catch (\Exception $e) {
-            Log::warning('Fallback save payment method failed: ' . $e->getMessage());
-        }
-    }
-
-    public function toPayOrder(){
-        // Get all "to_pay" orders for the user
-        try{
-return $this->repo->getToPayOrdersByUser((int) Auth::id(), 10);
-        }
-        catch (\Exception $e) {
-            Log::warning('Fallback get Order info check failed: ' . $e->getMessage());
-        }
-    }
-    public function toCheckSingleOrder($orderNumber){
-        // Get all "to_pay" orders for the user
-        try{
-        $order = $this->repo->findToPayOrderByNumber((string) $orderNumber, (int) Auth::id());
-
-        if (!$order) {
-            return null;
-        }
-
-        session([
-            'payment_order_id' => $order->id,
-            'payment_order_number' => $orderNumber,
-        ]);
-
-        return $order;
-        }
-        catch (\Exception $e) {
-            Log::warning('Fallback get Order info check failed: ' . $e->getMessage());
         }
     }
 

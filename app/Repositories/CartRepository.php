@@ -52,6 +52,11 @@ class CartRepository
             ->delete();
     }
 
+    public function clearCartItems(int $cartId): int
+    {
+        return CartItem::where('cart_id', $cartId)->delete();
+    }
+
     public function sumCartQuantity(int $cartId): int
     {
         return (int) CartItem::where('cart_id', $cartId)->sum('quantity');

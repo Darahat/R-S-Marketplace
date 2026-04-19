@@ -5,22 +5,23 @@ namespace App\Http\Controllers;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use App\Http\Requests\PaymentProcessRequest;
-use App\Services\CheckoutService;
+use App\Services\OrderService;
+use App\Services\StockManagementService;
 use App\Services\PaymentProcessService;
 use App\Http\Requests\CompletePaymentRequest;
 
 class PaymentProcessController extends Controller
 {
-    function __construct(protected CheckoutService $checkout_service,protected PaymentProcessService $payment_process_service)
+    function __construct(
+        protected OrderService $order_service,
+        protected StockManagementService $stock_service,
+        protected PaymentProcessService $payment_process_service
+    )
     {
 
     }
 public function process(PaymentProcessRequest $request)
     {
-       if (!Auth::check()) {
-           return redirect()->route('home')->with('error', 'Please login to checkout');
-       }
-
        if (!session('checkout_address_id')) {
            return redirect()->route('checkout')->with('error', 'Please select a shipping address first');
        }
@@ -28,12 +29,11 @@ public function process(PaymentProcessRequest $request)
         try {
         $payment_method = $reqData['payment_method'];
         $data = $this->payment_process_service->process($reqData);
-  Log::info($data);
 
         if ($payment_method === 'stripe') {
                 return $this->processStripePayment($reqData, $data['address'], $data['cartItems'], $data['total'], $data['is_pay_subscription']);
             } else {
-                return $this->processNonStripePayment($reqData, $data['address'], $data['cartItems'],  $data['total'], $payment_method, $data['isBuyNow']);
+                return $this->processNonStripePayment($data['address'], $data['cartItems'],  $data['total'], $payment_method, $data['isBuyNow']);
             }
         } catch (\Exception $e) {
             Log::error('Checkout errorrr: ' . $e->getMessage());
@@ -51,10 +51,23 @@ public function process(PaymentProcessRequest $request)
         return redirect($session->url);
     }
 
-    private function processNonStripePayment($request, $address, $cartItems, $total, $payment_method, $isBuyNow)
+    private function processNonStripePayment($address, $cartItems, $total, $payment_method, $isBuyNow)
     {
-        $order = $this->checkout_service->createOrderData($address, $total, $payment_method, $cartItems);
-        $this->checkout_service->updateProductStock($cartItems);
+        $orderStatus = 'Processing';
+        $order = $this->order_service->createOrder(
+            Auth::id(),
+            [
+                'address_id' => $address->id,
+                'order_status' => $orderStatus,
+                'total_amount' => $total,
+                'payment_method' => $payment_method,
+                'payment_status' => 'pending',
+                'notes' => session('checkout_notes', ''),
+            ],
+            $cartItems
+        );
+
+        $this->stock_service->decrementStock($cartItems);
 
         // Create payment record for cash/bkash
         $this->payment_process_service->paymentCreate($order->id,$payment_method,$total);
@@ -69,17 +82,24 @@ public function process(PaymentProcessRequest $request)
 
     public function completePayment(CompletePaymentRequest $request, $orderNumber)
     {
+        // Find order for payment
+        $order = $this->order_service->findOrderForPayment((string) $orderNumber, (int) Auth::id());
 
-        $order = $this->checkout_service->toCheckSingleOrder($orderNumber);
         if (!$order) {
             return redirect()->route('checkout.to_pay')
                 ->with('error', 'Order not found or is not eligible for payment.');
         }
+
         // Store order data in session for payment process
-        $validData= $request->validated();
+        session([
+            'payment_order_id' => $order->id,
+            'payment_order_number' => $orderNumber,
+        ]);
+
+        $validData = $request->validated();
 
         try {
-            $this->payment_process_service->completePayment($order,$validData);
+            $this->payment_process_service->completePayment($order, $validData);
 
             return redirect()->route('checkout.success', ['order' => $orderNumber])
                 ->with('success', 'Order confirmed! Payment pending.');

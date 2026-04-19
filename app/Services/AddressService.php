@@ -108,6 +108,17 @@ class AddressService{
      return $this->repo->updateAddress($address_id,['is_default'=> !$address->is_default]);
     }
 
+    public function getAddressForCheckout(int $addressId, int $userId): Address
+    {
+        $address = $this->repo->findAddressForUser($addressId, $userId);
+
+        if (!$address) {
+            throw new \Exception('Address not found');
+        }
+
+        return $address;
+    }
+
     private function findFallbackAddress(int $userId, String $address_type, int $excludeId): ?Address{
         // Get all addresses of same type except the one we're excluding
         $addresses = $address_type === 'shipping' ? $this->repo->getUserBillingAddress($userId) : $this->repo->getUserShippingAddress($userId);

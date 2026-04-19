@@ -40,6 +40,32 @@ class CartService
         return session()->get('cart', []);
     }
 
+    public function getCheckoutCartItems(bool $isBuyNow): array
+    {
+        session(['is_buy_now' => $isBuyNow]);
+
+        if ($isBuyNow) {
+            return session('buy_now_items', []);
+        }
+
+        return $this->getCartItems();
+    }
+
+    public function clearCheckoutCart(bool $isBuyNow): void
+    {
+        if (!$isBuyNow) {
+            if (Auth::check()) {
+                $cart = $this->repo->getCartForUser((int) Auth::id());
+                if ($cart) {
+                    $this->repo->clearCartItems($cart->id);
+                }
+            }
+            session()->forget('cart');
+        }
+
+        session()->forget(['checkout_address_id', 'checkout_notes', 'is_buy_now', 'buy_now_items']);
+    }
+
     public function addToCart(string $productId, string $quantity): array
     {
         Log::info($productId);

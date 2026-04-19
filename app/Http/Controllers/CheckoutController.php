@@ -5,34 +5,26 @@ namespace App\Http\Controllers;
 use App\Http\Requests\BuyNowRequest;
 use App\Http\Requests\CheckoutRequest;
 use App\Http\Requests\OrderSuccessRequest;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
-use App\Models\Cart;
 
 use App\Models\Product;
-use App\Models\Order;
-use App\Models\OrderItem;
-use App\Models\UserPaymentMethod;
 use App\Services\CheckoutService;
-use Stripe\Stripe;
-use Stripe\Checkout\Session as StripeSession;
+use App\Services\OrderService;
 class CheckoutController extends Controller
 {
     protected $siteTitle;
 
-    function __construct(protected CheckoutService $checkout_service)
+    function __construct(
+        protected CheckoutService $checkout_service,
+        protected OrderService $order_service,
+    )
     {
         $this->siteTitle = 'R&SMarketPlace | ';
     }
 
     public function index()
     {
-        if (!Auth::check()) {
-            return redirect()->route('home')->with('error', 'Please login to checkout');
-        }
-
-    $checkoutindex = $this->checkout_service->index();
+        $checkoutindex = $this->checkout_service->index();
         if (($checkoutindex['isEmptyCart'] ?? false) === true) {
             return redirect()->route('cart.view')->with('error', 'Your cart is empty');
         }
@@ -51,10 +43,6 @@ class CheckoutController extends Controller
 
     public function buyNow(BuyNowRequest $request)
     {
-        if (!Auth::check()) {
-            return redirect()->route('home')->with('error', 'Please login to proceed');
-        }
-
         $product = Product::find($request->validated('product_id'));
         $quantity = $request->validated('quantity');
 
@@ -81,11 +69,6 @@ class CheckoutController extends Controller
 
     public function review(CheckoutRequest $request)
     {
-        if (!Auth::check()) {
-            return redirect()->route('home')->with('error', 'Please login to checkout');
-        }
-
-
         $address = $this->checkout_service->review($request->validated());
 
 
@@ -102,10 +85,6 @@ class CheckoutController extends Controller
 
     public function payment()
     {
-        if (!Auth::check()) {
-            return redirect()->route('home')->with('error', 'Please login to checkout');
-        }
-
         if (!session('checkout_address_id')) {
             return redirect()->route('checkout')->with('error', 'Please select a shipping address first');
         }
@@ -134,31 +113,17 @@ class CheckoutController extends Controller
 
     public function success(OrderSuccessRequest $request)
     {
-        // dd($request->all());
         $data = $request->validated();
         $order = $this->checkout_service->paymentSuccessData($data);
-        //dd($order->address->union);
         return view('frontend_view.pages.checkout.success', [
             'order' => $order,
             'data' => ['title' => $this->siteTitle . 'Order Success'],
         ]);
     }
-    protected function createOrder( $address, $cartItems, $total, $paymentMethod)
-    {
-
-        $order = $this->checkout_service->createOrderData($address,$total,$paymentMethod,$cartItems);
-        return $order;
-    }
-
-
 
     public function toPayOrders()
     {
-        if (!Auth::check()) {
-            return redirect()->route('home')->with('error', 'Please login to view your orders');
-        }
-
-        $orders = $this->checkout_service->toPayOrder();
+        $orders = $this->order_service->getToPayOrders((int) Auth::id(), 10);
 
         $data['title'] = $this->siteTitle . 'Orders to Pay';
 

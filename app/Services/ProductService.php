@@ -13,7 +13,10 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class ProductService
 {
-    public function __construct(private ProductRepository $repo)
+    public function __construct(
+        private ProductRepository $repo,
+        private StockManagementService $stock_service
+    )
     {
     }
 
@@ -163,22 +166,7 @@ class ProductService
      */
     public function updateStock(int $id, int $quantity): bool
     {
-        $product = $this->repo->findProduct($id);
-
-        if (!$product) {
-            return false;
-        }
-
-        $newStock = $product->stock + $quantity;
-
-        if ($newStock < 0) {
-            Log::warning('Attempted to set negative stock', ['id' => $id, 'quantity' => $quantity]);
-            return false;
-        }
-
-        return $this->repo->updateProduct($id, [
-            'stock' => $newStock
-        ]);
+        return $this->stock_service->adjustStock($id, $quantity);
     }
 
     /**
