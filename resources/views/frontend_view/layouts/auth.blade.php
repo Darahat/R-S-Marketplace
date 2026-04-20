@@ -10,21 +10,28 @@
     <link rel="icon" href="{{ asset('images/logo/favicon.png') }}">
 
     <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ asset('assets/plugins/fontawesome-free/css/all.min.css') }}">
 
-    <!-- Tailwind CSS -->
-    <link href="https://unpkg.com/tailwindcss@^2/dist/tailwind.min.css" rel="stylesheet">
-         <meta name="csrf-token" content="{{ csrf_token() }}">
-     <script src="https://unpkg.com/alpinejs@^2.x.x" defer></script>
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <link rel="stylesheet" href="{{ asset('assets/plugins/toastr/toastr.min.css') }}">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <style>
+        :root {
+            --theme-primary: {{ config('theme.colors.primary.DEFAULT', '#3b82f6') }};
+            --theme-primary-dark: {{ config('theme.colors.primary.dark', '#2563eb') }};
+            --theme-secondary: {{ config('theme.colors.secondary.DEFAULT', '#8b5cf6') }};
+            --theme-danger: {{ config('theme.colors.danger.DEFAULT', '#ef4444') }};
+        }
+    </style>
     <!-- Custom CSS -->
     <style>
-        .bg-primary { background-color: #4f46e5; }
-        .bg-secondary { background-color: #7c3aed; }
-        .text-primary { color: #4f46e5; }
-        .text-secondary { color: #7c3aed; }
-        .border-primary { border-color: #4f46e5; }
-        .focus\:ring-primary:focus { --tw-ring-color: #4f46e5; }
-        .focus\:border-primary:focus { border-color: #4f46e5; }
+        .bg-primary { background-color: var(--theme-primary); }
+        .bg-secondary { background-color: var(--theme-secondary); }
+        .text-primary { color: var(--theme-primary); }
+        .text-secondary { color: var(--theme-secondary); }
+        .border-primary { border-color: var(--theme-primary); }
+        .focus\:ring-primary:focus { --tw-ring-color: var(--theme-primary); }
+        .focus\:border-primary:focus { border-color: var(--theme-primary); }
     </style>
 </head>
 <body class="font-sans antialiased">
@@ -50,6 +57,6 @@
     @endif
 </body>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+<script src="{{ asset('assets/plugins/toastr/toastr.min.js') }}"></script>
 @stack('scripts')
 </html>

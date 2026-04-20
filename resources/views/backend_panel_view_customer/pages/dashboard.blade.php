@@ -80,7 +80,7 @@
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
-                    @foreach($dashboard_data['recent_orders'] as $order)
+                    @forelse($dashboard_data['recent_orders'] as $order)
                     @php
                     $statusConfig = [
                         'pending' => [
@@ -163,17 +163,28 @@
                                    <i class="fas fa-eye"></i>
                                 </a>
                                 @if(in_array($status, ['pending', 'processing']))
-                                <a href="#"
-                                   class="text-red-500 hover:text-red-700 transition-colors"
+                                <button type="button"
+                                   class="text-red-500 hover:text-red-700 transition-colors cursor-pointer"
                                    data-tooltip="Cancel Order"
-                                   onclick="return confirm('Are you sure you want to cancel this order?')">
+                                   onclick="cancelOrder({{ $order->id }}, '{{ $order->order_number }}')">
                                    <i class="fas fa-times"></i>
-                                </a>
+                                </button>
                                 @endif
                             </div>
                         </td>
                     </tr>
-                    @endforeach
+                    @empty
+                    <tr>
+                        <td colspan="5" class="px-6 py-12 text-center">
+                            <div class="text-gray-400">
+                                <i class="fas fa-inbox text-4xl mb-3 block"></i>
+                                <p class="text-lg font-semibold text-gray-700 mb-2">No orders yet</p>
+                                <p class="text-sm text-gray-600 mb-4">Start exploring our products and make your first purchase!</p>
+                                <a href="{{ route('home') }}" class="inline-block px-6 py-2 bg-primary text-white rounded-lg hover:opacity-90 transition-opacity font-medium">Start Shopping</a>
+                            </div>
+                        </td>
+                    </tr>
+                    @endforelse
                 </tbody>
             </table>
         </div>
@@ -317,6 +328,26 @@ function moveToCart(productId) {
         },
         error: function() {
             alert('Failed to move item to cart');
+        }
+    });
+}
+
+function cancelOrder(orderId, orderNumber) {
+    if (!confirm('Are you sure you want to cancel this order? This action cannot be undone.')) return;
+
+    $.ajax({
+        url: '{{ url("customer/order") }}/' + orderId + '/cancel',
+        type: 'POST',
+        data: {
+            _token: '{{ csrf_token() }}'
+        },
+        success: function(response) {
+            alert('Order ' + orderNumber + ' has been cancelled successfully');
+            location.reload();
+        },
+        error: function(xhr) {
+            const error = xhr.responseJSON?.message || 'Failed to cancel order';
+            alert(error);
         }
     });
 }

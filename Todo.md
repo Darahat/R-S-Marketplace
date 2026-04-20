@@ -65,3 +65,6 @@ What you get:
 4. Step-by-step “fix then recheck” plan.
 
 If you want, I can start now with Phase 1 and return the first Product Quality report in this chat, then move to Code Quality/Architecture, then Security/Compliance in sequence.
+
+**Its Now agains bruite force
+**Stripe key is now used centralized

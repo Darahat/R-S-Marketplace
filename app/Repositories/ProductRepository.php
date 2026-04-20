@@ -7,9 +7,87 @@ use App\Models\Brand;
 use App\Models\Category;
 use Illuminate\Support\Collection;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class ProductRepository
 {
+    public function getFilteredPaginatedProducts(array $filters, int $perPage = 20): LengthAwarePaginator
+    {
+        $query = Product::with(['category', 'brand']);
+        $this->applyIndexFilters($query, $filters);
+
+        return $query->orderBy('created_at', 'desc')->paginate($perPage);
+    }
+
+    public function applyIndexFilters(Builder $query, array $filters): Builder
+    {
+        // Search functionality
+        if (!empty($filters['search'])) {
+            $search = $filters['search'];
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', '%' . $search . '%')
+                    ->orWhere('slug', 'like', '%' . $search . '%')
+                    ->orWhere('description', 'like', '%' . $search . '%');
+            });
+        }
+
+        // Category filter
+        if (!empty($filters['category'])) {
+            $query->where('category_id', $filters['category']);
+        }
+
+        // Brand filter
+        if (!empty($filters['brand'])) {
+            $query->where('brand_id', $filters['brand']);
+        }
+
+        // Multi-brand filter (used by storefront search)
+        if (!empty($filters['brands']) && is_array($filters['brands'])) {
+            $query->whereIn('brand_id', $filters['brands']);
+        }
+
+        // Multi-category filter (used by storefront search)
+        if (!empty($filters['categories'])) {
+            $categories = is_array($filters['categories'])
+                ? $filters['categories']
+                : explode(',', (string) $filters['categories']);
+
+            $query->whereIn('category_id', array_filter($categories));
+        }
+
+        // Price range filter (used by storefront search)
+        if (isset($filters['min_price']) && $filters['min_price'] !== '') {
+            $query->where('price', '>=', $filters['min_price']);
+        }
+
+        if (isset($filters['max_price']) && $filters['max_price'] !== '') {
+            $query->where('price', '<=', $filters['max_price']);
+        }
+
+        // Status filter
+        if (!empty($filters['status'])) {
+            switch ($filters['status']) {
+                case 'featured':
+                    $query->where('featured', true);
+                    break;
+                case 'best_selling':
+                    $query->where('is_best_selling', true);
+                    break;
+                case 'latest':
+                    $query->where('is_latest', true);
+                    break;
+                case 'flash_sale':
+                    $query->where('is_flash_sale', true);
+                    break;
+                case 'low_stock':
+                    $query->where('stock', '<', 10);
+                    break;
+            }
+        }
+
+        return $query;
+    }
+
     /**
      * Get all products with relationships
      */
@@ -217,6 +295,11 @@ class ProductRepository
         ->chunk($size, function ($products) use ($callback) {
             $callback($products);
         });
+    }
+
+    public function deleteModel(Product $product): bool
+    {
+        return $product->delete();
     }
 
     public function getCategorizedProduct($product_category_id){

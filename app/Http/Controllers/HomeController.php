@@ -3,18 +3,6 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Pagination\Paginator;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Http\File;
-use Carbon\Carbon;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Auth;
-use DateTime;
-use App\Models\HeroSection;
-use App\Models\Category;
-use App\Models\Product;
-use App\Models\Wishlist;
 use App\Services\CategoryService;
 use App\Services\HomeService;
 use App\Services\ProductService;
@@ -35,8 +23,7 @@ class HomeController extends Controller
         $data = array();
         $data['title'] = $this->siteTitle . 'Home';
         $data['page'] = 'home';
-        $serviceReturnData = $this->homeService->index($data);
-        Log::info($serviceReturnData['allCategories']);
+        $serviceReturnData = $this->homeService->index();
         return view('frontend_view.pages.homepage',[
                 'latestProducts' => $serviceReturnData['latestProducts'],
                 'bestSellingProducts' => $serviceReturnData['bestSellingProducts'],
@@ -108,15 +95,6 @@ $filters = [
         $query = $request->input('q', '');
 
         $resultData = $this->homeService->homeSearch($filters);
-
-
-        if ($request->filled('min_price')) {
-            $resultData['productsQuery']->where('price', '>=', $request->input('min_price'));
-        }
-
-        if ($request->filled('max_price')) {
-            $resultData['productsQuery']->where('price', '<=', $request->input('max_price'));
-        }
         if (request()->ajax()) {
             return view('frontend_view.components.cards.productGrid', [
                 'products' => $resultData['products'],

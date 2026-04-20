@@ -11,8 +11,6 @@
  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
   <!-- Font Awesome -->
   <link rel="stylesheet" href="{{ asset('assets/plugins/fontawesome-free/css/all.min.css') }}">
-  <!-- Font Awesome (AdminLTE includes this by default) -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
   <!-- Toastr -->
   <link rel="stylesheet" href="{{ asset('assets/plugins/toastr/toastr.min.css') }}">
@@ -41,10 +39,7 @@
   <!-- jQuery -->
   <script src="{{ asset('assets/plugins/jquery/jquery.min.js') }}"></script>
   <script src="{{ asset('assets/js/smoothie.js') }}"></script>
-  <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
-
-  <!-- jQuery UI JS -->
-  <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
+  <link rel="stylesheet" href="{{ asset('assets/plugins/jquery-ui/jquery-ui.min.css') }}">
   <style>
     #overlay {
         position: fixed;
@@ -82,7 +77,7 @@
       <!-- Left navbar links -->
       <ul class="navbar-nav">
         <li class="nav-item">
-          <a class="nav-link" data-widget="pushmenu" href="#"><i class="fas fa-bars"></i></a>
+          <button type="button" class="nav-link btn btn-link p-0 border-0" data-widget="pushmenu" aria-label="Toggle sidebar"><i class="fas fa-bars"></i></button>
         </li>
       </ul>
 
@@ -90,11 +85,11 @@
       <ul class="navbar-nav ml-auto">
 
         <li class="nav-item dropdown">
-          <a class="nav-link" data-toggle="dropdown" href="#" aria-expanded="true">
+          <button type="button" class="nav-link btn btn-link p-0 border-0" data-toggle="dropdown" aria-expanded="true" aria-label="User menu">
 
               <i class="fas fa-user-circle" style="font-size:1.8rem;"></i>
 
-          </a>
+          </button>
           <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right" style="left: inherit; right: 0px;">
             <a href="{{ url('admin/profile') }}" class="dropdown-item"><i class="fas fa-id-card mr-2"></i> Profile</a>
             <div class="dropdown-divider"></div>
@@ -127,7 +122,7 @@
           <img src="{{ asset('assets/dist/img/user2-160x160.jpg') }}" class="img-circle elevation-2" alt="User Image">
         </div>-->
         <div class="info text-light">
-          Logged in [<a href="#" class="text-warning">{{ Auth::user()->name }}</a>]
+          Logged in [<a href="{{ route('admin.users.show', Auth::id()) }}" class="text-warning">{{ Auth::user()->name }}</a>]
         </div>
       </div>
         <!-- Navigation -->
@@ -157,7 +152,7 @@
           <span class="mr-3">
             <i class="fas fa-code mr-1"></i>
             Crafted with <i class="fas fa-heart text-danger mx-1"></i> by
-            <a href="#" class="text-warning font-weight-bold hover:text-yellow-300">Development Team</a>
+            <span class="text-warning font-weight-bold">Development Team</span>
           </span>
           <span class="badge badge-light">
             <i class="fas fa-tag mr-1"></i> v1.0.0
@@ -223,10 +218,6 @@
 <script src="{{ asset('assets/plugins/toastr/toastr.min.js') }}"></script>
 <!-- AdminLTE App -->
 <script src="{{ asset('assets/dist/js/adminlte.js') }}"></script>
-<!-- AdminLTE for demo purposes -->
-<script src="{{ asset('assets/dist/js/demo.js') }}"></script>
-<!-- AdminLTE dashboard demo (This is only for demo purposes) -->
-<script src="{{ asset('assets/dist/js/pages/dashboard.js') }}"></script>
 @stack('scripts')
 
 <script>

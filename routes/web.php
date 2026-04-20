@@ -34,6 +34,26 @@ Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/category/{slug}', [HomeController::class, 'category'])->name('category');
 Route::get('/product/{slug}', [HomeController::class, 'product'])->name('product');
 Route::get('/search', [HomeController::class, 'search'])->name('search');
+Route::get('/support', function () {
+    return view('frontend_view.pages.support', [
+        'data' => ['title' => 'Customer Support'],
+    ]);
+})->name('support');
+Route::get('/return-policy', function () {
+    return view('frontend_view.pages.return_policy', [
+        'data' => ['title' => 'Return Policy'],
+    ]);
+})->name('return.policy');
+Route::get('/terms', function () {
+    return view('frontend_view.pages.terms', [
+        'data' => ['title' => 'Terms and Conditions'],
+    ]);
+})->name('terms');
+Route::get('/privacy-policy', function () {
+    return view('frontend_view.pages.privacy_policy', [
+        'data' => ['title' => 'Privacy Policy'],
+    ]);
+})->name('privacy.policy');
 
 
 
@@ -103,19 +123,17 @@ Route::prefix('wishlist')->group(function () {
 // Guest/Customer Login
 // Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::get('/login', function () {
-    return view('frontend_view.pages.auth.login');
+    return redirect()->route('home', ['auth' => 'login']);
 })->name('login');
-Route::post('/login', [CustomerAuthController::class, 'login'])->name('checklogin');
-
-// Test route - remove this later
-Route::get('/admin-login-test', function() {
-    Log::info('Test route hit!');
-    return 'Test route works! User: ' . (Auth::check() ? Auth::user()->email : 'guest');
-});
+Route::post('/login', [CustomerAuthController::class, 'login'])
+    ->middleware('throttle:5,1')
+    ->name('checklogin');
 
 // Admin Login - separate GET and POST
 Route::get('/admin-login', [AdminAuthController::class, 'showAdminLogin'])->name('admin.login');
-Route::post('/admin-login', [AdminAuthController::class, 'adminLogin'])->name('admin.checklogin');
+Route::post('/admin-login', [AdminAuthController::class, 'adminLogin'])
+    ->middleware('throttle:3,1')
+    ->name('admin.checklogin');
 
 // Logout - POST only to avoid accidental logout/session invalidation from GET requests
 Route::post('/logout', [CustomerAuthController::class, 'logout'])->name('logout');
@@ -124,10 +142,16 @@ Route::post('/logout', [CustomerAuthController::class, 'logout'])->name('logout'
 Route::middleware('guest')->group(function () {
     Route::get('/register', [CustomerAuthController::class, 'showRegister'])->name('register');
     Route::post('/register', [CustomerAuthController::class, 'register']);
+
+    Route::get('/forgot-password', [CustomerAuthController::class, 'showForgotPassword'])->name('password.request');
+    Route::post('/forgot-password', [CustomerAuthController::class, 'sendPasswordResetLink'])->name('password.email');
+    Route::get('/reset-password/{token}', [CustomerAuthController::class, 'showResetPassword'])->name('password.reset');
+    Route::post('/reset-password', [CustomerAuthController::class, 'resetPassword'])->name('password.update');
 });
 
 Route::group(['prefix' => 'admin', 'middleware' => ['auth:web', 'isAdmin']], function () {
     Route::get('/dashboard', [DashboardController::class, 'dashboard'])->name('admin.dashboard');
+    Route::get('/login-audits', [AdminAuthController::class, 'loginAudits'])->name('admin.login-audits');
 
     // Product Management
      Route::delete('/products/{id}', [ProductController::class, 'destroy'])->name('products.destroy');
@@ -183,12 +207,12 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth:web', 'isAdmin']], fun
     Route::get('/users/{id}', [UserManagementController::class, 'show'])->name('admin.users.show');
     Route::post('/users/{id}/update-role', [UserManagementController::class, 'updateRole'])->name('admin.users.update-role');
 
-    // ADMIN ROUTES - Resource except create/store/setDefault
+    // ADMIN ROUTES - explicit route must come BEFORE resource to avoid {address} wildcard swallowing it
+    Route::get('addresses/getAll', [AddressController::class, 'allAddressList'])->name('addresses.getAll');
+
     Route::resource('addresses', AddressController::class)
         ->names('admin.addresses')
-        ->except(['index','create', 'store','setDefault']);
-
-        Route::get('addresses/getAll', [AddressController::class, 'allAddressList'])->name('addresses.getAll');
+        ->except(['index', 'create', 'store', 'show','setDefault']);
 
 
 /// These routes user role managed by policy
@@ -216,6 +240,7 @@ Route::group(['prefix' => 'customer', 'middleware' => ['auth:web', 'isCustomer']
     Route::get('/order-details/{orderNumber}', [DashboardController::class, 'customerOrderDetails'])->name('customer.order_details');
     Route::get('/order-history', [DashboardController::class, 'customerOrderHistory'])->name('customer.orders');
     Route::get('/wishlist', [WishlistController::class, 'customerWishlist'])->name('customer.wishlist');
+        Route::post('/order/{order_id}/cancel', [DashboardController::class, 'cancelOrder'])->name('customer.order.cancel');
     Route::get('/profile', [DashboardController::class, 'customerProfile'])->name('customer.profile');
 
     // CUSTOMER ROUTES - Full resource routes

@@ -14,7 +14,7 @@
 
           <!-- Product Management -->
           <li class="nav-item has-treeview {{ Request::routeIs('admin.products.*') ? 'menu-open' : '' }}">
-            <a href="#" class="nav-link {{ Request::routeIs('admin.products.*') ? 'active' : '' }}">
+            <a href="{{ route('admin.products.index') }}" class="nav-link {{ Request::routeIs('admin.products.*') ? 'active' : '' }}">
               <i class="nav-icon fas fa-boxes"></i>
               <p>
                 Products
@@ -39,7 +39,7 @@
 
           <!-- Brand Management -->
           <li class="nav-item has-treeview {{ Request::routeIs('admin.brands.*') ? 'menu-open' : '' }}">
-            <a href="#" class="nav-link {{ Request::routeIs('admin.brands.*') ? 'active' : '' }}">
+            <a href="{{ route('admin.brands.index') }}" class="nav-link {{ Request::routeIs('admin.brands.*') ? 'active' : '' }}">
               <i class="nav-icon fas fa-tag"></i>
               <p>
                 Brands
@@ -64,7 +64,7 @@
 
           <!-- Category Management -->
           <li class="nav-item has-treeview {{ Request::routeIs('admin.categories.*') ? 'menu-open' : '' }}">
-            <a href="#" class="nav-link {{ Request::routeIs('admin.categories.*') ? 'active' : '' }}">
+            <a href="{{ route('admin.categories.index') }}" class="nav-link {{ Request::routeIs('admin.categories.*') ? 'active' : '' }}">
               <i class="nav-icon fas fa-sitemap"></i>
               <p>
                 Categories
@@ -93,7 +93,7 @@
 
           <!-- Order Management -->
           <li class="nav-item has-treeview {{ Request::routeIs('admin.orders*') ? 'menu-open' : '' }}">
-            <a href="#" class="nav-link {{ Request::routeIs('admin.orders*') ? 'active' : '' }}">
+            <a href="{{ route('admin.orders') }}" class="nav-link {{ Request::routeIs('admin.orders*') ? 'active' : '' }}">
               <i class="nav-icon fas fa-shopping-cart"></i>
               <p>
                 Orders
@@ -112,7 +112,7 @@
 
           <!-- Payment Management -->
           <li class="nav-item has-treeview {{ Request::routeIs('admin.payments*') ? 'menu-open' : '' }}">
-            <a href="#" class="nav-link {{ Request::routeIs('admin.payments*') ? 'active' : '' }}">
+            <a href="{{ route('admin.payments') }}" class="nav-link {{ Request::routeIs('admin.payments*') ? 'active' : '' }}">
               <i class="nav-icon fas fa-credit-card"></i>
               <p>
                 Payments
@@ -140,6 +140,14 @@
               <p>Hero Section</p>
             </a>
           </li>
+
+          <li class="nav-item">
+            <a href="{{ route('admin.login-audits') }}" class="nav-link {{ Request::routeIs('admin.login-audits') ? 'active' : '' }}">
+              <i class="nav-icon fas fa-shield-alt"></i>
+              <p>Login Audits</p>
+            </a>
+          </li>
+
           <li class="nav-item">
             <a href="{{ route('admin.users.index') }}" class="nav-link {{ Request::routeIs('admin.users.*') ? 'active' : '' }}">
               <i class="nav-icon fas fa-users-cog"></i>
@@ -147,9 +155,9 @@
             </a>
           </li>
         <li class="nav-item">
-            <a href="{{ route('customer.addresses.index') }}" class="nav-link {{ Request::routeIs('admin.hero.*') ? 'active' : '' }}">
-              <i class="nav-icon fas fa-image"></i>
-              <p>Address</p>
+            <a href="{{ route('addresses.getAll') }}" class="nav-link {{ Request::routeIs('addresses.*') ? 'active' : '' }}">
+              <i class="nav-icon fas fa-map-marker-alt"></i>
+              <p>Addresses</p>
             </a>
           </li>
           <li class="nav-item">

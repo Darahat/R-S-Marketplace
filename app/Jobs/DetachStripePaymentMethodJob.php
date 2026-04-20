@@ -4,9 +4,7 @@ namespace App\Jobs;
 
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
- use Stripe\Stripe;
 use Stripe\PaymentMethod as StripePaymentMethod;
-use App\Models\UserPaymentMethod;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 
 class DetachStripePaymentMethodJob implements ShouldQueue, ShouldBeUnique
@@ -16,9 +14,12 @@ class DetachStripePaymentMethodJob implements ShouldQueue, ShouldBeUnique
     /**
      * Create a new job instance.
      */
-    public function __construct(public UserPaymentMethod $method)
+    public function __construct(
+        public string $stripePaymentMethodId,
+        public int $localMethodId,
+    )
     {
-         $this->method =  $method;
+        //
     }
     public int $tries = 3;
     public array $backoff = [30,60,120]; // wait 30s, the 60s, then 120s between retries
@@ -28,12 +29,11 @@ class DetachStripePaymentMethodJob implements ShouldQueue, ShouldBeUnique
      */
     public function uniqueId():string
     {
-        return 'detach_stripe_pm_'. $this->method->id;
+        return 'detach_stripe_pm_' . $this->localMethodId;
     }
     public function handle(): void
     {
-        Stripe::setApiKey(config('services.stripe.secret'));
-        StripePaymentMethod::retrieve(($this->method)->detach());
+        StripePaymentMethod::retrieve($this->stripePaymentMethodId)->detach();
     }
 }
 

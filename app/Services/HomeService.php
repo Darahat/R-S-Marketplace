@@ -1,24 +1,27 @@
 <?php
 namespace App\Services;
 
-use App\Repositories\UserAddressRepository;
+use App\Repositories\HomeRepository;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
-use App\Models\Wishlist;
-use App\Models\Category;
-use App\Models\Product;
 use Illuminate\Support\Facades\Storage;
-class HomeService{
-      use AuthorizesRequests;
-       protected $siteTitle;
-    public function __construct(protected ProductService $product_service)
-    {
+
+class HomeService
+{
+    use AuthorizesRequests;
+
+    protected $siteTitle;
+
+    public function __construct(
+        protected ProductService $product_service,
+        protected HomeRepository $repo,
+    ) {
         $this->siteTitle = '';
     }
     public function getWishlistProductIds(): array
     {
         if (Auth::check()) {
-            $wishlist = Wishlist::where('user_id', Auth::id())->first();
+            $wishlist = $this->repo->getWishlistForUser(Auth::id());
 
             return $wishlist
                 ? $wishlist->items()->pluck('product_id')->map(fn ($productId) => (int) $productId)->toArray()
@@ -38,10 +41,9 @@ class HomeService{
             return $product;
         });
     }
-    public function index(){
-        $allCategories = Category::where('status', 1)
-            ->orderBy('name', 'asc')
-            ->get();
+    public function index()
+    {
+        $allCategories = $this->repo->getActiveCategories();
 
         // Group by parent_id
         $categories = $allCategories->whereNull('parent_id');
@@ -51,6 +53,7 @@ class HomeService{
         foreach ($categories as $category) {
             $category->subcategories = $subcategories->where('parent_id', $category->id)->values();
         }
+
         // Hero settings from DB (fallback to defaults)
         $heroDefaults = [
             'headline' => 'Next-Gen Tech for 2025',
@@ -63,20 +66,20 @@ class HomeService{
             'banner_image' => null,
         ];
 
-        $heroModel = \App\Models\HeroSection::first();
+        $heroModel = $this->repo->getHeroSection();
 
         // One-time migration from legacy JSON if table is empty
         if (!$heroModel && Storage::disk('local')->exists('hero_section.json')) {
             $json = json_decode(Storage::disk('local')->get('hero_section.json'), true);
             if (is_array($json)) {
-                $heroModel = \App\Models\HeroSection::create(array_merge($heroDefaults, $json));
+                $heroModel = $this->repo->createHeroSection(array_merge($heroDefaults, $json));
             }
         }
 
         $heroSettings = $heroModel ? array_merge($heroDefaults, $heroModel->toArray()) : $heroDefaults;
         $wishlistIds = $this->getWishlistProductIds();
 
-        $productBase = Product::where('stock', '>', 0);
+        $productBase = $this->repo->getInStockProductsQuery();
 
         $latestProducts = $this->markWishlisted((clone $productBase)
             ->where('is_latest', true)
@@ -119,11 +122,9 @@ class HomeService{
         ];
     }
 
-    public function homePageProduct(String $slug):array{
-        $product =Product::with(['reviews.user:id,name'])
-        ->withAvg('reviews','rating')
-        ->withCount('reviews')
-        ->where('slug', $slug)->firstOrFail();
+    public function homePageProduct(string $slug): array
+    {
+        $product = $this->repo->getProductBySlug($slug);
 
         // Get product reviews
         $reviews = $product->reviews;
@@ -137,11 +138,9 @@ class HomeService{
     ];
             }
 
-    public function homeSearch($filters){
-        $allCategories = Category::
-            where('status', true)
-            ->orderBy('name', 'asc')
-            ->get();
+    public function homeSearch($filters)
+    {
+        $allCategories = $this->repo->getActiveCategories();
 
         $categories = $allCategories->whereNull('parent_id');
         $subcategories = $allCategories->whereNotNull('parent_id');
@@ -152,7 +151,7 @@ class HomeService{
 
         $wishlistIds = $this->getWishlistProductIds();
         // Search products
-        $productsQuery = Product::query()->where('stock', '>', 0);
+        $productsQuery = $this->repo->getSearchProductsQuery();
         $productsQuery = $this->product_service->index($productsQuery, $filters);
         $products = $productsQuery->orderBy('created_at', 'desc')->paginate(12);
         $products->setCollection($this->markWishlisted($products->getCollection(), $wishlistIds));

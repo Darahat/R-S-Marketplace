@@ -7,7 +7,13 @@
         <ol class="list-reset flex text-gray-600">
             <li><a href="{{ route('home') }}" class="hover:text-primary">Home</a></li>
             <li><span class="mx-2">/</span></li>
-            <li><a href="" class="hover:text-primary">{{ $product->category_id }}</a></li>
+            <li>
+                @if(optional($product->category)->slug)
+                    <a href="{{ route('category', $product->category->slug) }}" class="hover:text-primary">{{ $product->category->name }}</a>
+                @else
+                    <span>{{ $product->category_id }}</span>
+                @endif
+            </li>
             <li><span class="mx-2">/</span></li>
             <li class="text-gray-900">{{ $product->name }}</li>
         </ol>
@@ -108,14 +114,14 @@
             <nav class="border-b border-gray-200">
                 <ul class="flex -mb-px">
                     <li class="mr-6">
-                        <a :class="tab === 'description' ? 'border-primary text-primary' : 'border-transparent text-gray-600'"
-                            @click.prevent="tab = 'description'" href="#"
-                            class="inline-block py-2 px-4 border-b-2 font-medium">Description</a>
+                        <button type="button" :class="tab === 'description' ? 'border-primary text-primary' : 'border-transparent text-gray-600'"
+                            @click="tab = 'description'"
+                            class="inline-block py-2 px-4 border-b-2 font-medium">Description</button>
                     </li>
                     <li class="mr-6">
-                        <a :class="tab === 'reviews' ? 'border-primary text-primary' : 'border-transparent text-gray-600'"
-                            @click.prevent="tab = 'reviews'" href="#"
-                            class="inline-block py-2 px-4 border-b-2 font-medium">Reviews ({{ $reviewCount ?? 0 }})</a>
+                        <button type="button" :class="tab === 'reviews' ? 'border-primary text-primary' : 'border-transparent text-gray-600'"
+                            @click="tab = 'reviews'"
+                            class="inline-block py-2 px-4 border-b-2 font-medium">Reviews ({{ $reviewCount ?? 0 }})</button>
                     </li>
                 </ul>
             </nav>

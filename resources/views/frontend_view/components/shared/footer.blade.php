@@ -8,51 +8,51 @@
                     </a>
                 <p class="text-gray-400 mb-4">Your destination for cutting-edge technology and innovative gadgets that shape the future.</p>
                 <div class="flex gap-4">
-                    <a href="#" class="bg-gray-700 hover:bg-accent w-10 h-10 rounded-full flex items-center justify-center transition">
+                    <button type="button" disabled title="Facebook coming soon" class="bg-gray-700 opacity-70 cursor-not-allowed w-10 h-10 rounded-full flex items-center justify-center transition">
                         <i class="fab fa-facebook-f"></i>
-                    </a>
-                    <a href="#" class="bg-gray-700 hover:bg-accent w-10 h-10 rounded-full flex items-center justify-center transition">
+                    </button>
+                    <button type="button" disabled title="Twitter coming soon" class="bg-gray-700 opacity-70 cursor-not-allowed w-10 h-10 rounded-full flex items-center justify-center transition">
                         <i class="fab fa-twitter"></i>
-                    </a>
-                    <a href="#" class="bg-gray-700 hover:bg-accent w-10 h-10 rounded-full flex items-center justify-center transition">
+                    </button>
+                    <button type="button" disabled title="Instagram coming soon" class="bg-gray-700 opacity-70 cursor-not-allowed w-10 h-10 rounded-full flex items-center justify-center transition">
                         <i class="fab fa-instagram"></i>
-                    </a>
-                    <a href="#" class="bg-gray-700 hover:bg-accent w-10 h-10 rounded-full flex items-center justify-center transition">
+                    </button>
+                    <button type="button" disabled title="YouTube coming soon" class="bg-gray-700 opacity-70 cursor-not-allowed w-10 h-10 rounded-full flex items-center justify-center transition">
                         <i class="fab fa-youtube"></i>
-                    </a>
+                    </button>
                 </div>
             </div>
 
             <div>
                 <h3 class="text-xl font-semibold mb-4 relative pb-2">Shop</h3>
                 <ul class="space-y-2">
-                    <li><a href="#" class="text-gray-400 hover:text-success transition hover:pl-2">Smartphones</a></li>
-                    <li><a href="#" class="text-gray-400 hover:text-success transition hover:pl-2">Laptops</a></li>
-                    <li><a href="#" class="text-gray-400 hover:text-success transition hover:pl-2">Smart Watches</a></li>
-                    <li><a href="#" class="text-gray-400 hover:text-success transition hover:pl-2">Audio</a></li>
-                    <li><a href="#" class="text-gray-400 hover:text-success transition hover:pl-2">Accessories</a></li>
+                    <li><a href="{{ route('search', ['q' => 'Smartphones']) }}" class="text-gray-400 hover:text-success transition hover:pl-2">Smartphones</a></li>
+                    <li><a href="{{ route('search', ['q' => 'Laptops']) }}" class="text-gray-400 hover:text-success transition hover:pl-2">Laptops</a></li>
+                    <li><a href="{{ route('search', ['q' => 'Smart Watches']) }}" class="text-gray-400 hover:text-success transition hover:pl-2">Smart Watches</a></li>
+                    <li><a href="{{ route('search', ['q' => 'Audio']) }}" class="text-gray-400 hover:text-success transition hover:pl-2">Audio</a></li>
+                    <li><a href="{{ route('search', ['q' => 'Accessories']) }}" class="text-gray-400 hover:text-success transition hover:pl-2">Accessories</a></li>
                 </ul>
             </div>
 
             <div>
                 <h3 class="text-xl font-semibold mb-4 relative pb-2">Support</h3>
                 <ul class="space-y-2">
-                    <li><a href="#" class="text-gray-400 hover:text-success transition hover:pl-2">Contact Us</a></li>
-                    <li><a href="#" class="text-gray-400 hover:text-success transition hover:pl-2">FAQs</a></li>
-                    <li><a href="#" class="text-gray-400 hover:text-success transition hover:pl-2">Shipping</a></li>
-                    <li><a href="#" class="text-gray-400 hover:text-success transition hover:pl-2">Returns</a></li>
-                    <li><a href="#" class="text-gray-400 hover:text-success transition hover:pl-2">Warranty</a></li>
+                    <li><a href="{{ route('support') }}" class="text-gray-400 hover:text-success transition hover:pl-2">Contact Us</a></li>
+                    <li><span class="text-gray-400">FAQs</span></li>
+                    <li><span class="text-gray-400">Shipping</span></li>
+                    <li><a href="{{ route('return.policy') }}" class="text-gray-400 hover:text-success transition hover:pl-2">Returns</a></li>
+                    <li><span class="text-gray-400">Warranty</span></li>
                 </ul>
             </div>
 
             <div>
                 <h3 class="text-xl font-semibold mb-4 relative pb-2">Company</h3>
                 <ul class="space-y-2">
-                    <li><a href="#" class="text-gray-400 hover:text-success transition hover:pl-2">About Us</a></li>
-                    <li><a href="#" class="text-gray-400 hover:text-success transition hover:pl-2">Blog</a></li>
-                    <li><a href="#" class="text-gray-400 hover:text-success transition hover:pl-2">Careers</a></li>
-                    <li><a href="#" class="text-gray-400 hover:text-success transition hover:pl-2">Press</a></li>
-                    <li><a href="#" class="text-gray-400 hover:text-success transition hover:pl-2">Privacy Policy</a></li>
+                    <li><span class="text-gray-400">About Us</span></li>
+                    <li><span class="text-gray-400">Blog</span></li>
+                    <li><span class="text-gray-400">Careers</span></li>
+                    <li><span class="text-gray-400">Press</span></li>
+                    <li><a href="{{ route('privacy.policy') }}" class="text-gray-400 hover:text-success transition hover:pl-2">Privacy Policy</a></li>
                 </ul>
             </div>
         </div>

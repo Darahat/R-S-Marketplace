@@ -74,6 +74,13 @@ class UserAddressRepository{
     public function findAddress(int $address_id): ? Address{
     return Address::find($address_id);
     }
+
+    public function findAddressForUser(int $addressId, int $userId): ?Address
+    {
+        return Address::where('id', $addressId)
+            ->where('user_id', $userId)
+            ->first();
+    }
     /**
      * Delete Address by ID.
      */

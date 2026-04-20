@@ -64,8 +64,7 @@
 
     <!-- Orders List -->
     <div class="divide-y divide-gray-200">
-        <!-- Sample Order 1 -->
-        @foreach ($orderData as $order)
+        @forelse ($orderData as $order)
         @php
         $statusConfig = [
             'pending' => [
@@ -147,69 +146,74 @@
 
             <!-- Order Items Preview -->
             <div class="mt-4">
-                <div class="flex -space-x-2 overflow-hidden">
-                    <img class="inline-block h-12 w-12 rounded-full ring-2 ring-white" src="https://via.placeholder.com/80?text=Product+1" alt="Product 1">
-                    <img class="inline-block h-12 w-12 rounded-full ring-2 ring-white" src="https://via.placeholder.com/80?text=Product+2" alt="Product 2">
-                    <img class="inline-block h-12 w-12 rounded-full ring-2 ring-white" src="https://via.placeholder.com/80?text=Product+3" alt="Product 3">
-                    <span class="inline-flex items-center justify-center h-12 w-12 rounded-full bg-gray-100 ring-2 ring-white text-gray-500 font-medium">+2</span>
+                <div class="flex items-center justify-between gap-4 flex-wrap">
+                    <div class="flex -space-x-2 overflow-hidden">
+                        @forelse($order->items->take(3) as $item)
+                            @php
+                                $product = $item->product;
+                                $productImage = $product && $product->image
+                                    ? (filter_var($product->image, FILTER_VALIDATE_URL) ? $product->image : asset('storage/' . $product->image))
+                                    : asset('images/no-image.svg');
+                            @endphp
+                            <img
+                                class="inline-block h-12 w-12 rounded-full ring-2 ring-white object-cover"
+                                src="{{ $productImage }}"
+                                alt="{{ $product?->name ?? 'Product image' }}"
+                                title="{{ $product?->name ?? 'Product' }}"
+                                onerror="this.onerror=null;this.src='{{ asset('images/no-image.svg') }}';"
+                            >
+                        @empty
+                            <span class="inline-flex items-center justify-center h-12 px-3 rounded-full bg-gray-100 ring-2 ring-white text-gray-500 text-xs font-medium">
+                                No items
+                            </span>
+                        @endforelse
+
+                        @if($order->items->count() > 3)
+                            <span class="inline-flex items-center justify-center h-12 w-12 rounded-full bg-gray-100 ring-2 ring-white text-gray-500 font-medium">
+                                +{{ $order->items->count() - 3 }}
+                            </span>
+                        @endif
+                    </div>
+                    <div class="text-sm text-gray-500">
+                        {{ $order->items->count() }} {{ \Illuminate\Support\Str::plural('item', $order->items->count()) }}
+                    </div>
                 </div>
             </div>
         </div>
 
-      @endforeach
+        @empty
+        <div class="px-6 py-12 text-center">
+            <div class="mx-auto h-14 w-14 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+                <i class="fas fa-box-open text-gray-400 text-xl"></i>
+            </div>
+            <h2 class="text-lg font-semibold text-gray-800">No orders yet</h2>
+            <p class="text-sm text-gray-600 mt-2">You have not placed any orders yet. Start browsing products to place your first order.</p>
+            <a href="{{ route('home') }}" class="inline-flex items-center mt-4 px-4 py-2 rounded-md bg-primary-600 text-white hover:bg-primary-700">
+                Continue Shopping
+            </a>
+        </div>
+        @endforelse
     </div>
 
     <!-- Pagination -->
-    <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
-        <div class="flex-1 flex justify-between sm:hidden">
-            <a href="#" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                Previous
-            </a>
-            <a href="#" class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                Next
-            </a>
+    @if($orderData->hasPages())
+    <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+            <p class="text-sm text-gray-700">
+                Showing
+                <span class="font-medium">{{ $orderData->firstItem() }}</span>
+                to
+                <span class="font-medium">{{ $orderData->lastItem() }}</span>
+                of
+                <span class="font-medium">{{ $orderData->total() }}</span>
+                orders
+            </p>
         </div>
-        <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-            <div>
-                <p class="text-sm text-gray-700">
-                    Showing
-                    <span class="font-medium">1</span>
-                    to
-                    <span class="font-medium">3</span>
-                    of
-                    <span class="font-medium">12</span>
-                    orders
-                </p>
-            </div>
-            <div>
-                <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-                    <a href="#" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
-                        <span class="sr-only">Previous</span>
-                        <i class="fas fa-chevron-left"></i>
-                    </a>
-                    <a href="#" aria-current="page" class="z-10 bg-primary-50 border-primary-500 text-primary-600 relative inline-flex items-center px-4 py-2 border text-sm font-medium">
-                        1
-                    </a>
-                    <a href="#" class="bg-white border-gray-300 text-gray-500 hover:bg-gray-50 relative inline-flex items-center px-4 py-2 border text-sm font-medium">
-                        2
-                    </a>
-                    <a href="#" class="bg-white border-gray-300 text-gray-500 hover:bg-gray-50 relative inline-flex items-center px-4 py-2 border text-sm font-medium">
-                        3
-                    </a>
-                    <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">
-                        ...
-                    </span>
-                    <a href="#" class="bg-white border-gray-300 text-gray-500 hover:bg-gray-50 relative inline-flex items-center px-4 py-2 border text-sm font-medium">
-                        8
-                    </a>
-                    <a href="#" class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
-                        <span class="sr-only">Next</span>
-                        <i class="fas fa-chevron-right"></i>
-                    </a>
-                </nav>
-            </div>
+        <div>
+            {{ $orderData->appends(request()->query())->links() }}
         </div>
     </div>
+    @endif
 </div>
 
 @push('styles')
@@ -226,17 +230,13 @@
 @push('scripts')
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Filter functionality
         const statusFilter = document.getElementById('status-filter');
         const dateFilter = document.getElementById('date-filter');
         const orderSearch = document.getElementById('order-search');
 
-        // You would implement actual filtering logic here
         [statusFilter, dateFilter, orderSearch].forEach(element => {
             element.addEventListener('change', function() {
                 console.log('Filtering orders...');
-                // In a real implementation, this would trigger an AJAX request or form submission
-                // to filter the orders based on the selected criteria
             });
         });
     });

@@ -5,16 +5,19 @@ use App\Repositories\BrandRepository;
 use App\Models\Brand;
 use Illuminate\Support\Facades\Mail;
 use App\Jobs\BrandCreatedNotificationJob;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Http\UploadedFile;
 class BrandService{
   public function __construct(private BrandRepository $repo)
     {
     }
+
+    public function viewPaginatedBrand()
+    {
+        return $this->repo->viewPaginatedBrand();
+    }
+
       public function createBrand(array $data): ?Brand
 {
-    Log::info('Creating brand with data:', $data);
-
     // Generate slug
     $data['slug'] = Str::slug($data['name']);
 
@@ -29,7 +32,7 @@ class BrandService{
     }
     $brand = $this->repo->createBrand($data);
 
-    BrandCreatedNotificationJob::dispatch($brand)->delay(now()->addMinutes(2));
+    BrandCreatedNotificationJob::dispatch($brand->id)->delay(now()->addMinutes(2));
     // Mail::to('admin@example.com')->send(new BrandCreatedNotification($brand));
 
     return $brand;

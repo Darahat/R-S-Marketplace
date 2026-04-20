@@ -34,6 +34,50 @@ class OrderTrackingFeatureTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertSee($order->order_number);
+        $response->assertSee('My Orders');
+    }
+
+    public function test_customer_order_history_uses_real_order_item_preview_without_demo_placeholders(): void
+    {
+        $customer = User::factory()->create([
+            'user_type' => User::CUSTOMER,
+            'mobile' => '01720000011',
+        ]);
+
+        $category = Category::factory()->active()->create();
+        $product = Product::factory()->create([
+            'name' => 'History Preview Product',
+            'slug' => 'history-preview-product',
+            'category_id' => $category->id,
+            'image' => null,
+            'stock' => 10,
+        ]);
+
+        $order = Order::create([
+            'user_id' => $customer->id,
+            'order_number' => 'ORD-HISTORY-REAL-001',
+            'order_status' => 'processing',
+            'payment_method' => 'cash',
+            'payment_status' => 'pending',
+            'total_amount' => 1500,
+        ]);
+
+        OrderItem::create([
+            'order_id' => $order->id,
+            'product_id' => $product->id,
+            'quantity' => 1,
+            'price' => 1500,
+            'total' => 1500,
+        ]);
+
+        $response = $this->actingAs($customer)->get(route('customer.orders'));
+
+        $response->assertStatus(200);
+        $response->assertSee($order->order_number);
+        $response->assertDontSee('via.placeholder.com', false);
+        $response->assertSee(route('customer.order_details', [
+            'orderNumber' => $order->order_number,
+        ]), false);
     }
 
     public function test_customer_can_view_own_order_details_by_order_number(): void
@@ -75,6 +119,7 @@ class OrderTrackingFeatureTest extends TestCase
         $response->assertStatus(200);
         $response->assertSee($order->order_number);
         $response->assertSee('Tracking Product');
+        $response->assertSee(route('customer.orders'), false);
     }
 
     public function test_customer_cannot_view_other_customers_order_details(): void

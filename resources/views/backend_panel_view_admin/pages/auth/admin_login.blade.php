@@ -9,12 +9,13 @@
         <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
             Sign in to your admin account
         </h2>
-        {{-- <p class="mt-2 text-center text-sm text-gray-600">
-            Or
-            <a href="{{ route('admin-register') }}" class="font-medium text-primary hover:text-secondary">
-                create a new account
+        <p class="mt-2 text-center text-sm text-gray-600">
+            Admin accounts are created by the system owner.
+            Need a customer account?
+            <a href="{{ route('register') }}" class="font-medium text-primary hover:text-secondary">
+                Register here
             </a>
-        </p> --}}
+        </p>
     </div>
 
     <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
@@ -95,15 +96,15 @@
 
                 <div class="mt-6 grid grid-cols-2 gap-3">
                     <div>
-                        <a href="#" class="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                        <button type="button" disabled title="Social login is not enabled" class="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-gray-100 text-sm font-medium text-gray-400 cursor-not-allowed">
                             <i class="fab fa-facebook-f text-blue-600"></i>
-                        </a>
+                        </button>
                     </div>
 
                     <div>
-                        <a href="#" class="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                        <button type="button" disabled title="Social login is not enabled" class="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-gray-100 text-sm font-medium text-gray-400 cursor-not-allowed">
                             <i class="fab fa-google text-red-600"></i>
-                        </a>
+                        </button>
                     </div>
                 </div>
             </div>

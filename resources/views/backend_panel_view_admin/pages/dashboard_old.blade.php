@@ -12,7 +12,7 @@
           </div><!-- /.col -->
           <div class="col-sm-6">
             <ol class="breadcrumb float-sm-right">
-              <li class="breadcrumb-item"><a href="#">Home</a></li>
+              <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Home</a></li>
               <li class="breadcrumb-item active">{{ $page_header }}</li>
             </ol>
           </div><!-- /.col -->
@@ -29,7 +29,7 @@
                     <span class="info-box-icon bg-primary elevation-1"><i class="fas fa-users"></i></span>
 
                     <div class="info-box-content">
-                        <span class="info-box-text"><a href="#" class="link-primary link-offset-2">Total Users</a></span>
+                      <span class="info-box-text"><a href="{{ route('admin.users.index') }}" class="link-primary link-offset-2">Total Users</a></span>
                         <span class="info-box-number">
 
                         <small></small>
@@ -49,7 +49,7 @@
                     <span class="info-box-icon bg-secondary elevation-1"><i class="fas fa-wifi"></i></span>
 
                     <div class="info-box-content">
-                        <span class="info-box-text"><a href="" class="link-primary link-offset-2">Total Offline</a></span>
+                      <span class="info-box-text"><a href="{{ route('admin.dashboard') }}" class="link-primary link-offset-2">Total Offline</a></span>
                         <span class="info-box-number">
 
                         <small></small>

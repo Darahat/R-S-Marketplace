@@ -19,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Apply metrics collection to all requests
         $middleware->append(\App\Http\Middleware\CollectMetrics::class);
+        $middleware->append(\App\Http\Middleware\SetSecurityHeaders::class);
 
         $middleware->alias([
             'isAdmin' => \App\Http\Middleware\IsAdmin::class,

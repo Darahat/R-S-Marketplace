@@ -2,64 +2,65 @@
 
 namespace App\Http\Controllers\Admin;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
 
-use App\Models\User;
+use App\Services\AdminAuthService;
 use App\Services\AuthService;
+use App\Services\RoleRedirectService;
 use App\Http\Requests\LoginRequest;
 
 class AdminAuthController extends Controller
 {
-    public function __construct(  private AuthService $service){}
+    public function __construct(
+        private AuthService $authService,
+        private AdminAuthService $adminAuthService,
+        private RoleRedirectService $roleRedirectService,
+    ){}
 
     // Show Admin Login Form (GET)
     public function showAdminLogin()
     {
-        Log::info('Show Admin Login Form called');
         return view('backend_panel_view_admin.pages.auth.admin_login');
     }
 
     // Handle Admin Login (POST)
     public function adminLogin(LoginRequest $request)
     {
-        Log::info('AdminLogin POST called', [
-            'email' => $request->email ?? 'no email'
-        ]);
+        // Attempt admin login via service
+        $user = $this->adminAuthService->attemptLogin(
+            $request->validated(),
+            $request->boolean('remember'),
+            $request->ip(),
+            $request->header('User-Agent')
+        );
 
-        // Handle admin login on POST
-        $credentials = $request->validated();
-
-        if (Auth::attempt($credentials, $request->remember)) {
-            /** @var User|null $user */
-            $user = Auth::user();
-
-            // Check if user is admin
-            if (!$user || !$user->isAdmin()) {
-                Auth::logout();
-                return back()->withErrors([
-                    'email' => 'You do not have admin access.',
-                ])->onlyInput('email');
-            }
-
-            // Update login details
-            $this->service->recordLoginMetaData($user,$request->ip(),$request->header('User-Agent'));
-
-            session()->regenerate();
-            return redirect()->intended($this->service->redirectByRole($user));
+        if (!$user) {
+            return back()->withErrors([
+                'email' => 'The provided credentials do not match our records, or you do not have admin access.',
+            ])->onlyInput('email');
         }
 
-        return back()->withErrors([
-            'email' => 'The provided credentials do not match our records.',
-        ])->onlyInput('email');
+        return redirect()->intended($this->roleRedirectService->redirectByRole($user));
     }
 
 
     // Handle Logout
     public function logout()
     {
-        $this->service->logout();
+        $this->authService->logout();
         return redirect('/');
+    }
+
+    public function loginAudits(Request $request)
+    {
+        $audits = $this->adminAuthService->getLoginAudits($request->all(), 20);
+
+        return view('backend_panel_view_admin.pages.auth.login_audits', [
+            'page_title' => 'Login Audits',
+            'page_header' => 'Authentication Audit Trail',
+            'audits' => $audits,
+        ]);
     }
 
 

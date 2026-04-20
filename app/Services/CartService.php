@@ -1,49 +1,32 @@
 <?php
 namespace App\Services;
-use App\Models\Cart;
-use App\Models\CartItem;
+
 use App\Repositories\CartRepository;
 use Illuminate\Support\Facades\Auth;
-use App\Models\Product;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 
-class CartService{
-  public function __construct(protected CartRepository $repo)
+class CartService
+{
+    public function __construct(protected CartRepository $repo)
     {
 
     }
-  public function syncGuestCart($id)
+
+    public function syncGuestCart(int $id): void
     {
         if (session()->has('cart')) {
             $guestCart = session('cart', []);
-            $cart = Cart::firstOrCreate(['user_id' => $id]);
-
-            foreach ($guestCart as $productId => $item) {
-                $cartItem = CartItem::where('cart_id', $cart->id)
-                    ->where('product_id', $productId)
-                    ->first();
-
-                if ($cartItem) {
-                    $cartItem->quantity += $item['quantity'];
-                    $cartItem->save();
-                } else {
-                    CartItem::create([
-                        'cart_id' => $cart->id,
-                        'product_id' => $productId,
-                        'quantity' => $item['quantity'],
-                        'price' => $item['price']
-                    ]);
-                }
-            }
-
+            $this->repo->syncGuestCartItems($id, $guestCart);
             session()->forget('cart');
         }
     }
-    public function getCartItems():array{
-    if (Auth::check()) {
-            $cart = Cart::firstOrCreate(['user_id' => Auth::id()]);
-            return $cart->items()->with('product')->get()->map(function ($item) {
+
+    public function getCartItems(): array
+    {
+        if (Auth::check()) {
+            $cart = $this->repo->firstOrCreateCartByUser((int) Auth::id());
+
+            return $this->repo->getCartItemsWithProduct($cart->id)->map(function ($item) {
                 return [
                     'id' => $item->product_id,
                     'name' => $item->product->name,
@@ -57,10 +40,40 @@ class CartService{
         return session()->get('cart', []);
     }
 
-    public function addToCart(String $productId,String $quantity):Array {
+    public function getCheckoutCartItems(bool $isBuyNow): array
+    {
+        session(['is_buy_now' => $isBuyNow]);
+
+        if ($isBuyNow) {
+            return session('buy_now_items', []);
+        }
+
+        return $this->getCartItems();
+    }
+
+    public function clearCheckoutCart(bool $isBuyNow): void
+    {
+        if (!$isBuyNow) {
+            if (Auth::check()) {
+                $cart = $this->repo->getCartForUser((int) Auth::id());
+                if ($cart) {
+                    $this->repo->clearCartItems($cart->id);
+                }
+            }
+            session()->forget('cart');
+        }
+
+        session()->forget(['checkout_address_id', 'checkout_notes', 'is_buy_now', 'buy_now_items']);
+    }
+
+    public function addToCart(string $productId, string $quantity): array
+    {
         Log::info($productId);
         Log::info($quantity);
-        $product = Product::find($productId);
+
+        $productId = (int) $productId;
+        $quantity = (int) $quantity;
+        $product = $this->repo->findProduct($productId);
 
         if (!$product) {
             return [
@@ -72,15 +85,14 @@ class CartService{
 
         if (Auth::check()) {
             // Database storage for logged-in users
-            $cart = Cart::firstOrCreate(['user_id' => Auth::id()]);
-            // dd($cart,$productId);
+            $cart = $this->repo->firstOrCreateCartByUser((int) Auth::id());
             $cartItem = $this->repo->getCartItem($cart->id, $productId);
 
             if ($cartItem) {
                 $cartItem->quantity += $quantity;
-                $cartItem->save();
+                $this->repo->saveCartItem($cartItem);
             } else {
-                CartItem::create([
+                $this->repo->createCartItem([
                     'cart_id' => $cart->id,
                     'product_id' => $productId,
                     'quantity' => $quantity,
@@ -88,8 +100,8 @@ class CartService{
                 ]);
             }
 
-            $totalQuantity = $cart->items->sum('quantity');
-            $cartCount = $cart->items->count();
+            $totalQuantity = $this->repo->sumCartQuantity($cart->id);
+            $cartCount = $this->repo->countCartItems($cart->id);
         } else {
             // Session storage for guests
             $cart = session()->get('cart', []);
@@ -112,25 +124,29 @@ class CartService{
         }
 
         return [
-    'totalQuantity' => $totalQuantity,
-    'cartCount' => $cartCount
-];
+            'totalQuantity' => $totalQuantity,
+            'cartCount' => $cartCount
+        ];
     }
 
-    public function update(int $itemId, int $quantity){
+    public function update(int $itemId, int $quantity): array
+    {
+        $total = 0;
+        $totalQuantity = 0;
+
         if (Auth::check()) {
-            $cart = $this->repo->getUserIdFromCart();
+            $cart = $this->repo->getCartForUser((int) Auth::id());
             if ($cart) {
                 $cartItem = $this->repo->getCartItem($cart->id,$itemId);
 
                 if ($cartItem) {
                     $cartItem->quantity = $quantity;
-                    $cartItem->save();
+                    $this->repo->saveCartItem($cartItem);
                 }
 
                 $cartItems = $this->getCartItems();
                 $total = $this->calculateTotal($cartItems);
-                $totalQuantity = $cart->items->sum('quantity');
+                $totalQuantity = $this->repo->sumCartQuantity($cart->id);
             }
         } else {
             $cart = session()->get('cart', []);
@@ -143,12 +159,14 @@ class CartService{
             $total = $this->calculateTotal($cart);
             $totalQuantity = collect($cart)->sum('quantity');
         }
-             return [
-    'totalQuantity' => $totalQuantity,
-    'total' => $total
-];
+
+        return [
+            'totalQuantity' => $totalQuantity,
+            'total' => $total
+        ];
 
     }
+
     public function calculateTotal($items)
     {
         return array_reduce($items, function($sum, $item) {
@@ -156,18 +174,18 @@ class CartService{
         }, 0);
     }
 
-    public function remove(int $itemId):Array{
-
+    public function remove(int $itemId): array
+    {
+        $total = 0;
+        $totalQuantity = 0;
 
         if (Auth::check()) {
-            $cart = Cart::where('user_id', Auth::id())->first();
+            $cart = $this->repo->getCartForUser((int) Auth::id());
             if ($cart) {
-                CartItem::where('cart_id', $cart->id)
-                    ->where('product_id', $itemId)
-                    ->delete();
+                $this->repo->deleteCartItemByProduct($cart->id, $itemId);
                 $cartItems = $this->getCartItems();
                 $total = $this->calculateTotal($cartItems);
-                $totalQuantity = $cart->items->sum('quantity');
+                $totalQuantity = $this->repo->sumCartQuantity($cart->id);
             }
         } else {
             $cart = session()->get('cart', []);
@@ -180,12 +198,13 @@ class CartService{
             $totalQuantity = collect($cart)->sum('quantity');
         }
 
-    return [
-    'totalQuantity' => $totalQuantity,
-    'total' => $total
-    ];
+        return [
+            'totalQuantity' => $totalQuantity,
+            'total' => $total
+        ];
     }
-    }
+
+}
 
 
 

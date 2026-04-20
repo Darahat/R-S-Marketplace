@@ -5,15 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{$data['title']}} - Electronics Gadgets</title>
 
-    <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <script src="//unpkg.com/alpinejs" defer></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet">
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <link rel="stylesheet" href="{{ asset('assets/plugins/fontawesome-free/css/all.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/plugins/toastr/toastr.min.css') }}">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <!-- PWA -->
@@ -26,54 +20,20 @@
       }
     </script>
 
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: {
-                            DEFAULT: '{{ config('theme.colors.primary.DEFAULT', '#3b82f6') }}',
-                            light: '{{ config('theme.colors.primary.light', '#60a5fa') }}',
-                            dark: '{{ config('theme.colors.primary.dark', '#2563eb') }}',
-                        },
-                        secondary: {
-                            DEFAULT: '{{ config('theme.colors.secondary.DEFAULT', '#8b5cf6') }}',
-                            light: '{{ config('theme.colors.secondary.light', '#a78bfa') }}',
-                            dark: '{{ config('theme.colors.secondary.dark', '#7c3aed') }}',
-                        },
-                        success: '{{ config('theme.colors.success.DEFAULT', '#10b981') }}',
-                        warning: '{{ config('theme.colors.warning.DEFAULT', '#f59e0b') }}',
-                        danger: '{{ config('theme.colors.danger.DEFAULT', '#ef4444') }}',
-                        accent: '{{ config('theme.colors.primary.light', '#60a5fa') }}',
-                        dark: '#1a1a2e',
-                        light: '#f8f9fa',
-                    },
-                    fontFamily: {
-                        sans: ['Inter', 'system-ui', 'sans-serif'],
-                    },
-                    container: {
-                        center: true,
-                        padding: {
-                            DEFAULT: '1rem',
-                            sm: '1.5rem',
-                            lg: '2rem',
-                        },
-                    },
-                    animation: {
-                        'float': 'float 3s ease-in-out infinite',
-                    },
-                    keyframes: {
-                        float: {
-                            '0%, 100%': { transform: 'translateY(0)' },
-                            '50%': { transform: 'translateY(-10px)' },
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-
     <style>
+        :root {
+            --theme-primary: {{ config('theme.colors.primary.DEFAULT', '#3b82f6') }};
+            --theme-primary-light: {{ config('theme.colors.primary.light', '#60a5fa') }};
+            --theme-primary-dark: {{ config('theme.colors.primary.dark', '#2563eb') }};
+            --theme-secondary: {{ config('theme.colors.secondary.DEFAULT', '#8b5cf6') }};
+            --theme-secondary-light: {{ config('theme.colors.secondary.light', '#a78bfa') }};
+            --theme-secondary-dark: {{ config('theme.colors.secondary.dark', '#7c3aed') }};
+            --theme-success: {{ config('theme.colors.success.DEFAULT', '#10b981') }};
+            --theme-warning: {{ config('theme.colors.warning.DEFAULT', '#f59e0b') }};
+            --theme-danger: {{ config('theme.colors.danger.DEFAULT', '#ef4444') }};
+            --theme-accent: {{ config('theme.colors.primary.light', '#60a5fa') }};
+        }
+
         * {
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
@@ -300,6 +260,6 @@
 
 </body>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+<script src="{{ asset('assets/plugins/toastr/toastr.min.js') }}"></script>
 @stack('scripts')
 </html>

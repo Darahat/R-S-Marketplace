@@ -34,6 +34,12 @@
                     My Orders
                 </a>
 
+                <a href="{{ route('customer.addresses.index') }}"
+                   class="flex items-center px-4 py-3 text-sm font-medium text-white rounded-lg hover:bg-white hover:bg-opacity-10 transition">
+                    <i class="fas fa-map-marker-alt mr-3"></i>
+                    Address Book
+                </a>
+
                 <a href="{{ route('customer.wishlist') }}"
                    class="flex items-center px-4 py-3 text-sm font-medium text-white rounded-lg hover:bg-white hover:bg-opacity-10 transition">
                     <i class="fas fa-heart mr-3"></i>
@@ -44,6 +50,18 @@
                    class="flex items-center px-4 py-3 text-sm font-medium text-white rounded-lg hover:bg-white hover:bg-opacity-10 transition">
                     <i class="fas fa-user mr-3"></i>
                     Profile
+                </a>
+
+                <a href="{{ route('customer.profile_setting') }}"
+                   class="flex items-center px-4 py-3 text-sm font-medium text-white rounded-lg hover:bg-white hover:bg-opacity-10 transition">
+                    <i class="fas fa-user-cog mr-3"></i>
+                    Profile Settings
+                </a>
+
+                <a href="{{ route('customer.payment_methods.index') }}"
+                   class="flex items-center px-4 py-3 text-sm font-medium text-white rounded-lg hover:bg-white hover:bg-opacity-10 transition">
+                    <i class="fas fa-credit-card mr-3"></i>
+                    Payment Methods
                 </a>
 
 

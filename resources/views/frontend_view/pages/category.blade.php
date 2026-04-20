@@ -8,7 +8,7 @@
         <div class="bg-white rounded-xl shadow-sm p-5 sticky top-4">
             <div class="flex justify-between items-center mb-6">
                 <h3 class="font-bold text-lg">Filters</h3>
-                <a href="" class="text-sm text-primary hover:text-primary-dark">Clear All</a>
+                <a href="{{ url()->current() }}" class="text-sm text-primary hover:text-primary-dark">Clear All</a>
             </div>
 
             <!-- Price Range Filter -->

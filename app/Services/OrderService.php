@@ -1,46 +1,34 @@
 <?php
+
 namespace App\Services;
 
-use App\Repositories\UserAddressRepository;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
-use App\Models\Wishlist;
-use App\Models\Category;
 use App\Models\Order;
+use App\Repositories\OrderRepository;
 use App\Jobs\SendOrderStatusNotificationJob;
+use App\Jobs\SendPaymentStatusNotificationJob;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
-use Illuminate\Support\Facades\Storage;
-class OrderService{
-      use AuthorizesRequests;
-       protected $siteTitle;
-    public function __construct(protected ProductService $product_service)
+class OrderService
+{
+    use AuthorizesRequests;
+
+    public function __construct(protected OrderRepository $repo)
     {
-        $this->siteTitle = '';
-    }
-    public function getOrdersService(array $filters){
-// Search by order number or customer name
-return Order::with(['user','address','items.product'])->
-when($filters['search'] ?? null, function ($q, $search){
-    $q->where(function($q) use ($search){
-        $q->where('order_number', 'like', "%$search%")
-                  ->orWhereHas('user', function ($q) use ($search) {
-                      $q->where('name', 'like', "%$search%")
-                        ->orWhere('email', 'like', "%$search%");
-                  });
-    });
-})
-->when($filters['status'] ?? null, fn($q, $v)=> $q->where('order_status', $v))
-->when($filters['payment_status'] ?? null, fn($q, $v)=> $q->where('payment_status', $v))
-->when($filters['payment_method'] ?? null, fn($q, $v)=> $q->where('payment_method', $v))
-->when($filters['date_from'] ?? null, fn($q, $v) => $q->whereDate('created_at', '>=', $v))
-->when($filters['date_to'] ?? null, fn($q, $v) => $q->whereDate('created_at', '<=', $v))
-->latest()
-        ->paginate(20);
-
     }
 
-    public function updateStatusService($validator,$id):array{
-        $order = Order::findOrFail($id);
+    public function getOrdersService(array $filters)
+    {
+        return $this->repo->getFilteredOrders($filters);
+    }
+
+    public function findDetailedByIdOrFail(int $id)
+    {
+        return $this->repo->findDetailedByIdOrFail($id);
+    }
+
+    public function updateStatusService(array $validator, int $id): array
+    {
+        $order = $this->repo->findOrFail($id);
         $oldStatus = $order->order_status;
         $order->order_status = $validator['status'];
 
@@ -53,29 +41,97 @@ when($filters['search'] ?? null, function ($q, $search){
             $order->delivered_at = now();
         }
 
-        $order->save();
-        SendOrderStatusNotificationJob::dispatch($order, $oldStatus, $order->order_status)->onQueue('default');
+        $this->repo->save($order);
+        SendOrderStatusNotificationJob::dispatch($order->id, $oldStatus, $order->order_status)->onQueue('default');
+
         return [
-            'order_status' =>$order->order_status,
+            'order_status' => $order->order_status,
             'oldStatus' => $oldStatus,
-         ];
+        ];
     }
-    public function updatePaymentStatusService($validator,$id):array{
-        $order = Order::findOrFail($id);
+
+    public function updatePaymentStatusService(array $validator, int $id): array
+    {
+        $order = $this->repo->findOrFail($id);
         $oldStatus = $order->payment_status;
         $order->payment_status = $validator['payment_status'];
-         $order->save();
-         return [
-            'payment_status' =>$order->payment_status,
+
+        $this->repo->save($order);
+
+        if ($oldStatus !== $order->payment_status) {
+            SendPaymentStatusNotificationJob::dispatch($order->id, $oldStatus, $order->payment_status)->onQueue('default');
+        }
+
+        return [
+            'payment_status' => $order->payment_status,
             'oldStatus' => $oldStatus,
-         ];
+        ];
     }
-    public function updateNotesService($validator,$id){
 
-
-        $order = Order::findOrFail($id);
+    public function updateNotesService(array $validator, int $id): bool
+    {
+        $order = $this->repo->findOrFail($id);
         $order->notes = $validator['notes'] ?? null;
-        return $order->save();
 
-}
+        return $this->repo->save($order);
+    }
+
+    public function getStatisticsService(): array
+    {
+        return $this->repo->getStatistics();
+    }
+
+    /**
+     * Create a new order with items
+     */
+    public function createOrder(int $userId, array $orderData, array $cartItems): Order
+    {
+        $order = $this->repo->createOrder([
+            'user_id' => $userId,
+            'order_number' => 'ORD-' . strtoupper(uniqid()),
+            'address_id' => $orderData['address_id'],
+            'order_status' => $orderData['order_status'] ?? 'Processing',
+            'total_amount' => $orderData['total_amount'],
+            'payment_method' => $orderData['payment_method'],
+            'payment_status' => $orderData['payment_status'] ?? 'pending',
+            'notes' => $orderData['notes'] ?? '',
+        ]);
+
+        foreach ($cartItems as $item) {
+            $itemTotal = $item['price'] * $item['quantity'];
+            $this->repo->createOrderItem([
+                'order_id' => $order->id,
+                'product_id' => $item['id'],
+                'quantity' => $item['quantity'],
+                'price' => $item['price'],
+                'total' => $itemTotal,
+            ]);
+        }
+
+        return $order;
+    }
+
+    /**
+     * Get orders with "to_pay" status for a user
+     */
+    public function getToPayOrders(int $userId, int $perPage = 10)
+    {
+        return $this->repo->getToPayOrdersByUser($userId, $perPage);
+    }
+
+    /**
+     * Find a "to_pay" order by order number for payment
+     */
+    public function findOrderForPayment(string $orderNumber, int $userId): ?Order
+    {
+        return $this->repo->findToPayOrderByNumber($orderNumber, $userId);
+    }
+
+    /**
+     * Find user order by order number
+     */
+    public function findUserOrderByNumber(string $orderNumber, int $userId): ?Order
+    {
+        return $this->repo->findUserOrderByNumber($orderNumber, $userId);
+    }
 }

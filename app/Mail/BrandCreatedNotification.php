@@ -2,6 +2,7 @@
 
 namespace App\Mail;
 
+use App\Models\Brand;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
@@ -16,7 +17,7 @@ class BrandCreatedNotification extends Mailable
     /**
      * Create a new message instance.
      */
-    public function __construct()
+    public function __construct(public Brand $brand)
     {
         //
     }
@@ -38,6 +39,9 @@ class BrandCreatedNotification extends Mailable
     {
         return new Content(
             view: 'emails.brand-created',
+            with: [
+                'brand' => $this->brand,
+            ],
         );
     }
 

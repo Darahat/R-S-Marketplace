@@ -7,11 +7,11 @@
             <div class="flex items-center justify-between py-2 text-xs md:text-sm">
                 <!-- Left side -->
                 <div class="flex items-center space-x-4 md:space-x-6">
-                    <a href="#" class="flex items-center hover:text-yellow-300 transition duration-200">
+                    <button type="button" class="flex items-center hover:text-yellow-300 transition duration-200" disabled title="App link coming soon">
                         <i class="fas fa-mobile-alt mr-1.5"></i>
                         <span class="hidden sm:inline">Download App</span>
-                    </a>
-                    <a href="#" class="flex items-center hover:text-yellow-300 transition duration-200">
+                    </button>
+                    <a href="{{ route('support') }}" class="flex items-center hover:text-yellow-300 transition duration-200">
                         <i class="fas fa-headset mr-1.5"></i>
                         <span class="hidden md:inline">24/7 Support</span>
                     </a>
@@ -257,9 +257,9 @@
                             <i class="fas fa-shipping-fast mr-1.5"></i>Track Order
                         </a>
                     @else
-                        <a href="#" data-modal="login" class="px-4 py-2.5 text-gray-700 hover:text-primary font-medium transition-colors duration-150 rounded-lg hover:bg-primary/5">
+                        <button type="button" data-modal="login" class="px-4 py-2.5 text-gray-700 hover:text-primary font-medium transition-colors duration-150 rounded-lg hover:bg-primary/5">
                             <i class="fas fa-shipping-fast mr-1.5"></i>Track Order
-                        </a>
+                        </button>
                     @endauth
                 </nav>
             </div>
@@ -294,9 +294,9 @@
                         <i class="fas fa-shipping-fast mr-3 w-5"></i>Track Order
                     </a>
                 @else
-                    <a href="#" data-modal="login" class="block px-4 py-3 text-gray-700 hover:bg-primary hover:text-white rounded-lg transition-colors duration-150 font-medium">
+                    <button type="button" data-modal="login" class="block w-full text-left px-4 py-3 text-gray-700 hover:bg-primary hover:text-white rounded-lg transition-colors duration-150 font-medium">
                         <i class="fas fa-shipping-fast mr-3 w-5"></i>Track Order
-                    </a>
+                    </button>
                 @endauth
 
                 <div class="my-4 h-px bg-gray-100"></div>
@@ -392,6 +392,19 @@
                 $(this).addClass('hidden').removeClass('flex');
             }
         });
+
+        // Auto-open login modal when redirected with ?auth=login
+        const url = new URL(window.location.href);
+        if (url.searchParams.get('auth') === 'login') {
+            $('#loginModal').removeClass('hidden').addClass('flex');
+            url.searchParams.delete('auth');
+            window.history.replaceState({}, '', url.pathname + (url.searchParams.toString() ? '?' + url.searchParams.toString() : '') + url.hash);
+        }
+
+        const flashStatus = @json(session('status'));
+        if (flashStatus && typeof toastr !== 'undefined') {
+            toastr.success(flashStatus);
+        }
     });
 </script>
 @endpush
