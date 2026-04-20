@@ -260,12 +260,13 @@
                                        class="form-control @error('image') is-invalid @enderror"
                                        id="image"
                                        name="image"
-                                       accept="image/*">
+                                       accept="image/*"
+                                       required>
                                 @error('image')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                                 <small class="form-text text-muted">
-                                    <i class="fas fa-info-circle"></i> Max size: 2MB. Recommended: 800x800px
+                                    <i class="fas fa-info-circle"></i> Required on create. Max size: 5MB. Recommended: 800x800px
                                 </small>
                             </div>
 

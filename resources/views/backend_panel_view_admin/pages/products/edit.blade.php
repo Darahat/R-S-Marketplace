@@ -290,7 +290,7 @@
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                                 <small class="form-text text-muted">
-                                    <i class="fas fa-info-circle"></i> Max size: 2MB. Leave empty to keep current image.
+                                    <i class="fas fa-info-circle"></i> Optional on update. Max size: 5MB. Leave empty to keep current image.
                                 </small>
                             </div>
 

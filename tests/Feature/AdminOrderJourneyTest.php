@@ -7,13 +7,13 @@ use App\Models\OrderItem;
 use App\Models\Payment;
 use App\Models\Product;
 use App\Models\User;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class AdminOrderJourneyTest extends TestCase
 {
-    use DatabaseTransactions;
+    use RefreshDatabase;
 
     private function createOrderForUser(User $user): Order
     {

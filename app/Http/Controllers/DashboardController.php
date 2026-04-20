@@ -28,7 +28,6 @@ class DashboardController extends Controller
     {
         $user = Auth::user();
         $service_data = $this->dashboard_service->dashboardService();
-    //  dd($service_data['top_products']);
         if($user->user_type == 'ADMIN'){
                 return view('backend_panel_view_admin.pages.dashboard', [
             'page_title' =>  $this->page_title,

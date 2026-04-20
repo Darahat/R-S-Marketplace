@@ -36,10 +36,10 @@ public function process(PaymentProcessRequest $request)
                 return $this->processNonStripePayment($data['address'], $data['cartItems'],  $data['total'], $payment_method, $data['isBuyNow']);
             }
         } catch (\Exception $e) {
-            Log::error('Checkout errorrr: ' . $e->getMessage());
+            Log::error('Checkout error: ' . $e->getMessage());
             return redirect()->back()
-                ->with('error', 'There was an error processing your order: ' . $e->getMessage())
-                ->withInput();
+    ->with('error', 'There was an error processing your order. Please try again.')
+    ->withInput();
         }
     }
 
@@ -107,7 +107,7 @@ public function process(PaymentProcessRequest $request)
         } catch (\Exception $e) {
             Log::error('Payment completion error: ' . $e->getMessage());
             return redirect()->back()
-                ->with('error', 'There was an error confirming your order: ' . $e->getMessage());
+    ->with('error', 'There was an error confirming your order. Please contact support.');
         }
     }
 }

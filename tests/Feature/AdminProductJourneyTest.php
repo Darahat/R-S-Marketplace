@@ -5,13 +5,13 @@ namespace Tests\Feature;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 
 class AdminProductJourneyTest extends TestCase
 {
-    use DatabaseTransactions;
+    use RefreshDatabase;
 
     public function test_admin_can_view_products_index(): void
     {
@@ -48,6 +48,7 @@ class AdminProductJourneyTest extends TestCase
             'brand_id' => null,
             'featured' => true,
             'is_latest' => true,
+            'image' => UploadedFile::fake()->image('product.jpg')->size(500),
         ];
 
         $response = $this->actingAs($admin)->post(route('admin.products.store'), $payload);
@@ -60,6 +61,38 @@ class AdminProductJourneyTest extends TestCase
             'slug' => 'admin-created-product',
             'category_id' => $category->id,
         ]);
+    }
+
+    public function test_admin_cannot_create_product_with_oversized_image(): void
+    {
+        $admin = User::factory()->create([
+            'user_type' => User::ADMIN,
+            'mobile' => '01810000008',
+        ]);
+
+        $category = Category::factory()->active()->create();
+
+        $payload = [
+            'name' => 'Oversized Image Product',
+            'slug' => 'oversized-image-product',
+            'description' => 'Test product description',
+            'price' => 1200,
+            'purchase_price' => 900,
+            'discount_price' => 1000,
+            'stock' => 10,
+            'category_id' => $category->id,
+            'brand_id' => null,
+            'featured' => true,
+            'is_latest' => true,
+            'image' => UploadedFile::fake()->image('product.jpg')->size(6000),
+        ];
+
+        $response = $this->from(route('admin.products.create'))
+            ->actingAs($admin)
+            ->post(route('admin.products.store'), $payload);
+
+        $response->assertRedirect(route('admin.products.create'));
+        $response->assertSessionHasErrors('image');
     }
 
     public function test_admin_can_update_product(): void

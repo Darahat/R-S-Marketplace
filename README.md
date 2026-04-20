@@ -140,6 +140,8 @@ cp .env.example .env
 php artisan key:generate
 ```
 
+**Note:** Set `APP_DEBUG=true` only for local development.
+
 ### Step 6: Configure Database
 
 Open `.env` file and update database settings:

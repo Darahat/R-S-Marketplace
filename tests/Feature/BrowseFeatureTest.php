@@ -4,12 +4,12 @@ namespace Tests\Feature;
 
 use App\Models\Category;
 use App\Models\Product;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class BrowseFeatureTest extends TestCase
 {
-    use DatabaseTransactions;
+    use RefreshDatabase;
 
     public function test_guest_can_view_home_page(): void
     {
