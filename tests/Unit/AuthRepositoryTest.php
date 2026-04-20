@@ -4,12 +4,12 @@ namespace Tests\Unit;
 
 use App\Models\User;
 use App\Repositories\AuthRepository;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class AuthRepositoryTest extends TestCase
 {
-    use DatabaseTransactions;
+    use RefreshDatabase;
 
     protected AuthRepository $repository;
 

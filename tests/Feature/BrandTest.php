@@ -9,7 +9,7 @@ use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\User;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 
 use Illuminate\Support\Facades\Mail;
 use App\Mail\BrandCreatedNotification; // We'll create this
@@ -19,7 +19,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Http\UploadedFile;
 class BrandTest extends TestCase
 {
-    use DatabaseTransactions;
+    use RefreshDatabase;
      protected BrandRepository $repository;
      protected User $admin;
      protected User $regularUser;

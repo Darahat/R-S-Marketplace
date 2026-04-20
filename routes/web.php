@@ -25,11 +25,6 @@ use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\Customer\CustomerProfileController;
 
 
-
-Route::get('/test', function () {
-    return session()->getId();
-});
-
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/category/{slug}', [HomeController::class, 'category'])->name('category');
 Route::get('/product/{slug}', [HomeController::class, 'product'])->name('product');
@@ -61,9 +56,9 @@ Route::get('/privacy-policy', function () {
 Route::prefix('cart')->group(function () {
     Route::get('/', [CartController::class, 'view'])->name('cart.view');
     Route::get('/refresh/view', [CartController::class, 'refreshView'])->name('cart.view.refresh');
-    Route::post('/add', [CartController::class, 'addToCart'])->name('cart.add');
-    Route::post('/update', [CartController::class, 'update'])->name('cart.update');
-    Route::post('/remove', [CartController::class, 'remove'])->name('cart.remove');
+    Route::post('/add', [CartController::class, 'addToCart'])->middleware('throttle:30,1')->name('cart.add');
+    Route::post('/update', [CartController::class, 'update'])->middleware('throttle:30,1')->name('cart.update');
+    Route::post('/remove', [CartController::class, 'remove'])->middleware('throttle:30,1')->name('cart.remove');
     Route::get('/refresh', [CartController::class, 'cartRefresh'])->name('cart.refresh');
 
 
@@ -114,9 +109,9 @@ Route::post('/stripe/webhook', [StripeWebhookController::class, 'handle']);
 // Wishlist routes
 Route::prefix('wishlist')->group(function () {
     Route::get('/', [WishlistController::class, 'view'])->name('wishlist.view');
-    Route::post('/toggle', [WishlistController::class, 'toggle'])->name('wishlist.toggle');
-    Route::post('/remove', [WishlistController::class, 'remove'])->name('wishlist.remove');
-    Route::post('/move-to-cart', [WishlistController::class, 'moveToCart'])->name('wishlist.moveToCart');
+    Route::post('/toggle', [WishlistController::class, 'toggle'])->middleware('throttle:30,1')->name('wishlist.toggle');
+    Route::post('/remove', [WishlistController::class, 'remove'])->middleware('throttle:30,1')->name('wishlist.remove');
+    Route::post('/move-to-cart', [WishlistController::class, 'moveToCart'])->middleware('throttle:30,1')->name('wishlist.moveToCart');
     Route::get('/count', [WishlistController::class, 'getCount'])->name('wishlist.count');
 });
 
@@ -261,10 +256,10 @@ Route::group(['prefix' => 'customer', 'middleware' => ['auth:web', 'isCustomer']
 
 
 Route::get('/clear-cache', function() {
-	Artisan::call('cache:clear');
-	Artisan::call('config:clear');
-	Artisan::call('config:cache');
-	Artisan::call('view:clear');
-	 return "Cleared!";
-});
+    Artisan::call('cache:clear');
+    Artisan::call('config:clear');
+    Artisan::call('config:cache');
+    Artisan::call('view:clear');
+    return "Cleared!";
+})->middleware(['auth:web', 'isAdmin']);
 

@@ -34,7 +34,7 @@ class ProductRequest extends FormRequest
             'category_id' => 'required|exists:categories,id',
             'brand_id' => 'nullable|exists:brands,id',
             'image' => $this->isMethod('POST')
-                ? 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120'
+                ? 'required|image|mimes:jpeg,png,jpg,gif,webp|max:5120'
                 : 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
             'rating' => 'nullable|numeric|min:0|max:5',
             'featured' => 'nullable|boolean',
@@ -66,6 +66,7 @@ class ProductRequest extends FormRequest
             'category_id.required' => 'Please select a category',
             'category_id.exists' => 'Selected category does not exist',
             'brand_id.exists' => 'Selected brand does not exist',
+            'image.required' => 'Product image is required',
             'image.image' => 'File must be an image',
             'image.mimes' => 'Image must be jpeg, png, jpg, gif, or webp',
             'image.max' => 'Image size must not exceed 5MB',
