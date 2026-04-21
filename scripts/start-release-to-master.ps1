@@ -16,7 +16,7 @@ function Run-Git([string]$Command) {
 
 # Guard: keep workflow deterministic and avoid carrying accidental local edits.
 $status = git status --porcelain
-if ($status) {
+if ($status -and -not $DryRun) {
     Write-Error 'Working tree is not clean. Commit/stash changes first, then rerun.'
     exit 1
 }
