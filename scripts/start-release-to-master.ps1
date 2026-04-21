@@ -28,7 +28,7 @@ if ($current -ne $FromBranch) {
     Run-Git "checkout $FromBranch" | Out-Null
 }
 
-$exists = (git branch --list $releaseBranch).Trim()
+$exists = [string](git branch --list $releaseBranch).Trim()
 if ($exists) {
     Write-Error "Branch '$releaseBranch' already exists. Use a different -DateTag."
     exit 1
