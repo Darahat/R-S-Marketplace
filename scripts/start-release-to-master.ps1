@@ -28,6 +28,14 @@ if ($current -ne $FromBranch) {
     Run-Git "checkout $FromBranch" | Out-Null
 }
 
+if ($DryRun) {
+    Write-Host "DryRun mode: simulating cleanup for '$releaseBranch' (no branch will be created)."
+    powershell -ExecutionPolicy Bypass -File scripts/prepare-master-release.ps1 -DryRun -Force
+    Write-Host ''
+    Write-Host 'Dry run complete. No files were deleted and no branch/commit was created.'
+    exit 0
+}
+
 $exists = (git branch --list $releaseBranch)
 if ($exists) {
     Write-Error "Branch '$releaseBranch' already exists. Use a different -DateTag."
@@ -35,13 +43,6 @@ if ($exists) {
 }
 
 Run-Git "checkout -b $releaseBranch" | Out-Null
-
-if ($DryRun) {
-    powershell -ExecutionPolicy Bypass -File scripts/prepare-master-release.ps1 -DryRun
-    Write-Host ''
-    Write-Host 'Dry run complete. No files were deleted and nothing was committed.'
-    exit 0
-}
 
 powershell -ExecutionPolicy Bypass -File scripts/prepare-master-release.ps1
 
