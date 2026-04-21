@@ -1,70 +1,215 @@
-Perfect, I can run this as a real audit with a clear pass/fail checklist and fix plan.
+Now I have everything I need. Before deleting anything, here's the full plan for both requests:
 
-Here is exactly how I can help, step by step:
+---
 
-**1. Product Quality Audit**
-I will check the buyer-facing experience like a real customer.
+## Part 1 — Cleanup Plan
 
-What I will verify:
+These are the files/folders I will delete. Confirm and I'll run it all at once.
 
-1. Full user journey works: register/login, browse, cart, checkout, order tracking.
-2. Admin journey works: product/category/order/user management.
-3. UI consistency and responsiveness on major pages.
-4. Broken links, empty states, placeholder content, and UX blockers.
-5. Installation/demo readiness from README and setup flow.
+### Internal dev docs (buyers don't need these)
 
-What you get:
+| File                                          | Reason               |
+| --------------------------------------------- | -------------------- |
+| AUDIT_SETUP_STEP3.md                          | Internal audit notes |
+| COMPLETE_MONITORING_AND_LOAD_TESTING_GUIDE.md | Dev guide            |
+| NeedToCheck.md                                | Personal dev notes   |
+| REDIS_LEARNING_GUIDE.md                       | Dev learning notes   |
+| SERVICE_REFACTORING_PLAN.md                   | Internal plan        |
+| STRIPE_WEBHOOK_SETUP.md                       | Internal dev notes   |
+| TARGET.md                                     | Internal plan        |
+| THIRD_PARTY_ASSETS.md                         | Internal audit       |
+| Todo.md                                       | Personal todo list   |
 
-1. Pass/fail matrix by feature.
-2. Critical issues first (blocking CodeCanyon acceptance).
-3. Reproduction steps for each issue.
-4. Suggested fix priority: P0, P1, P2.
+### Monitoring / load-test infrastructure (not part of the product)
 
-**2. Code Quality & Architecture Audit**
-I will inspect structure and maintainability in Laravel terms.
+| File/Folder             | Reason                                      |
+| ----------------------- | ------------------------------------------- |
+| docker-compose.yml      | k6 + InfluxDB monitoring stack, not the app |
+| prometheus.yml          | Prometheus scrape config                    |
+| grafana-dashboard.yaml  | Grafana config                              |
+| grafana-datasource.yaml | Grafana config                              |
+| dashboards              | k6/Grafana JSON dashboards                  |
+| smoke.js                | k6 load-test script                         |
 
-What I will verify:
+### Leaked / junk files
 
-1. Controller/service/repository/job separation.
-2. Validation coverage and request classes usage.
-3. Duplicate logic, god classes, and dead code.
-4. Error handling, logging strategy, and naming consistency.
-5. Test coverage quality (feature/unit) and risky untested flows.
+| File                         | Reason                                                              |
+| ---------------------------- | ------------------------------------------------------------------- |
+| error_log (root)             | Live server PHP error log (exposes server path `/home/marketghor/`) |
+| error_log                    | Same — live server errors                                           |
+| error_log                    | Same                                                                |
+| images.lnk                   | Windows shortcut, meaningless to buyers                             |
+| `R-SMarketPlace-Home-...png` | Screenshot of your live site                                        |
+| .ftp-deploy-sync-state.json  | FTP client state file (leaks server info)                           |
+| .phpunit.result.cache        | Generated cache, gitignored anyway                                  |
 
-What you get:
+### Keep (judgment calls explained)
 
-1. Architecture findings list with file-level references.
-2. Refactor recommendations with impact and effort.
-3. Quick wins vs deep refactors.
-4. Optional patch set for top issues.
+| File                | Reason to keep                                       |
+| ------------------- | ---------------------------------------------------- |
+| README.md           | Rewrite this for buyers — installation guide         |
+| LICENSE             | Required by Codester                                 |
+| index.php (root)    | Useful for shared hosting buyers (proxies to public) |
+| tests + phpunit.xml | Selling point — shows code quality                   |
+| logo                | Logo assets buyers may want                          |
+| .env.example        | Required — buyers copy this                          |
 
-**3. Security & Compliance Audit**
-I will check for practical security risks and Envato-sensitive compliance points.
+---
 
-What I will verify:
+## Part 2 — Manual QA Checklist
 
-1. Hardcoded secrets, unsafe env handling, debug exposure.
-2. AuthZ/AuthN gaps (middleware, policies, role checks).
-3. Input validation, output escaping, upload/file handling.
-4. Payment/webhook verification and replay/tamper protection.
-5. Dependency and package risk hotspots.
-6. License/commercial-use risk areas for third-party assets.
+Run this on your **live local or staging instance** (not test DB) before submission.
 
-What you get:
+---
 
-1. Security findings by severity: Critical, High, Medium.
-2. Exploit scenario + exact fix guidance.
-3. Compliance checklist aligned to marketplace expectations.
-4. Remediation roadmap with order of execution.
+### 1. Guest Flow
 
-**4. Final Deliverable You Can Use Before Submission**
+- [ ] Home page loads with hero banner, categories, products
+- [ ] Category page filters products correctly
+- [ ] Product detail page shows name, price, stock, images, reviews
+- [ ] Search returns relevant products; empty query shows all or redirects
+- [ ] Out-of-stock badge shows on product with `stock = 0`
+- [ ] Add to cart as guest → session cart persists across pages
+- [ ] View cart — correct product name, qty, subtotal, total
+- [ ] Update quantity in cart — total recalculates
+- [ ] Remove item from cart — item gone, total updates
+- [ ] Cart icon shows correct item count in nav
+- [ ] Guest tries to access `/checkout` → redirected to login
 
-1. One consolidated CodeCanyon readiness report.
-2. Overall readiness score.
-3. Blocking issues list.
-4. Step-by-step “fix then recheck” plan.
+---
 
-If you want, I can start now with Phase 1 and return the first Product Quality report in this chat, then move to Code Quality/Architecture, then Security/Compliance in sequence.
+### 2. Auth Flow (Customer)
 
-**Its Now agains bruite force
-**Stripe key is now used centralized
+- [ ] Register with valid data → email verification sent
+- [ ] Register with duplicate email → validation error shown
+- [ ] Register with invalid mobile/password → field-level errors shown
+- [ ] Unverified user logs in → redirected to verify email notice
+- [ ] Click email verification link → account verified, redirected to home
+- [ ] Login with correct credentials → session started, redirected
+- [ ] Login with wrong password → error shown, no session
+- [ ] Forgot password → email sent with reset link
+- [ ] Reset password with valid token → password changed, redirected to login
+- [ ] Reset password with expired token → error shown
+- [ ] Logout → session destroyed, redirected to home
+
+---
+
+### 3. Customer Flow (Post-Login)
+
+- [ ] Cart from guest session merges into logged-in cart
+- [ ] Profile page shows correct name, email, mobile
+- [ ] Update profile → changes saved, success flash shown
+- [ ] Change password (correct old → new password) → success
+- [ ] Change password (wrong old) → error shown
+- [ ] Profile photo upload → photo visible in nav/profile
+- [ ] Wishlist: add product → appears in wishlist page
+- [ ] Wishlist: remove product → removed from list
+
+---
+
+### 4. Cart & Checkout Flow
+
+- [ ] Add same product twice → quantity increments, not duplicate row
+- [ ] Add product with `stock = 1`, try qty = 2 → validation error
+- [ ] Cart total = sum of (price × qty) for all items
+- [ ] Proceed to checkout → order summary shows correct items + total
+- [ ] Submit checkout → order created, redirected to payment or confirmation
+- [ ] After order placed → cart is cleared
+
+---
+
+### 5. Payment Flow (Stripe)
+
+- [ ] Checkout redirects to Stripe hosted page
+- [ ] Pay with test card `4242 4242 4242 4242` → payment success
+- [ ] Pay with declined card `4000 0000 0000 0002` → payment failure page shown (no raw error exposed to user)
+- [ ] After successful payment → order status updated to `paid`
+- [ ] After successful payment → order confirmation email sent
+- [ ] Stripe webhook fires `checkout.session.completed` → payment record created in DB
+- [ ] Duplicate webhook event → idempotent (no duplicate payment record)
+- [ ] Invalid Stripe signature on webhook → 403 returned
+
+---
+
+### 6. Order Flow (Customer)
+
+- [ ] My Orders page lists all orders for logged-in user
+- [ ] Order detail page shows items, quantities, prices, status
+- [ ] Customer cannot view another customer's order (403 or redirect)
+- [ ] Order status badge shows correct state (pending / processing / shipped / delivered)
+- [ ] Status-change notification email received at each step (trigger from admin side)
+
+---
+
+### 7. Admin Flow — Access & Security
+
+- [ ] Non-admin user tries `/admin/*` → redirected (403 or login)
+- [ ] Admin login → redirected to admin dashboard
+- [ ] Admin dashboard shows stats (orders, products, users counts)
+- [ ] `/clear-cache` requires admin auth → unauthenticated → 403
+
+---
+
+### 8. Admin — Product Management
+
+- [ ] Create product with image → listed on site immediately
+- [ ] Create product without image → succeeds (image optional)
+- [ ] Create product with image > 5 MB → validation error shown
+- [ ] Edit product → changes reflected on frontend
+- [ ] Toggle Featured → product appears/disappears on featured section
+- [ ] Toggle Latest → same for latest section
+- [ ] Delete product → removed from site; no 500 if it had orders (check FK handling)
+- [ ] Bulk delete 2+ products → both removed
+
+---
+
+### 9. Admin — Inventory / Stock
+
+- [ ] Set product stock to 0 → "Out of stock" shows on product page
+- [ ] Customer cannot add out-of-stock product to cart
+- [ ] After order placed → product stock decremented correctly
+- [ ] Stock shows correct count in admin product list
+
+---
+
+### 10. Admin — Order Management
+
+- [ ] Orders list shows all orders with correct statuses
+- [ ] Change order status → customer receives email notification
+- [ ] Order detail page shows correct items, user, payment info
+- [ ] Filter/search orders by status or order number (if implemented)
+
+---
+
+### 11. Admin — User Management
+
+- [ ] Users list shows all registered users
+- [ ] View user detail → order history visible
+- [ ] Change user role (admin ↔ customer) → takes effect immediately
+
+---
+
+### 12. Admin — Category & Brand Management
+
+- [ ] Create category (active/inactive) → appears/disappears in nav
+- [ ] Edit category name → reflected in nav and product listings
+- [ ] Delete category with no products → succeeds
+- [ ] Delete category with products → handles gracefully (error or reassign)
+- [ ] Create / edit / delete brand → works without errors
+
+---
+
+### 13. Cross-Cutting Checks
+
+- [ ] All pages return 200 on desktop Chrome + mobile Firefox
+- [ ] No `APP_DEBUG` stack traces visible on any error (check `.env APP_DEBUG=false`)
+- [ ] Security headers present on every response (`X-Content-Type-Options`, `Referrer-Policy`)
+- [ ] HTTPS redirects work (if on live server)
+- [ ] robots.txt accessible at robots.txt
+- [ ] 404 page shows for non-existent routes (not Laravel exception page)
+- [ ] 403 page shows for forbidden routes
+- [ ] PWA manifest accessible at `/manifest.json`
+
+---
+
+**Confirm the deletions above and I'll run them all at once.**
