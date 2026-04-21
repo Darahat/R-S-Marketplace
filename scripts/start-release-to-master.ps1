@@ -23,12 +23,12 @@ if ($status) {
 
 $releaseBranch = "release/to-master-$DateTag"
 
-$current = (git branch --show-current).Trim()
+$current = (git branch --show-current).ToString().Trim()
 if ($current -ne $FromBranch) {
     Run-Git "checkout $FromBranch" | Out-Null
 }
 
-$exists = [string](git branch --list $releaseBranch).Trim()
+$exists = [string](git branch --list $releaseBranch).ToString().Trim()
 if ($exists) {
     Write-Error "Branch '$releaseBranch' already exists. Use a different -DateTag."
     exit 1
