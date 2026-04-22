@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Auth;
 
 class CustomerProfileService
 {
-    public function __construct(private CustomerProfileRepository $repo)
+    public function __construct(private CustomerProfileRepository $repo, private AvifImageService $imageService)
     {
     }
 
@@ -20,23 +20,7 @@ class CustomerProfileService
 
     public function updateProfilePhoto(User $user, UploadedFile $file): string
     {
-        $fileName = 'profile_' . $user->id . '_' . time() . '.' . $file->getClientOriginalExtension();
-        $destinationPath = public_path('profile_photos');
-
-        if (!is_dir($destinationPath)) {
-            mkdir($destinationPath, 0755, true);
-        }
-
-        $file->move($destinationPath, $fileName);
-
-        if (!empty($user->profile_photo)) {
-            $oldPath = public_path($user->profile_photo);
-            if (is_file($oldPath)) {
-                @unlink($oldPath);
-            }
-        }
-
-        $user->profile_photo = 'profile_photos/' . $fileName;
+        $user->profile_photo = $this->imageService->savePublicImage($file, 'profile_photos', 'profile_' . $user->id, $user->profile_photo);
         $this->repo->save($user);
 
         return asset($user->profile_photo);

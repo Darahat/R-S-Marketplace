@@ -328,7 +328,12 @@ public function test_can_upload_brand_logo()
     // Assert: File was stored
     /** @var \Illuminate\Filesystem\FilesystemAdapter $disk */
     $disk = Storage::disk('public');
-    $disk->assertExists('brands/' . $file->hashName());
+    $brand = Brand::where('name', 'Nike')->firstOrFail();
+
+    $this->assertNotNull($brand->logo);
+    $this->assertStringStartsWith('brands/', $brand->logo);
+    $this->assertStringEndsWith('.avif', $brand->logo);
+    $disk->assertExists($brand->logo);
 }
 public function test_brand_syncs_with_external_api(){
     // Arrange: Mock the HTTP client

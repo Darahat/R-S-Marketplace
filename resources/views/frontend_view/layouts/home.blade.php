@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{$data['title']}} - Electronics Gadgets</title>
 
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+
     <link rel="stylesheet" href="{{ asset('assets/plugins/fontawesome-free/css/all.min.css') }}">
     <link rel="stylesheet" href="{{ asset('assets/plugins/toastr/toastr.min.css') }}">
     <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -219,37 +219,36 @@
     });
 
 
+        // Load more products
+        const loadMoreBtn = document.getElementById('load-more-btn');
+        if (loadMoreBtn) {
+            let page = 1;
+            let loading = false;
 
-    // Load more products
-        let page = 1;
-        let loading = false;
+            loadMoreBtn.addEventListener('click', function () {
+                if (loading) return;
 
-        document.getElementById('load-more-btn').addEventListener('click', function () {
-            if (loading) return;
+                loading = true;
+                page++;
 
-            loading = true;
-            page++;
-
-            fetch(`?page=${page}`, {
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            })
-            .then(response => response.text())
-            .then(html => {
-                const parser = new DOMParser();
-                const newProducts = parser.parseFromString(html, 'text/html').querySelector('#product-container').innerHTML;
-
-                document.getElementById('product-container').insertAdjacentHTML('beforeend', newProducts);
-
-                loading = false;
-
-                // Hide button if no more data
-                if (!newProducts.trim()) {
-                    document.getElementById('load-more-trigger').style.display = 'none';
-                }
+                fetch(`?page=${page}`, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                .then(response => response.text())
+                .then(html => {
+                    const parser = new DOMParser();
+                    const container = parser.parseFromString(html, 'text/html').querySelector('#product-container');
+                    if (container) {
+                        document.getElementById('product-container').insertAdjacentHTML('beforeend', container.innerHTML);
+                    }
+                    loading = false;
+                    const trigger = document.getElementById('load-more-trigger');
+                    if (trigger && (!container || !container.innerHTML.trim())) {
+                        trigger.style.display = 'none';
+                    }
+                });
             });
-        });
+        }
 
 
 
@@ -258,8 +257,9 @@
 </script>
 @endpush
 
-</body>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="{{ asset('assets/plugins/toastr/toastr.min.js') }}"></script>
+@vite(['resources/css/app.css', 'resources/js/app.js'])
 @stack('scripts')
+</body>
 </html>

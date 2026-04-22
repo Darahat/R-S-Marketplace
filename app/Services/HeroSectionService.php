@@ -9,7 +9,7 @@ class HeroSectionService
 {
     use AuthorizesRequests;
 
-    public function __construct(private HeroSectionRepository $repo)
+    public function __construct(private HeroSectionRepository $repo, private AvifImageService $imageService)
     {
     }
 
@@ -19,6 +19,11 @@ class HeroSectionService
             'headline' => 'Next-Gen Tech for',
             'highlight' => '2025',
             'subheadline' => 'Discover the most innovative gadgets that will redefine your digital experience. Cutting-edge technology at your fingertips.',
+            'show_overlay' => true,
+            'overlay_color' => '#000000',
+            'headline_color' => '#FFFFFF',
+            'highlight_color' => '#FCD34D',
+            'subheadline_color' => '#E5E7EB',
             'primary_text' => 'Shop Now',
             'primary_url' => url('/'),
             'secondary_text' => 'Explore Deals',
@@ -48,14 +53,12 @@ class HeroSectionService
     {
         $hero = $this->repo->firstOrCreate();
 
+        $data['show_overlay'] = (bool) ($data['show_overlay'] ?? false);
+        $data['overlay_color'] = $data['overlay_color'] ?? '#000000';
+
         // Handle banner image upload (public disk for frontend access)
         if ($bannerImage && $bannerImage->isValid()) {
-            // delete old file if stored locally
-            if ($hero->banner_image && Storage::disk('public')->exists($hero->banner_image)) {
-                Storage::disk('public')->delete($hero->banner_image);
-            }
-
-            $data['banner_image'] = $bannerImage->store('hero', 'public');
+            $data['banner_image'] = $this->imageService->storePublicImage($bannerImage, 'hero', $data['headline'] ?? 'hero-banner', $hero->banner_image);
         } else {
             // retain existing banner
             $data['banner_image'] = $hero->banner_image;

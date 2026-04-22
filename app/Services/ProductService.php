@@ -15,7 +15,8 @@ class ProductService
 {
     public function __construct(
         private ProductRepository $repo,
-        private StockManagementService $stock_service
+        private StockManagementService $stock_service,
+        private AvifImageService $imageService
     )
     {
     }
@@ -89,12 +90,7 @@ class ProductService
         }
         // Handle image upload
         if (isset($data['image']) && $data['image'] instanceof UploadedFile) {
-
-            // Delete old image if exists
-            if ($product->image && Storage::disk('public')->exists($product->image)) {
-                Storage::disk('public')->delete($product->image);
-            }
-            $data['image'] = $this->uploadImage($data['image'], $data['name'] ?? $product->name);
+            $data['image'] = $this->uploadImage($data['image'], $data['name'] ?? $product->name, $product->image);
         }
         $this->repo->updateProduct($id, $data);
     }
@@ -169,11 +165,10 @@ class ProductService
     /**
      * Upload product image
      */
-    private function uploadImage(UploadedFile $image, string $productName): ?string
+    private function uploadImage(UploadedFile $image, string $productName, ?string $oldPath = null): ?string
     {
         try {
-            $imageName = time() . '_' . Str::slug($productName) . '.' . $image->getClientOriginalExtension();
-            $imagePath = $image->storeAs('products', $imageName, 'public');
+            $imagePath = $this->imageService->storePublicImage($image, 'products', $productName, $oldPath);
 
             if ($imagePath) {
                 Log::info('Product image uploaded successfully', ['path' => $imagePath]);

@@ -3,14 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\CategoryRequest;
-use Illuminate\Http\Request;
 use App\Models\Category;
 use App\Services\CategoryService;
-use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Log;
 
 class CategoryController extends Controller
 {
@@ -56,8 +50,12 @@ class CategoryController extends Controller
      */
     public function store(CategoryRequest $request)
     {
+        $data = $request->validated();
+        if ($request->hasFile('image')) {
+            $data['image'] = $request->file('image');
+        }
 
-         $this->category_service->createCategory($request->validated());
+        $this->category_service->createCategory($data);
 
         return redirect()->route('admin.categories.index')
             ->with('success', 'Category created successfully!');
@@ -98,10 +96,10 @@ class CategoryController extends Controller
     {
 
         $data = $request->validated();
-       if ($request->hasFile('image')) {
-            $data['image'] = $request->file('image')->store('categories', 'public');
+        if ($request->hasFile('image')) {
+            $data['image'] = $request->file('image');
         }
-       $categoryUpdate = $this->category_service->updateCategory($data,$id);
+        $categoryUpdate = $this->category_service->updateCategory($data,$id);
 
         // Prevent circular reference
         if (!$categoryUpdate) {

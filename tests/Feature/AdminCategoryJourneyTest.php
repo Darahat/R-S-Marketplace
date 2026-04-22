@@ -6,6 +6,8 @@ use App\Models\Category;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class AdminCategoryJourneyTest extends TestCase
@@ -28,6 +30,8 @@ class AdminCategoryJourneyTest extends TestCase
 
     public function test_admin_can_create_category(): void
     {
+        Storage::fake('public');
+
         $admin = User::factory()->create([
             'user_type' => User::ADMIN,
             'mobile' => '01910000002',
@@ -36,6 +40,7 @@ class AdminCategoryJourneyTest extends TestCase
         $payload = [
             'name' => 'Admin Category',
             'description' => 'Category created by test',
+            'image' => UploadedFile::fake()->image('category.jpg', 200, 200),
             'parent_id' => null,
             'status' => true,
             'is_featured' => false,

@@ -5,9 +5,8 @@ use App\Repositories\BrandRepository;
 use App\Models\Brand;
 use Illuminate\Support\Facades\Mail;
 use App\Jobs\BrandCreatedNotificationJob;
-use Illuminate\Http\UploadedFile;
 class BrandService{
-  public function __construct(private BrandRepository $repo)
+    public function __construct(private BrandRepository $repo, private AvifImageService $imageService)
     {
     }
 
@@ -28,7 +27,7 @@ class BrandService{
 
     // Store logo if present
     if (isset($data['logo']) && $data['logo']) {
-        $data['logo'] = $data['logo']->store('brands', 'public');
+        $data['logo'] = $this->imageService->storePublicImage($data['logo'], 'brands', $data['name'] ?? null);
     }
     $brand = $this->repo->createBrand($data);
 
@@ -48,6 +47,10 @@ class BrandService{
             $data['category_id'] = implode(',', $data['category_id']);
         }else {
             $data['category_id'] = null;
+        }
+
+        if (isset($data['logo']) && $data['logo']) {
+            $data['logo'] = $this->imageService->storePublicImage($data['logo'], 'brands', $data['name'] ?? $brand->name, $brand->logo);
         }
 
 

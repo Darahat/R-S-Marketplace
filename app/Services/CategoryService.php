@@ -4,14 +4,15 @@ namespace App\Services;
 use Illuminate\Support\Str;
 use App\Repositories\CategoryRepository;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Http\UploadedFile;
 
 class CategoryService{
         protected $siteTitle;
 
     public function __construct(
             protected HomeService $home_service,
-            protected CategoryRepository $repo
+            protected CategoryRepository $repo,
+            protected AvifImageService $imageService
     )
     {        $this->siteTitle = 'R&SMarketPlace | ';
 
@@ -49,8 +50,8 @@ class CategoryService{
         return collect($result)->sortBy(['level', 'name']);
     }
     public function createCategory(array $data){
-        if (isset($data['image'])) {
-            $data['image'] = $data['image']->store('categories', 'public');
+        if (isset($data['image']) && $data['image'] instanceof UploadedFile) {
+            $data['image'] = $this->imageService->storePublicImage($data['image'], 'categories', $data['name'] ?? null);
         }
 
         $data['slug'] = Str::slug($data['name']);
@@ -76,13 +77,9 @@ class CategoryService{
         $category->is_featured = $data['is_featured'] ?? false;
         $category->is_new = $data['is_new'] ?? false;
         $category->discount_price = $data['discount_price'] ?? 0;
-       if(isset($data['image'])){
-        if ($category->image) {
-            Storage::disk('public')->delete($category->image);
+        if (isset($data['image']) && $data['image'] instanceof UploadedFile) {
+            $category->image = $this->imageService->storePublicImage($data['image'], 'categories', $data['name'] ?? $category->name, $category->image);
         }
-
-        $category->image = $data['image'];
-    }
         $category->updated_by = Auth::id();
         $updatedCategory = $this->repo->saveCategory($category);
         return [

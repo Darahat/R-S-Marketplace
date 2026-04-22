@@ -47,6 +47,46 @@
                         </div>
                         <div class="row">
                             <div class="col-md-6 mb-3">
+                                <input type="hidden" name="show_overlay" value="0">
+                                <div class="form-check mt-4">
+                                    <input class="form-check-input" type="checkbox" name="show_overlay" value="1" id="show_overlay" {{ (string) old('show_overlay', (int) ($hero['show_overlay'] ?? true)) === '1' ? 'checked' : '' }}>
+                                    <label class="form-check-label" for="show_overlay">Show overlay</label>
+                                </div>
+                                <small class="form-text text-muted">Adds a shadow layer over the hero image for better text visibility.</small>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Overlay Color</label>
+                                <input type="color" name="overlay_color" class="form-control form-control-color @error('overlay_color') is-invalid @enderror" value="{{ old('overlay_color', $hero['overlay_color'] ?? '#000000') }}" title="Choose overlay color">
+                                @error('overlay_color')
+                                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                                @enderror
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Headline Color</label>
+                                <input type="color" name="headline_color" class="form-control form-control-color @error('headline_color') is-invalid @enderror" value="{{ old('headline_color', $hero['headline_color'] ?? '#FFFFFF') }}" title="Choose headline color">
+                                @error('headline_color')
+                                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                                @enderror
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Highlight Color</label>
+                                <input type="color" name="highlight_color" class="form-control form-control-color @error('highlight_color') is-invalid @enderror" value="{{ old('highlight_color', $hero['highlight_color'] ?? '#FCD34D') }}" title="Choose highlight color">
+                                @error('highlight_color')
+                                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                                @enderror
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Subheadline Color</label>
+                                <input type="color" name="subheadline_color" class="form-control form-control-color @error('subheadline_color') is-invalid @enderror" value="{{ old('subheadline_color', $hero['subheadline_color'] ?? '#E5E7EB') }}" title="Choose subheadline color">
+                                @error('subheadline_color')
+                                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                                @enderror
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
                                 <label class="form-label">Primary Button Text</label>
                                 <input type="text" name="primary_text" class="form-control" value="{{ old('primary_text', $hero['primary_text']) }}" required>
                             </div>

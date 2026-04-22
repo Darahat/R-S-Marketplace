@@ -25,7 +25,7 @@ class CustomerProfileController extends Controller
 
         if ($field === 'profile_photo') {
             $validator = Validator::make($request->all(), [
-                'profile_photo' => 'required|image|mimes:jpg,jpeg,png,webp|max:2048',
+                'profile_photo' => 'required|file|mimes:jpg,jpeg,png,gif,webp,bmp,avif|max:2048',
             ]);
 
             if ($validator->fails()) {

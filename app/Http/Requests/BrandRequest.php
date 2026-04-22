@@ -25,6 +25,7 @@ class BrandRequest extends FormRequest
         return [
             'name' => 'required|string|max:255|unique:brands,name,' . ($brandId ?? 'NULL'),
             'slug' => 'required|string|max:255|unique:brands,slug,' . ($brandId ?? 'NULL'),
+            'logo' => 'nullable|file|mimes:jpg,jpeg,png,gif,webp,bmp,avif|max:4096',
             'category_id' => 'nullable|array',
             'category_id.*' => 'exists:categories,id',
             'status' => 'required|boolean',

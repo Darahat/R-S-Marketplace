@@ -101,6 +101,9 @@ public function __construct(private BrandRepository $repo, private BrandService 
         $this->authorize('update', $brand);
         /// validate data
         $validated = $request->validated();
+        if ($request->hasFile('logo')) {
+            $validated['logo'] = $request->file('logo');
+        }
 
         $brandUpdate = $this->service->updateBrand($validated, $id);
         if(!$brandUpdate){

@@ -29,8 +29,10 @@ class CategoryRequest extends FormRequest
                 'max:255',
                 Rule::unique('categories', 'name')->ignore($this->route('id')),
             ],
-            'description' => 'nullable|string',
-            'image' => 'nullable|image|max:2048',
+            'description' => 'required|string',
+            'image' => $this->isMethod('POST')
+                ? 'required|file|mimes:jpg,jpeg,png,gif,webp,bmp,avif|max:2048'
+                : 'nullable|file|mimes:jpg,jpeg,png,gif,webp,bmp,avif|max:2048',
             'parent_id' => 'nullable|exists:categories,id',
             'status' => 'required|boolean',
             'is_featured' => 'nullable|boolean',
