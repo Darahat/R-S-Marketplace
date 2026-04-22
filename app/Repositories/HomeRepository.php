@@ -11,6 +11,13 @@ use Illuminate\Support\Collection;
 
 class HomeRepository
 {
+    protected function productReviewAggregates(Builder $query): Builder
+    {
+        return $query
+            ->withAvg('reviews as average_rating', 'rating')
+            ->withCount('reviews as review_count');
+    }
+
     public function getWishlistForUser(int $userId): ?Wishlist
     {
         return Wishlist::where('user_id', $userId)->first();
@@ -35,20 +42,24 @@ class HomeRepository
 
     public function getInStockProductsQuery(): Builder
     {
-        return Product::where('stock', '>', 0);
+        return $this->productReviewAggregates(
+            Product::query()->where('stock', '>', 0)
+        );
     }
 
     public function getProductBySlug(string $slug): Product
     {
-        return Product::with(['reviews.user:id,name'])
-            ->withAvg('reviews', 'rating')
-            ->withCount('reviews')
+        return $this->productReviewAggregates(
+            Product::with(['reviews.user:id,name'])
+        )
             ->where('slug', $slug)
             ->firstOrFail();
     }
 
     public function getSearchProductsQuery(): Builder
     {
-        return Product::query()->where('stock', '>', 0);
+        return $this->productReviewAggregates(
+            Product::query()->where('stock', '>', 0)
+        );
     }
 }

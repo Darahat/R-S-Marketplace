@@ -133,8 +133,8 @@ class HomeService
 
         // Get product reviews
         $reviews = $product->reviews;
-        $averageRating = $product->reviews_avg_rating;
-        $reviewCount = $product->review_count;
+        $averageRating = $product->average_rating ?? 0;
+        $reviewCount = $product->review_count ?? 0;
     return [
         'product' => $product,
         'reviews' => $reviews,

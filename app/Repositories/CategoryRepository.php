@@ -85,7 +85,9 @@ class CategoryRepository
 
     public function getProductsByCategoryAndFilters(int $categoryId, array $filters, int $perPage = 10): LengthAwarePaginator
     {
-        $productsQuery = Product::where('category_id', $categoryId);
+        $productsQuery = Product::where('category_id', $categoryId)
+            ->withAvg('reviews as average_rating', 'rating')
+            ->withCount('reviews as review_count');
 
         if (!empty($filters['brandIds'])) {
             $productsQuery->whereIn('brand_id', $filters['brandIds']);

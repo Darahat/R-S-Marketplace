@@ -128,6 +128,14 @@ console.log(document.querySelector('[x-data]')); // Should find your header elem
     }
 
     $(document).ready(function () {
+        $(document).on('click', '[data-modal="login"]', function () {
+            openLoginModal();
+        });
+
+        $(document).on('click', '[data-modal="register"]', function () {
+            openRegisterModal();
+        });
+
         $(document).on('click', '#nav-cart-button', function () {
             console.log('Cart button clicked');
             const dropdown = $('#nav-cart-dropdown');

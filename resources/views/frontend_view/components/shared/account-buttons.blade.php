@@ -32,7 +32,11 @@
                 alt="User"
             >
         </button>
-
+    @else
+        <button type="button" onclick="openLoginModal()" class="flex flex-col items-center p-2 text-gray-600 hover:text-primary transition-colors" title="Login / Sign Up">
+            <i class="fas fa-user-circle text-xl"></i>
+            <span class="text-[10px] mt-0.5 font-medium hidden sm:block">Account</span>
+        </button>
     @endauth
 </div>
 

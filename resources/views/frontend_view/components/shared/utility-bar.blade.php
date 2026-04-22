@@ -15,8 +15,8 @@
             <div class="flex items-center divide-x divide-white/30">
                 <a href="#" class="pr-4 hover:text-yellow-200 transition-colors">Sell With Us</a>
                 @guest
-                    <button type="button" @click="openLoginModal()" class="px-4 hover:text-yellow-200 transition-colors font-medium">Login</button>
-                    <button type="button" @click="openRegisterModal()" class="pl-4 hover:text-yellow-200 transition-colors font-medium">Sign Up</button>
+                    <button type="button" onclick="openLoginModal()" class="px-4 hover:text-yellow-200 transition-colors font-medium">Login</button>
+                    <button type="button" onclick="openRegisterModal()" class="pl-4 hover:text-yellow-200 transition-colors font-medium">Sign Up</button>
                 @else
                     <span class="pl-4">Hi, {{ Auth::user()->name }}</span>
                 @endguest

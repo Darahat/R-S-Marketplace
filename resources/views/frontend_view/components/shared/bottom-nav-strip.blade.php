@@ -19,7 +19,7 @@
                     <i class="fas fa-truck mr-1"></i>Track Order
                 </a>
             @else
-                <button type="button" @click="openLoginModal()" class="px-3 py-1.5 text-sm text-gray-600 hover:text-primary font-medium hover:bg-primary/5 rounded transition-colors">
+                <button type="button" onclick="openLoginModal()" class="px-3 py-1.5 text-sm text-gray-600 hover:text-primary font-medium hover:bg-primary/5 rounded transition-colors">
                     <i class="fas fa-truck mr-1"></i>Track Order
                 </button>
             @endauth

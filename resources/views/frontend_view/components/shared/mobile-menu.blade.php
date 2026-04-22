@@ -39,10 +39,10 @@
             </form>
         @else
             <div class="my-2 h-px bg-gray-100"></div>
-            <button type="button" @click="openLoginModal()" class="w-full flex items-center px-3 py-3 text-gray-700 hover:bg-primary hover:text-white rounded-lg transition-colors font-medium text-sm">
+            <button type="button" onclick="openLoginModal()" class="w-full flex items-center px-3 py-3 text-gray-700 hover:bg-primary hover:text-white rounded-lg transition-colors font-medium text-sm">
                 <i class="fas fa-sign-in-alt mr-3 w-5 text-center"></i>Login
             </button>
-            <button type="button" @click="openRegisterModal()" class="w-full flex items-center px-3 py-3 text-gray-700 hover:bg-primary hover:text-white rounded-lg transition-colors font-medium text-sm">
+            <button type="button" onclick="openRegisterModal()" class="w-full flex items-center px-3 py-3 text-gray-700 hover:bg-primary hover:text-white rounded-lg transition-colors font-medium text-sm">
                 <i class="fas fa-user-plus mr-3 w-5 text-center"></i>Sign Up
             </button>
         @endauth
