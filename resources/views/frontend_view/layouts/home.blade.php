@@ -4,14 +4,29 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{$data['title']}} - Electronics Gadgets</title>
-
+@vite(['resources/css/app.css', 'resources/js/app.js'])
 
     <link rel="stylesheet" href="{{ asset('assets/plugins/fontawesome-free/css/all.min.css') }}">
     <link rel="stylesheet" href="{{ asset('assets/plugins/toastr/toastr.min.css') }}">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <!-- PWA -->
-    <meta name="theme-color" content="{{ config('theme.colors.primary.DEFAULT', '#3b82f6') }}">
+    @php
+        $themeConfig = config('theme', []);
+        $themeVars = implode('; ', [
+            '--theme-primary: ' . ($themeConfig['colors']['primary']['DEFAULT'] ?? '#3b82f6'),
+            '--theme-primary-light: ' . ($themeConfig['colors']['primary']['light'] ?? '#60a5fa'),
+            '--theme-primary-dark: ' . ($themeConfig['colors']['primary']['dark'] ?? '#2563eb'),
+            '--theme-secondary: ' . ($themeConfig['colors']['secondary']['DEFAULT'] ?? '#8b5cf6'),
+            '--theme-secondary-light: ' . ($themeConfig['colors']['secondary']['light'] ?? '#a78bfa'),
+            '--theme-secondary-dark: ' . ($themeConfig['colors']['secondary']['dark'] ?? '#7c3aed'),
+            '--theme-success: ' . ($themeConfig['colors']['success']['DEFAULT'] ?? '#10b981'),
+            '--theme-warning: ' . ($themeConfig['colors']['warning']['DEFAULT'] ?? '#f59e0b'),
+            '--theme-danger: ' . ($themeConfig['colors']['danger']['DEFAULT'] ?? '#ef4444'),
+            '--theme-accent: ' . ($themeConfig['colors']['primary']['light'] ?? '#60a5fa'),
+        ]);
+    @endphp
+    <meta name="theme-color" content="{{ $themeConfig['colors']['primary']['DEFAULT'] ?? '#3b82f6' }}">
         <link rel="manifest" href="{{ asset('manifest.json') }}">
     <script>
       if ('serviceWorker' in navigator) {
@@ -21,19 +36,6 @@
     </script>
 
     <style>
-        :root {
-            --theme-primary: {{ config('theme.colors.primary.DEFAULT', '#3b82f6') }};
-            --theme-primary-light: {{ config('theme.colors.primary.light', '#60a5fa') }};
-            --theme-primary-dark: {{ config('theme.colors.primary.dark', '#2563eb') }};
-            --theme-secondary: {{ config('theme.colors.secondary.DEFAULT', '#8b5cf6') }};
-            --theme-secondary-light: {{ config('theme.colors.secondary.light', '#a78bfa') }};
-            --theme-secondary-dark: {{ config('theme.colors.secondary.dark', '#7c3aed') }};
-            --theme-success: {{ config('theme.colors.success.DEFAULT', '#10b981') }};
-            --theme-warning: {{ config('theme.colors.warning.DEFAULT', '#f59e0b') }};
-            --theme-danger: {{ config('theme.colors.danger.DEFAULT', '#ef4444') }};
-            --theme-accent: {{ config('theme.colors.primary.light', '#60a5fa') }};
-        }
-
         * {
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
@@ -100,7 +102,7 @@
         {{ session('success') }}
     </div>
 @endif
-<body class="bg-gray-50">
+<body class="bg-gray-50" style="{{ $themeVars }}">
 
 @include('frontend_view.components.shared.navigation_bar')
 
@@ -259,7 +261,7 @@
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="{{ asset('assets/plugins/toastr/toastr.min.js') }}"></script>
-@vite(['resources/css/app.css', 'resources/js/app.js'])
+
 @stack('scripts')
 </body>
 </html>

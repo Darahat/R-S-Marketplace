@@ -1,4 +1,4 @@
-<div class="group relative bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 hover:border-primary/30 card-hover">
+<div class="group relative z-0 bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 hover:border-primary/30 card-hover">
     <!-- Product Image -->
     <div class="relative aspect-square bg-gray-50 overflow-hidden">
         <a href="{{ route('product',['slug'=> $product->slug ]) }}" class="block h-full">

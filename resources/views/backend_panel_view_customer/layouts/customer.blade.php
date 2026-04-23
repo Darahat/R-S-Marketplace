@@ -9,9 +9,23 @@
     <link rel="stylesheet" href="{{ asset('assets/plugins/fontawesome-free/css/all.min.css') }}">
     <link rel="stylesheet" href="{{ asset('assets/plugins/toastr/toastr.min.css') }}">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    @php
+        $themeConfig = config('theme', []);
+        $themeVars = implode('; ', [
+            '--theme-primary: ' . ($themeConfig['colors']['primary']['DEFAULT'] ?? '#3b82f6'),
+            '--theme-primary-light: ' . ($themeConfig['colors']['primary']['light'] ?? '#60a5fa'),
+            '--theme-primary-dark: ' . ($themeConfig['colors']['primary']['dark'] ?? '#2563eb'),
+            '--theme-secondary: ' . ($themeConfig['colors']['secondary']['DEFAULT'] ?? '#8b5cf6'),
+            '--theme-secondary-light: ' . ($themeConfig['colors']['secondary']['light'] ?? '#a78bfa'),
+            '--theme-secondary-dark: ' . ($themeConfig['colors']['secondary']['dark'] ?? '#7c3aed'),
+            '--theme-success: ' . ($themeConfig['colors']['success']['DEFAULT'] ?? '#10b981'),
+            '--theme-warning: ' . ($themeConfig['colors']['warning']['DEFAULT'] ?? '#f59e0b'),
+            '--theme-danger: ' . ($themeConfig['colors']['danger']['DEFAULT'] ?? '#ef4444'),
+        ]);
+    @endphp
 
     <!-- PWA -->
-    <meta name="theme-color" content="{{ config('theme.colors.primary.DEFAULT', '#3b82f6') }}">
+    <meta name="theme-color" content="{{ $themeConfig['colors']['primary']['DEFAULT'] ?? '#3b82f6' }}">
     <script>
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('/serviceworker.js')
@@ -20,21 +34,8 @@
     </script>
     @laravelPWA
 
-    <style>
-        :root {
-            --theme-primary: {{ config('theme.colors.primary.DEFAULT', '#3b82f6') }};
-            --theme-primary-light: {{ config('theme.colors.primary.light', '#60a5fa') }};
-            --theme-primary-dark: {{ config('theme.colors.primary.dark', '#2563eb') }};
-            --theme-secondary: {{ config('theme.colors.secondary.DEFAULT', '#8b5cf6') }};
-            --theme-secondary-light: {{ config('theme.colors.secondary.light', '#a78bfa') }};
-            --theme-secondary-dark: {{ config('theme.colors.secondary.dark', '#7c3aed') }};
-            --theme-success: {{ config('theme.colors.success.DEFAULT', '#10b981') }};
-            --theme-warning: {{ config('theme.colors.warning.DEFAULT', '#f59e0b') }};
-            --theme-danger: {{ config('theme.colors.danger.DEFAULT', '#ef4444') }};
-        }
-    </style>
 </head>
-<body class="h-full" x-data="{ mobileMenuOpen: false }">
+<body class="h-full bg-primary-50 text-gray-800" x-data="{ mobileMenuOpen: false }" style="{{ $themeVars }}">
     @if(session('message'))
     <script>
         showToast('success', '{{ session('message') }}');
@@ -42,7 +43,7 @@
 @endif
     @auth
         <!-- Authenticated User Layout -->
-        <div class="flex h-screen bg-gray-50">
+        <div class="flex h-screen bg-primary-50">
             <!-- Side Panel -->
             @include('backend_panel_view_customer.components.shared.sidepanel')
 
@@ -51,11 +52,11 @@
                 @include('backend_panel_view_customer.components.shared.topnav')
 
                 <!-- Main Content -->
-                <main class="flex-1 overflow-y-auto p-6 bg-gray-100">
+                <main class="flex-1 overflow-y-auto p-6 bg-primary-100">
                     <div class="max-w-7xl mx-auto">
                         <!-- Page Header -->
                         <div class="flex justify-between items-center mb-6">
-                            <h2 class="text-2xl font-bold text-gray-800">@yield('title')</h2>
+                            <h2 class="text-2xl font-bold text-primary-800">@yield('title')</h2>
                             @yield('breadcrumbs')
                         </div>
 
@@ -71,7 +72,7 @@
         @include('backend_panel_view_customer.components.shared.mobile_menu')
     @else
         <!-- Guest Layout -->
-        <div class="min-h-screen bg-gray-50">
+        <div class="min-h-screen bg-primary-50">
             <!-- Page Content -->
             @yield('content')
         </div>
@@ -99,7 +100,7 @@
     @endif
 
     <!-- Loading Indicator -->
-    <div id="loading" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
+    <div id="loading" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center">
         <div class="bg-white p-6 rounded-lg shadow-xl text-center">
             <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto"></div>
             <p class="mt-4 text-gray-700">Loading...</p>
@@ -113,9 +114,11 @@
 
             const showLoading = function() {
                 loadingIndicator?.classList.remove('hidden');
+                loadingIndicator?.classList.add('flex');
             };
 
             const hideLoading = function() {
+                loadingIndicator?.classList.remove('flex');
                 loadingIndicator?.classList.add('hidden');
             };
 
@@ -124,8 +127,17 @@
             window.addEventListener('load', hideLoading);
             window.addEventListener('pageshow', hideLoading);
 
-            window.addEventListener('beforeunload', function() {
-                showLoading();
+            // Show loading only on actual navigations (not F5/Ctrl+R reload)
+            document.addEventListener('click', function(e) {
+                const link = e.target.closest('a[href]:not([href^="#"]):not([href^="javascript"])');
+                if (link && !link.target && !link.hasAttribute('data-no-loading')) {
+                    showLoading();
+                }
+            });
+            document.addEventListener('submit', function(e) {
+                if (!e.target.hasAttribute('data-no-loading')) {
+                    showLoading();
+                }
             });
 
             // Toggle password visibility

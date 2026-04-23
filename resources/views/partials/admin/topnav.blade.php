@@ -44,15 +44,14 @@
             </a> --}}
 
             <!-- User Dropdown -->
-            <div class="relative ml-4" x-data="{ open: false }">
-                <button @click="open = !open" class="flex items-center focus:outline-none">
+            <div class="relative ml-4 topnav-user-menu">
+                <button type="button" class="flex items-center focus:outline-none topnav-user-toggle">
                     <img class="h-8 w-8 rounded-full object-cover profile-photo-preview" src="{{ Auth::user()->profile_photo ? asset(Auth::user()->profile_photo) : asset('images/default-avatar.png') }}" alt="User Avatar">
                     <span class="ml-2 text-sm font-medium text-gray-700 hidden md:inline profile-name-preview">{{ Auth::user()->name }}</span>
                     <i class="fas fa-chevron-down ml-1 text-xs text-gray-500 hidden md:inline"></i>
                 </button>
 
-                <div x-show="open" @click.away="open = false"
-                     class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
+                 <div class="topnav-user-dropdown hidden absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
                     <a href="{{ route('customer.profile') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                         <i class="fas fa-user mr-2"></i> Profile
                     </a>
@@ -69,3 +68,33 @@
         </div>
     </div>
 </header>
+
+@push('scripts')
+<script>
+    $(document).ready(function () {
+        if (window.__topnavUserMenuBound) {
+            return;
+        }
+        window.__topnavUserMenuBound = true;
+
+        $(document).on('click', '.topnav-user-toggle', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const menu = $(this).closest('.topnav-user-menu');
+            const dropdown = menu.find('.topnav-user-dropdown');
+
+            $('.topnav-user-dropdown').not(dropdown).addClass('hidden');
+            dropdown.toggleClass('hidden');
+        });
+
+        $(document).on('click', '.topnav-user-dropdown', function (e) {
+            e.stopPropagation();
+        });
+
+        $(document).on('click', function () {
+            $('.topnav-user-dropdown').addClass('hidden');
+        });
+    });
+</script>
+@endpush

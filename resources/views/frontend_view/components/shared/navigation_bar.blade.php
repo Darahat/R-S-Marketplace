@@ -1,5 +1,5 @@
 <!-- Daraz-style Responsive Header -->
-<header class="bg-white shadow-md sticky top-0 z-[1000]" x-data="{ mobileMenuOpen: false, searchOpen: false, openCart: false, openAccount: false }">
+<header class="bg-white shadow-md sticky top-0 z-40" x-data="{ mobileMenuOpen: false, searchOpen: false, openCart: false, openAccount: false }">
 
     <!-- Top Utility Bar -->
     @include('frontend_view.components.shared.utility-bar')
@@ -35,7 +35,7 @@
 <div
     id="nav-cart-dropdown"
     class="w-96 bg-white shadow-2xl rounded-xl border border-gray-100 overflow-hidden"
-    style="display:none; position:fixed; z-index:9999;"
+    style="display:none; position:fixed; z-index:41;"
 >
     <div class="p-4 border-b">
         <h3 class="font-bold text-gray-800">Shopping Cart</h3>
@@ -48,7 +48,7 @@
 <div
     id="nav-account-dropdown"
     class="w-52 bg-white border border-gray-100 rounded-xl shadow-xl overflow-hidden"
-    style="display:none; position:fixed; z-index:9999;"
+    style="display:none; position:fixed; z-index:41;"
 >
     <div class="p-3 border-b bg-primary/5">
         <p class="text-sm font-semibold text-gray-800 truncate">{{ Auth::user()->name }}</p>
@@ -76,7 +76,10 @@
 @endauth
 
 <!-- Modals -->
-<div id="loginModal" class="fixed inset-0 bg-black bg-opacity-50 z-[2000] hidden justify-center items-center p-4">
+<!-- Page overlay — shown behind modals, independent of Tailwind class scanning -->
+<div id="page-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:48;"></div>
+
+<div id="loginModal" class="fixed inset-0 z-50 hidden justify-center items-center p-4">
     <div class="bg-white rounded-2xl w-full max-w-md p-6 sm:p-8 relative max-h-[90vh] overflow-y-auto">
         <button class="close-modal absolute top-4 right-4 text-gray-400 hover:text-danger transition text-2xl">
             <i class="fas fa-times"></i>
@@ -85,7 +88,7 @@
     </div>
 </div>
 
-<div id="registerModal" class="fixed inset-0 bg-black bg-opacity-50 z-[2000] hidden justify-center items-center p-4">
+<div id="registerModal" class="fixed inset-0 z-50 hidden justify-center items-center p-4">
     <div class="bg-white rounded-2xl w-full max-w-md p-6 sm:p-8 relative max-h-[90vh] overflow-y-auto">
         <button class="close-modal absolute top-4 right-4 text-gray-400 hover:text-danger transition text-2xl">
             <i class="fas fa-times"></i>
@@ -109,6 +112,8 @@ console.log(document.querySelector('[x-data]')); // Should find your header elem
         if (modal) {
             modal.classList.remove('hidden');
             modal.classList.add('flex');
+            document.getElementById('page-overlay').style.display = 'block';
+            document.body.classList.add('overflow-hidden');
         }
     }
 
@@ -117,6 +122,8 @@ console.log(document.querySelector('[x-data]')); // Should find your header elem
         if (modal) {
             modal.classList.remove('hidden');
             modal.classList.add('flex');
+            document.getElementById('page-overlay').style.display = 'block';
+            document.body.classList.add('overflow-hidden');
         }
     }
 
@@ -125,6 +132,8 @@ console.log(document.querySelector('[x-data]')); // Should find your header elem
         document.getElementById('loginModal')?.classList.remove('flex');
         document.getElementById('registerModal')?.classList.add('hidden');
         document.getElementById('registerModal')?.classList.remove('flex');
+        document.getElementById('page-overlay').style.display = 'none';
+        document.body.classList.remove('overflow-hidden');
     }
 
     $(document).ready(function () {
@@ -149,7 +158,7 @@ console.log(document.querySelector('[x-data]')); // Should find your header elem
                 top: (rect.bottom + 8) + 'px',
                 right: (window.innerWidth - rect.right) + 'px',
                 left: 'auto',
-                'z-index': 9999
+                'z-index': 41
             }).show();
             $('#nav-account-dropdown').hide();
         });
@@ -167,7 +176,7 @@ console.log(document.querySelector('[x-data]')); // Should find your header elem
                 top: (rect.bottom + 8) + 'px',
                 right: (window.innerWidth - rect.right) + 'px',
                 left: 'auto',
-                'z-index': 9999
+                'z-index': 41
             }).show();
             $('#nav-cart-dropdown').hide();
         });
@@ -184,11 +193,9 @@ console.log(document.querySelector('[x-data]')); // Should find your header elem
             closeModals();
         });
 
-        // Close modals on outside click
-        $('#loginModal, #registerModal').on('click', function(e) {
-            if (e.target === this) {
-                closeModals();
-            }
+        // Close modals on overlay click
+        $('#page-overlay').on('click', function() {
+            closeModals();
         });
 
         // Auto-open login modal when redirected with ?auth=login

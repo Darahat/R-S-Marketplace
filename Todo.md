@@ -4,10 +4,11 @@ Run this on your **live local or staging instance** (not test DB) before submiss
 
 ### 1. Guest Flow
 
-- [ ] Home page loads with hero banner, categories, products
-- [ ] Category page filters products correctly
-- [ ] Product detail page shows name, price, stock, images, reviews
-- [ ] Search returns relevant products; empty query shows all or redirects
+- [✅] Home page loads with hero banner, categories, products
+- [✅ ] Category page filters products correctly
+- [✅ ] Product detail page shows name, price, stock, images, reviews
+- [✅ ] Search returns relevant products; empty query shows all or redirects
+
 - [ ] Out-of-stock badge shows on product with `stock = 0`
 - [ ] Add to cart as guest → session cart persists across pages
 - [ ] View cart — correct product name, qty, subtotal, total
