@@ -40,7 +40,9 @@
     <div class="p-4 border-b">
         <h3 class="font-bold text-gray-800">Shopping Cart</h3>
     </div>
-    @include('frontend_view.components.cards.cartDropdown')
+    <div id="nav-cart-dropdown-content">
+        @include('frontend_view.components.cards.cartDropdown')
+    </div>
 </div>
 
 <!-- Account Dropdown — outside header so it escapes the sticky stacking context -->
@@ -137,6 +139,12 @@ console.log(document.querySelector('[x-data]')); // Should find your header elem
     }
 
     $(document).ready(function () {
+        function refreshNavCartDropdown() {
+            return $.get("{{ route('cart.refresh') }}", function (data) {
+                $('#nav-cart-dropdown-content').html(data);
+            });
+        }
+
         $(document).on('click', '[data-modal="login"]', function () {
             openLoginModal();
         });
@@ -152,6 +160,9 @@ console.log(document.querySelector('[x-data]')); // Should find your header elem
                 dropdown.hide();
                 return;
             }
+
+            refreshNavCartDropdown();
+
             const rect = this.getBoundingClientRect();
             dropdown.css({
                 position: 'fixed',

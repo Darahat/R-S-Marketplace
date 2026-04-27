@@ -7,7 +7,7 @@
 <!-- Wishlist -->
 <a href="{{ route('wishlist.view') }}" class="relative p-2 text-gray-600 hover:text-primary rounded-full hover:bg-gray-100 transition-colors" title="Wishlist">
     <i class="fas fa-heart text-xl"></i>
-    <span class="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[10px] min-w-[18px] h-[18px] flex items-center justify-center rounded-full font-bold leading-none px-1">
+    <span id="nav-wishlist-count" class="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[10px] min-w-[18px] h-[18px] flex items-center justify-center rounded-full font-bold leading-none px-1">
         {{ $wishlistCount ?? 0 }}
     </span>
 </a>
@@ -16,7 +16,7 @@
 <div class="relative">
     <button id="nav-cart-button" class="relative p-2 text-gray-600 hover:text-primary rounded-full hover:bg-gray-100 transition-colors" title="Cart">
         <i class="fas fa-shopping-cart text-xl"></i>
-        <span class="absolute -top-0.5 -right-0.5 bg-primary text-white text-[10px] min-w-[18px] h-[18px] flex items-center justify-center rounded-full font-bold leading-none px-1">
+        <span id="nav-cart-count" class="absolute -top-0.5 -right-0.5 bg-primary text-white text-[10px] min-w-[18px] h-[18px] flex items-center justify-center rounded-full font-bold leading-none px-1">
             {{ $cartCount ?? 0 }}
         </span>
     </button>

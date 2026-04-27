@@ -15,6 +15,7 @@ class HomeService
     public function __construct(
         protected ProductService $product_service,
         protected HomeRepository $repo,
+        protected WishlistService $wishlistService,
     ) {
         $this->siteTitle = '';
     }
@@ -28,7 +29,7 @@ class HomeService
                 : [];
         }
 
-        return array_map('intval', session('wishlist', []));
+        return array_map('intval', array_column($this->wishlistService->getWishlistItems(), 'id'));
     }
 
     public function markWishlisted($products, array $wishlistIds)

@@ -5,21 +5,24 @@
 @endphp
 
 <ul class="max-h-64 overflow-y-auto divide-y">
+    @if(count($cart) === 0)
+        <li class="p-4 text-sm text-gray-500 text-center">Your cart is empty</li>
+    @endif
     @foreach($cart as $item)
         @php
             $itemTotal = $item['price'] * $item['quantity'];
             $totalPriceAmount += $itemTotal;
             $totalItemCount += $item['quantity'];
         @endphp
-        <li class="flex items-center justify-between p-3">
+        <li class="flex items-center justify-between p-3" data-product-id="{{ $item['id'] }}">
             <div class="flex items-center">
                 <img src="{{ $item['image'] }}" class="w-10 h-10 rounded mr-3" alt="Product">
                 <div>
-                    <p class="text-sm font-medium">{{ \Illuminate\Support\Str::limit($item['name'], 20) }}</p>
-                    <p class="text-xs text-gray-500">{{ $item['quantity'] }} x {{ number_format($item['price'], 2) }}</p>
+                    <p class="text-sm font-medium item-name">{{ \Illuminate\Support\Str::limit($item['name'], 20) }}</p>
+                    <p class="text-xs text-gray-500 item-meta">{{ $item['quantity'] }} x {{ number_format($item['price'], 2) }}</p>
                 </div>
             </div>
-            <div class="text-sm font-semibold text-gray-800">{{ number_format($itemTotal, 2) }}</div>
+            <div class="text-sm font-semibold text-gray-800 item-total">{{ number_format($itemTotal, 2) }}</div>
         </li>
     @endforeach
 </ul>
@@ -34,7 +37,7 @@
         <div class="flex items-center justify-center space-x-2">
             <i class="fas fa-shopping-cart"></i>
             <span>View Cart</span>
-            <span class="ml-1 bg-white bg-opacity-20 text-xs rounded-full px-2 py-1">{{ $totalItemCount }} items</span>
+            <span class="ml-1 bg-white text-primary text-xs font-semibold rounded-full px-2 py-1">{{ $totalItemCount }} items</span>
         </div>
     </a>
 </div>

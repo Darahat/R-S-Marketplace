@@ -9,7 +9,7 @@ Run this on your **live local or staging instance** (not test DB) before submiss
 - [✅ ] Product detail page shows name, price, stock, images, reviews
 - [✅ ] Search returns relevant products; empty query shows all or redirects
 
-- [ ] Out-of-stock badge shows on product with `stock = 0`
+- [✅] Out-of-stock badge shows on product with `stock = 0`
 - [ ] Add to cart as guest → session cart persists across pages
 - [ ] View cart — correct product name, qty, subtotal, total
 - [ ] Update quantity in cart — total recalculates

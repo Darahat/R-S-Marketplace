@@ -51,18 +51,21 @@ class CartController extends Controller
         return view('frontend_view.pages.cart.cartItems', compact('cartItems', 'total'))->render();
     }
 
-public function cartRefresh(){
+    public function cartRefresh()
+    {
+        $cart = $this->getCartItems();
 
+        $totalPriceAmount = 0;
+        $totalItemCount = 0;
 
-    // Get cart items based on authentication
-     $cart = $this->getCartItems(); // reuse existing service method
+        $html = view('frontend_view.components.cards.cartDropdown',
+            compact('totalPriceAmount', 'totalItemCount', 'cart')
+        )->render();
 
-    $totalPriceAmount = 0;
-    $totalItemCount = 0;
-
-    return view('frontend_view.components.cards.cartDropdown',
-        compact('totalPriceAmount', 'totalItemCount', 'cart')
-    )->render();
+        return response($html)
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate')
+            ->header('Pragma', 'no-cache')
+            ->header('Expires', '0');
     }
 
     public function addToCart(CartRequest $request)

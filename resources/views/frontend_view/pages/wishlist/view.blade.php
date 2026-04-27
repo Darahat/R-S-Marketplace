@@ -38,7 +38,7 @@
         <div class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300 relative" data-product-id="{{ $item['id'] }}">
             <!-- Wishlist Remove Button -->
             <button
-                onclick="removeFromWishlist({{ $item['id'] }})"
+                onclick="removeFromWishlist({{ $item['id'] }}, this)"
                 class="absolute top-2 right-2 bg-white rounded-full p-2 shadow-md hover:bg-red-50 transition z-10"
                 title="Remove from wishlist"
             >
@@ -75,7 +75,7 @@
                 <div class="flex gap-2">
                     @if(($item['stock'] ?? 0) > 0)
                     <button
-                        onclick="moveToCart({{ $item['id'] }})"
+                        onclick="moveToCart({{ $item['id'] }}, this)"
                         class="flex-1 bg-primary hover:bg-secondary text-white py-2 px-3 rounded-lg text-sm font-medium transition"
                     >
                         <i class="fas fa-shopping-cart mr-1"></i> Add to Cart
@@ -111,10 +111,36 @@
 
 @push('scripts')
 <script>
-function removeFromWishlist(productId) {
+function setWishlistBtnLoading(button, isLoading, loadingHtml = null) {
+    const $button = $(button);
+    if (!$button.length) return;
+
+    if (isLoading) {
+        if ($button.data('loading') === true) return;
+        $button.data('loading', true);
+        $button.data('original-html', $button.html());
+        $button.prop('disabled', true).addClass('opacity-60 cursor-not-allowed');
+        if (loadingHtml) {
+            $button.html(loadingHtml);
+        }
+        return;
+    }
+
+    const original = $button.data('original-html');
+    if (original !== undefined) {
+        $button.html(original);
+    }
+    $button.prop('disabled', false).removeClass('opacity-60 cursor-not-allowed');
+    $button.data('loading', false);
+}
+
+function removeFromWishlist(productId, triggerButton = null) {
+    const $triggerButton = $(triggerButton);
     if (!confirm('Remove this item from your wishlist?')) {
         return;
     }
+
+    setWishlistBtnLoading($triggerButton, true, '<i class="fas fa-spinner fa-spin text-red-500"></i>');
 
     $.ajax({
         url: '{{ route("wishlist.remove") }}',
@@ -129,7 +155,7 @@ function removeFromWishlist(productId) {
                 $(this).remove();
 
                 // Update wishlist count badge and page count
-                $('#wishlist-count').text(response.count);
+                $('#nav-wishlist-count, #wishlist-count').text(response.count);
                 $('#wishlist-items-count').text(response.count);
 
                 // Check if wishlist is now empty
@@ -143,11 +169,17 @@ function removeFromWishlist(productId) {
         },
         error: function() {
             showToast('error', 'Failed to remove item from wishlist');
+        },
+        complete: function() {
+            setWishlistBtnLoading($triggerButton, false);
         }
     });
 }
 
-function moveToCart(productId) {
+function moveToCart(productId, triggerButton = null) {
+    const $triggerButton = $(triggerButton);
+    setWishlistBtnLoading($triggerButton, true, '<i class="fas fa-spinner fa-spin mr-1"></i> Moving...');
+
     $.ajax({
         url: '{{ route("wishlist.moveToCart") }}',
         type: 'POST',
@@ -163,20 +195,26 @@ function moveToCart(productId) {
 
                 // Update wishlist count badge and page count
                 const wishlistCount = response.wishlistCount || 0;
-                $('#wishlist-count').text(wishlistCount);
+                $('#nav-wishlist-count, #wishlist-count').text(wishlistCount);
                 $('#wishlist-items-count').text(wishlistCount);
 
                 // Check if wishlist is empty
 
             });
 
-            // Update cart count
-            $('#cart-count').text(response.quantity || response.cartQuantity || 0);
+            // Update cart count and dropdown
+            $('#nav-cart-count, #cart-count').text(response.totalQuantity || response.quantity || response.cartQuantity || 0);
+            $.get("{{ route('cart.refresh') }}", function(data) {
+                $('#nav-cart-dropdown-content, #cart-dropdown').html(data);
+            });
 
             showToast('success', 'Item moved to cart successfully');
         },
         error: function() {
             showToast('error', 'Failed to move item to cart');
+        },
+        complete: function() {
+            setWishlistBtnLoading($triggerButton, false);
         }
     });
 }

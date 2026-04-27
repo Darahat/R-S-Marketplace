@@ -4,15 +4,14 @@ namespace App\Providers;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
-use App\Models\Cart;
-use App\Models\Wishlist;
 use App\Models\UserPaymentMethod;
 use App\Models\Address;
 use App\Models\Brand;
 use App\Models\Product;
 use App\Models\Category;
+use App\Services\CartService;
+use App\Services\WishlistService;
 use App\Policies\PaymentMethodPolicy;
 use App\Policies\UserAddressPolicy;
 use App\Policies\BrandPolicy;
@@ -70,22 +69,8 @@ class AppServiceProvider extends ServiceProvider
                 return $categories;
             });
 
-            // Get cart count based on authentication
-            if (Auth::check()) {
-                $userCart = Cart::where('user_id', Auth::id())->first();
-                $cartCount = $userCart ? $userCart->items->sum('quantity') : 0;
-            } else {
-                $cart = session()->get('cart', []);
-                $cartCount = collect($cart)->sum('quantity');
-            }
-
-            // Get wishlist count based on authentication
-            if (Auth::check()) {
-                $userWishlist = Wishlist::where('user_id', Auth::id())->first();
-                $wishlistCount = $userWishlist ? $userWishlist->items->count() : 0;
-            } else {
-                $wishlistCount = count(session('wishlist', []));
-            }
+            $cartCount = collect(app(CartService::class)->getCartItems())->sum('quantity');
+            $wishlistCount = app(WishlistService::class)->getWishlistCount();
 
             $view->with('categories', $categories);
             $view->with('cartCount', $cartCount);
@@ -94,11 +79,7 @@ class AppServiceProvider extends ServiceProvider
 
         // Share wishlist count with customer sidepanel
         View::composer('backend_panel_view_customer.components.shared.sidepanel', function ($view) {
-            $wishlistCount = 0;
-            if (Auth::check()) {
-                $wishlist = Wishlist::where('user_id', Auth::id())->first();
-                $wishlistCount = $wishlist ? $wishlist->items()->count() : 0;
-            }
+            $wishlistCount = app(WishlistService::class)->getWishlistCount();
             $view->with('wishlistCount', $wishlistCount);
         });
 

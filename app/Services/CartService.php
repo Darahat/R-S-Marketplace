@@ -1,43 +1,177 @@
 <?php
 namespace App\Services;
 
+use App\Jobs\SyncGuestCartSessionFromRedisJob;
+use App\Jobs\SyncUserCartFromRedisJob;
 use App\Repositories\CartRepository;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Redis;
+use Throwable;
 
 class CartService
 {
+    private const CART_TTL_SECONDS = 2592000; // 30 days
+
     public function __construct(protected CartRepository $repo)
     {
 
     }
 
+    private function cartRedisKey(?int $userId = null): string
+    {
+        if ($userId) {
+            return "cart:user:{$userId}";
+        }
+
+        if (session()->isStarted() === false) {
+            session()->start();
+        }
+
+        return 'cart:guest:' . session()->getId();
+    }
+
+    private function getCartFromRedis(?int $userId = null): ?array
+    {
+        try {
+            $payload = Redis::get($this->cartRedisKey($userId));
+        } catch (Throwable $e) {
+            return null;
+        }
+
+        if (!$payload) {
+            return null;
+        }
+
+        $decoded = json_decode($payload, true);
+        return is_array($decoded) ? $decoded : null;
+    }
+
+    private function saveCartToRedis(array $cart, ?int $userId = null): void
+    {
+        try {
+            Redis::setex(
+                $this->cartRedisKey($userId),
+                self::CART_TTL_SECONDS,
+                json_encode(array_values($cart))
+            );
+        } catch (Throwable $e) {
+            // Fallback: keep request successful even if Redis is down.
+        }
+    }
+
+    private function clearCartRedis(?int $userId = null): void
+    {
+        try {
+            Redis::del($this->cartRedisKey($userId));
+        } catch (Throwable $e) {
+            // Fallback: ignore Redis clear failures.
+        }
+    }
+
+    private function getDatabaseCartItems(int $userId): array
+    {
+        $cart = $this->repo->firstOrCreateCartByUser($userId);
+
+        return $this->repo->getCartItemsWithProduct($cart->id)->map(function ($item) {
+            return [
+                'id' => $item->product_id,
+                'name' => $item->product->name,
+                'price' => $item->price,
+                'quantity' => $item->quantity,
+                'image' => $item->product->image,
+            ];
+        })->values()->toArray();
+    }
+
+    private function getSessionCartItems(): array
+    {
+        return array_values(session()->get('cart', []));
+    }
+
+    private function mapItemsToSessionCart(array $items): array
+    {
+        $sessionCart = [];
+
+        foreach ($items as $item) {
+            $productId = (int) ($item['id'] ?? 0);
+            if ($productId <= 0) {
+                continue;
+            }
+
+            $sessionCart[$productId] = [
+                'id' => $productId,
+                'name' => (string) ($item['name'] ?? ''),
+                'price' => (float) ($item['price'] ?? 0),
+                'quantity' => max(1, (int) ($item['quantity'] ?? 1)),
+                'image' => (string) ($item['image'] ?? ''),
+            ];
+        }
+
+        return $sessionCart;
+    }
+
+    private function queueCartSync(int $userId): void
+    {
+        try {
+            if (!Redis::exists($this->cartRedisKey($userId))) {
+                return;
+            }
+
+            SyncUserCartFromRedisJob::dispatch($userId)->afterResponse();
+        } catch (Throwable $e) {
+            // Ignore queue dispatch issues to keep UX instant.
+        }
+    }
+
+    private function queueGuestCartSync(): void
+    {
+        try {
+            if (!Redis::exists($this->cartRedisKey())) {
+                return;
+            }
+
+            SyncGuestCartSessionFromRedisJob::dispatch(session()->getId())->afterResponse();
+        } catch (Throwable $e) {
+            // Ignore queue dispatch issues to keep UX instant.
+        }
+    }
+
     public function syncGuestCart(int $id): void
     {
-        if (session()->has('cart')) {
-            $guestCart = session('cart', []);
+        $guestItems = $this->getCartFromRedis() ?? $this->getSessionCartItems();
+
+        if (!empty($guestItems)) {
+            $guestCart = $this->mapItemsToSessionCart($guestItems);
             $this->repo->syncGuestCartItems($id, $guestCart);
             session()->forget('cart');
+
+            $this->clearCartRedis();
+            $this->saveCartToRedis($this->getDatabaseCartItems($id), $id);
         }
     }
 
     public function getCartItems(): array
     {
         if (Auth::check()) {
-            $cart = $this->repo->firstOrCreateCartByUser((int) Auth::id());
+            $userId = (int) Auth::id();
+            $cached = $this->getCartFromRedis($userId);
+            if ($cached !== null) {
+                return $cached;
+            }
 
-            return $this->repo->getCartItemsWithProduct($cart->id)->map(function ($item) {
-                return [
-                    'id' => $item->product_id,
-                    'name' => $item->product->name,
-                    'price' => $item->price,
-                    'quantity' => $item->quantity,
-                    'image' => $item->product->image
-                ];
-            })->toArray();
+            $items = $this->getDatabaseCartItems($userId);
+            $this->saveCartToRedis($items, $userId);
+            return $items;
         }
 
-        return session()->get('cart', []);
+        $cached = $this->getCartFromRedis();
+        if ($cached !== null) {
+            return $cached;
+        }
+
+        $items = $this->getSessionCartItems();
+        $this->saveCartToRedis($items);
+        return $items;
     }
 
     public function getCheckoutCartItems(bool $isBuyNow): array
@@ -55,12 +189,16 @@ class CartService
     {
         if (!$isBuyNow) {
             if (Auth::check()) {
-                $cart = $this->repo->getCartForUser((int) Auth::id());
+                $userId = (int) Auth::id();
+                $cart = $this->repo->getCartForUser($userId);
                 if ($cart) {
                     $this->repo->clearCartItems($cart->id);
                 }
+
+                $this->clearCartRedis($userId);
             }
             session()->forget('cart');
+            $this->clearCartRedis();
         }
 
         session()->forget(['checkout_address_id', 'checkout_notes', 'is_buy_now', 'buy_now_items']);
@@ -68,9 +206,6 @@ class CartService
 
     public function addToCart(string $productId, string $quantity): array
     {
-        Log::info($productId);
-        Log::info($quantity);
-
         $productId = (int) $productId;
         $quantity = (int) $quantity;
         $product = $this->repo->findProduct($productId);
@@ -84,32 +219,55 @@ class CartService
         }
 
         if (Auth::check()) {
-            // Database storage for logged-in users
-            $cart = $this->repo->firstOrCreateCartByUser((int) Auth::id());
-            $cartItem = $this->repo->getCartItem($cart->id, $productId);
+            // Redis-first storage for logged-in users. DB sync happens in queue.
+            $userId = (int) Auth::id();
+            $cart = $this->getCartItems();
+            $found = false;
 
-            if ($cartItem) {
-                $cartItem->quantity += $quantity;
-                $this->repo->saveCartItem($cartItem);
-            } else {
-                $this->repo->createCartItem([
-                    'cart_id' => $cart->id,
-                    'product_id' => $productId,
+            foreach ($cart as &$item) {
+                if ((int) ($item['id'] ?? 0) !== $productId) {
+                    continue;
+                }
+
+                $item['quantity'] = (int) ($item['quantity'] ?? 0) + $quantity;
+                $found = true;
+                break;
+            }
+            unset($item);
+
+            if (!$found) {
+                $cart[] = [
+                    'id' => $product->id,
+                    'name' => $product->name,
+                    'price' => $product->price,
                     'quantity' => $quantity,
-                    'price' => $product->price
-                ]);
+                    'image' => $product->image,
+                ];
             }
 
-            $totalQuantity = $this->repo->sumCartQuantity($cart->id);
-            $cartCount = $this->repo->countCartItems($cart->id);
-        } else {
-            // Session storage for guests
-            $cart = session()->get('cart', []);
+            $this->saveCartToRedis($cart, $userId);
+            $this->queueCartSync($userId);
 
-            if (isset($cart[$productId])) {
-                $cart[$productId]['quantity'] += $quantity;
-            } else {
-                $cart[$productId] = [
+            $totalQuantity = (int) collect($cart)->sum('quantity');
+            $cartCount = count($cart);
+        } else {
+            // Redis-first storage for guests. Session sync happens in queue.
+            $cart = $this->getCartItems();
+            $found = false;
+
+            foreach ($cart as &$item) {
+                if ((int) ($item['id'] ?? 0) !== $productId) {
+                    continue;
+                }
+
+                $item['quantity'] = (int) ($item['quantity'] ?? 0) + $quantity;
+                $found = true;
+                break;
+            }
+            unset($item);
+
+            if (!$found) {
+                $cart[] = [
                     'id' => $product->id,
                     'name' => $product->name,
                     'price' => $product->price,
@@ -118,9 +276,10 @@ class CartService
                 ];
             }
 
-            session()->put('cart', $cart);
             $totalQuantity = collect($cart)->sum('quantity');
             $cartCount = count($cart);
+            $this->saveCartToRedis(array_values($cart));
+            $this->queueGuestCartSync();
         }
 
         return [
@@ -135,29 +294,41 @@ class CartService
         $totalQuantity = 0;
 
         if (Auth::check()) {
-            $cart = $this->repo->getCartForUser((int) Auth::id());
-            if ($cart) {
-                $cartItem = $this->repo->getCartItem($cart->id,$itemId);
+            $userId = (int) Auth::id();
+            $cartItems = $this->getCartItems();
 
-                if ($cartItem) {
-                    $cartItem->quantity = $quantity;
-                    $this->repo->saveCartItem($cartItem);
+            foreach ($cartItems as &$item) {
+                if ((int) ($item['id'] ?? 0) !== $itemId) {
+                    continue;
                 }
 
-                $cartItems = $this->getCartItems();
-                $total = $this->calculateTotal($cartItems);
-                $totalQuantity = $this->repo->sumCartQuantity($cart->id);
+                $item['quantity'] = max(1, $quantity);
+                break;
             }
+            unset($item);
+
+            $this->saveCartToRedis($cartItems, $userId);
+            $this->queueCartSync($userId);
+
+            $total = $this->calculateTotal($cartItems);
+            $totalQuantity = (int) collect($cartItems)->sum('quantity');
         } else {
-            $cart = session()->get('cart', []);
+            $cartItems = $this->getCartItems();
 
-            if (isset($cart[$itemId])) {
-                $cart[$itemId]['quantity'] = $quantity;
-                session()->put('cart', $cart);
+            foreach ($cartItems as &$item) {
+                if ((int) ($item['id'] ?? 0) !== $itemId) {
+                    continue;
+                }
+
+                $item['quantity'] = max(1, $quantity);
+                break;
             }
+            unset($item);
 
-            $total = $this->calculateTotal($cart);
-            $totalQuantity = collect($cart)->sum('quantity');
+            $total = $this->calculateTotal($cartItems);
+            $totalQuantity = collect($cartItems)->sum('quantity');
+            $this->saveCartToRedis(array_values($cartItems));
+            $this->queueGuestCartSync();
         }
 
         return [
@@ -180,22 +351,25 @@ class CartService
         $totalQuantity = 0;
 
         if (Auth::check()) {
-            $cart = $this->repo->getCartForUser((int) Auth::id());
-            if ($cart) {
-                $this->repo->deleteCartItemByProduct($cart->id, $itemId);
-                $cartItems = $this->getCartItems();
-                $total = $this->calculateTotal($cartItems);
-                $totalQuantity = $this->repo->sumCartQuantity($cart->id);
-            }
-        } else {
-            $cart = session()->get('cart', []);
+            $userId = (int) Auth::id();
+            $cartItems = array_values(array_filter($this->getCartItems(), function ($item) use ($itemId) {
+                return (int) ($item['id'] ?? 0) !== $itemId;
+            }));
 
-            if (isset($cart[$itemId])) {
-                unset($cart[$itemId]);
-                session()->put('cart', $cart);
-            }
-            $total = $this->calculateTotal($cart);
-            $totalQuantity = collect($cart)->sum('quantity');
+            $this->saveCartToRedis($cartItems, $userId);
+            $this->queueCartSync($userId);
+
+            $total = $this->calculateTotal($cartItems);
+            $totalQuantity = (int) collect($cartItems)->sum('quantity');
+        } else {
+            $cartItems = array_values(array_filter($this->getCartItems(), function ($item) use ($itemId) {
+                return (int) ($item['id'] ?? 0) !== $itemId;
+            }));
+
+            $total = $this->calculateTotal($cartItems);
+            $totalQuantity = collect($cartItems)->sum('quantity');
+            $this->saveCartToRedis(array_values($cartItems));
+            $this->queueGuestCartSync();
         }
 
         return [

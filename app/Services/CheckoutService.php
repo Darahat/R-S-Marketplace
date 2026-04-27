@@ -6,11 +6,13 @@ use Illuminate\Support\Facades\Log;
 use App\Models\Order;
 use App\Repositories\CheckoutRepository;
 use Illuminate\Support\Collection;
+use App\Services\CartService;
 
 class CheckoutService{
     public function __construct(
         protected CheckoutRepository $repo,
         protected OrderService $order_service,
+        protected CartService $cart_service,
         protected StockManagementService $stock_service,
         protected StripeCustomerService $stripe_customer_service,
         protected StripeSessionService $stripe_session_service,
@@ -19,21 +21,8 @@ class CheckoutService{
      }
 
     public function index(){
-         // Get cart items from database or session
-        if (Auth::check()) {
-            $userCart = $this->repo->getUserCartWithItems((int) Auth::id());
-            $cartItems = $userCart ? $userCart->items->map(function($item) {
-                return [
-                    'id' => $item->product_id,
-                    'name' => $item->product->name,
-                    'price' => $item->price,
-                    'quantity' => $item->quantity,
-                    'image' => $item->product->image
-                ];
-            })->toArray() : [];
-        } else {
-            $cartItems = session('cart', []);
-        }
+        // Use Redis-backed cart service for both guest and authenticated users.
+        $cartItems = $this->cart_service->getCartItems();
 
         $total = $this->calculateTotal($cartItems);
 
@@ -157,16 +146,7 @@ class CheckoutService{
     }
 
     public function getCartItems(){
-    $userCart = $this->repo->getUserCartWithItems((int) Auth::id());
-                    return $userCart ? $userCart->items->map(function ($item) {
-                    return [
-                        'id' => $item->product_id,
-                        'name' => $item->product->name,
-                        'price' => $item->price,
-                        'quantity' => $item->quantity,
-                        'image' => $item->product->image
-                    ];
-                })->toArray() : [];
+        return $this->cart_service->getCartItems();
     }
 
     private function getUserAddresses(): Collection

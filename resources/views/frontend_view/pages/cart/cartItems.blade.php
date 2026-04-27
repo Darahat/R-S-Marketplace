@@ -5,12 +5,12 @@
                     @foreach($cartItems as $item)
                     <div class="p-4 flex items-center hover:bg-gray-50">
                         <img src="{{ asset($item['image']) }}" alt="{{ $item['name'] }}" class="w-20 h-20 object-cover rounded">
-                        
+
                         <div class="ml-4 flex-1">
                             <h3 class="font-medium text-lg">{{ $item['name'] }}</h3>
                             <p class="text-gray-600">${{ number_format($item['price'], 2) }}</p>
                         </div>
-                        
+
                         <div class="flex items-center space-x-1">
                             <button type="button"
                                 class="decrement bg-gray-200 px-2 py-1 text-sm rounded disabled:opacity-50 disabled:cursor-not-allowed"
@@ -18,11 +18,11 @@
                                 −
                             </button>
 
-                            <input 
-                                type="number" 
+                            <input
+                                type="number"
                                 class="cart-qty-input w-16 border rounded px-2 py-1 text-center"
-                                data-id="{{ $item['id'] }}" 
-                                value="{{ $item['quantity'] }}" 
+                                data-id="{{ $item['id'] }}"
+                                value="{{ $item['quantity'] }}"
                                 min="1"
                                 data-original-value="{{ $item['quantity'] }}">
 
@@ -35,8 +35,8 @@
 
 
                         <div class="flex items-center">
-                            
-                            
+
+
                             <form action="{{ route('cart.remove') }}" method="POST" class="ml-4">
                                 @csrf
                                 <button class="remove-cart-item text-red-500 text-xs ml-2" data-id="{{ $item['id'] }}">
@@ -47,20 +47,20 @@
                     </div>
                     @endforeach
                 </div>
-                
+
                 <!-- Cart Summary -->
                 <div class="p-4 bg-gray-50 border-t">
                     <div class="flex justify-between items-center">
                         <span class="font-medium">Total:</span>
                         <span class="font-bold text-xl">${{ number_format($total, 2) }}</span>
                     </div>
-                    
+
                     <div class="mt-4 flex justify-end space-x-4">
-                        <a href="{{ route('home') }}" 
+                        <a href="{{ route('home') }}"
                            class="px-4 py-2 border border-primary text-primary rounded hover:bg-gray-100">
                             Continue Shopping
                         </a>
-                        <a href="{{ route('checkout') }}" 
+                        <a href="{{ route('checkout') }}"
                            class="px-6 py-2 bg-primary text-white rounded hover:bg-secondary">
                             Proceed to Checkout
                         </a>
@@ -79,8 +79,30 @@
 
         @push('scripts')
 <script>
-    function updateCartQty(itemId, quantity, inputField) {
+    function setQtyButtonLoading(button, isLoading) {
+        const btn = $(button);
+        if (!btn.length) return;
+
+        if (isLoading) {
+            if (btn.data('loading') === true) return;
+            btn.data('loading', true);
+            btn.data('original-html', btn.html());
+            btn.html('<i class="fas fa-spinner fa-spin"></i>');
+            return;
+        }
+
+        const original = btn.data('original-html');
+        if (original !== undefined) {
+            btn.html(original);
+        }
+        btn.data('loading', false);
+    }
+
+    function updateCartQty(itemId, quantity, inputField, triggerButton = null) {
+        const controls = inputField.siblings('.increment, .decrement');
         inputField.prop('disabled', true);
+        controls.prop('disabled', true);
+        setQtyButtonLoading(triggerButton, true);
 
         $.ajax({
             url: "{{ route('cart.update') }}",
@@ -92,15 +114,12 @@
             },
             success: function (response) {
                 $('.font-bold.text-xl').text('$' + response.total.toFixed(2));
-                $('#cart-count').text(response.totalQuantity);
+                $('#nav-cart-count, #cart-count').text(response.totalQuantity);
+                inputField.data('original-value', quantity);
 
-                $.get("{{ route('cart.view.refresh') }}", function (data) {
-                    $('#cart-view-section').html(data);
-                });
-
-                $.get("{{ route('cart.refresh') }}", function(data) {
-                    $('#cart-dropdown').html(data);
-                });
+                if (typeof refreshNavCartDropdown === 'function') {
+                    refreshNavCartDropdown();
+                }
 
                 if (typeof toastr !== 'undefined') {
                     toastr.success(response.message);
@@ -114,6 +133,8 @@
             },
             complete: function () {
                 inputField.prop('disabled', false);
+                controls.prop('disabled', false);
+                setQtyButtonLoading(triggerButton, false);
                 toggleDecrementButton(inputField);
             }
         });
@@ -137,7 +158,7 @@
         input.val(newQty);
 
         let itemId = $(this).data('id');
-        updateCartQty(itemId, newQty, input);
+        updateCartQty(itemId, newQty, input, $(this));
     });
 
     $(document).on('change', '.cart-qty-input', function () {
@@ -150,7 +171,7 @@
             input.val(newQty);
         }
 
-        updateCartQty(itemId, newQty, input);
+        updateCartQty(itemId, newQty, input, null);
     });
 
     // Initial setup on page load

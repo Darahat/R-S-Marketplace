@@ -54,6 +54,11 @@ class WishlistRepository
             ->delete();
     }
 
+    public function clearItems(int $wishlistId): int
+    {
+        return WishlistItem::where('wishlist_id', $wishlistId)->delete();
+    }
+
     public function deleteWishlistItem(WishlistItem $wishlistItem): bool
     {
         return $wishlistItem->delete();
