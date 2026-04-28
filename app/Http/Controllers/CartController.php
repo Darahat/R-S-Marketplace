@@ -54,7 +54,7 @@ class CartController extends Controller
     public function cartRefresh()
     {
         $cart = $this->getCartItems();
-
+        dump($cart);
         $totalPriceAmount = 0;
         $totalItemCount = 0;
 

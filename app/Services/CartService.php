@@ -5,66 +5,149 @@ use App\Jobs\SyncGuestCartSessionFromRedisJob;
 use App\Jobs\SyncUserCartFromRedisJob;
 use App\Repositories\CartRepository;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Redis;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Throwable;
 
 class CartService
 {
     private const CART_TTL_SECONDS = 2592000; // 30 days
+    private const REDIS_PREFIX = 'cart:';
+    private const USER_PREFIX = 'user:';
+    private const GUEST_PREFIX = 'guest:';
 
     public function __construct(protected CartRepository $repo)
     {
-
     }
 
-    private function cartRedisKey(?int $userId = null): string
+    private function cartRedisKey(?int $userId = null, ?string $guestId = null): string
     {
         if ($userId) {
-            return "cart:user:{$userId}";
+            return self::REDIS_PREFIX . self::USER_PREFIX . $userId;
+        }
+        if ($guestId) {
+            return self::REDIS_PREFIX . self::GUEST_PREFIX . $guestId;
         }
 
-        if (session()->isStarted() === false) {
+        if (!session()->isStarted()) {
             session()->start();
         }
 
-        return 'cart:guest:' . session()->getId();
+        return self::REDIS_PREFIX . self::GUEST_PREFIX . session()->getId();
     }
 
-    private function getCartFromRedis(?int $userId = null): ?array
+    private function getGuestIdentifier(): string
+    {
+        if (!session()->has('guest_cart_id')) {
+            session()->put('guest_cart_id', 'guest_' . Str::uuid()->toString());
+        }
+        return session()->get('guest_cart_id');
+    }
+
+    private function getCartFromRedis(?int $userId = null, ?string $guestId = null): ?array
     {
         try {
-            $payload = Redis::get($this->cartRedisKey($userId));
+            $key = $this->cartRedisKey($userId, $guestId);
+            $payload = Cache::store('redis')->get($key);
+
+            if (!$payload) {
+                return null;
+            }
+
+            $decoded = json_decode($payload, true);
+
+            // Handle old numeric indexed format
+            if (is_array($decoded) && isset($decoded[0]) && !isset($decoded['id'])) {
+                $newFormat = [];
+                foreach ($decoded as $item) {
+                    if (isset($item['id'])) {
+                        $newFormat[$item['id']] = $item;
+                    }
+                }
+                return $newFormat;
+            }
+
+            return is_array($decoded) ? $decoded : null;
         } catch (Throwable $e) {
+            Log::warning('Redis get failed', ['error' => $e->getMessage(), 'user_id' => $userId]);
+
+            if ($userId) {
+                return $this->getDatabaseCartItems($userId);
+            } elseif ($guestId) {
+                return $this->getSessionCartItems();
+            }
             return null;
         }
-
-        if (!$payload) {
-            return null;
-        }
-
-        $decoded = json_decode($payload, true);
-        return is_array($decoded) ? $decoded : null;
     }
 
-    private function saveCartToRedis(array $cart, ?int $userId = null): void
+    private function saveCartToRedis(array $cart, ?int $userId = null, ?string $guestId = null): bool
     {
+        // Use product ID as key for O(1) lookups
+        $cartWithKeys = [];
+        foreach ($cart as $item) {
+            if (isset($item['id'])) {
+                $cartWithKeys[$item['id']] = $item;
+            }
+        }
+
         try {
-            Redis::setex(
-                $this->cartRedisKey($userId),
-                self::CART_TTL_SECONDS,
-                json_encode(array_values($cart))
-            );
+            $key = $this->cartRedisKey($userId, $guestId);
+            $success = Cache::store('redis')->put($key, json_encode($cartWithKeys), self::CART_TTL_SECONDS);
+
+            if (!$success) {
+                throw new \Exception('Redis put operation failed');
+            }
+            return true;
         } catch (Throwable $e) {
-            // Fallback: keep request successful even if Redis is down.
+            Log::error('Redis save failed, using fallback', [
+                'error' => $e->getMessage(),
+                'user_id' => $userId,
+                'guest_id' => $guestId,
+            ]);
+
+            // Fallback to session for guests
+            if (!$userId && $guestId) {
+                $this->saveCartToSession($cartWithKeys);
+            }
+
+            // For logged-in users, save directly to database using existing method
+            if ($userId) {
+                $this->saveCartToDatabaseSync($userId, $cartWithKeys);
+            }
+            return false;
         }
     }
 
-    private function clearCartRedis(?int $userId = null): void
+    private function saveCartToSession(array $cart): void
+    {
+        $sessionCart = [];
+        foreach ($cart as $item) {
+            $sessionCart[$item['id']] = $item;
+        }
+        session()->put('cart', $sessionCart);
+    }
+
+    private function saveCartToDatabaseSync(int $userId, array $cart): void
     {
         try {
-            Redis::del($this->cartRedisKey($userId));
+            // Use existing syncGuestCartItems method instead of non-existent syncCartItems
+            $this->repo->syncGuestCartItems($userId, $cart);
         } catch (Throwable $e) {
-            // Fallback: ignore Redis clear failures.
+            Log::critical('Failed to save cart to database as fallback', [
+                'user_id' => $userId,
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    private function clearCartRedis(?int $userId = null, ?string $guestId = null): void
+    {
+        try {
+            $key = $this->cartRedisKey($userId, $guestId);
+            Cache::store('redis')->forget($key);
+        } catch (Throwable $e) {
+            Log::warning('Redis clear failed', ['error' => $e->getMessage()]);
         }
     }
 
@@ -72,7 +155,7 @@ class CartService
     {
         $cart = $this->repo->firstOrCreateCartByUser($userId);
 
-        return $this->repo->getCartItemsWithProduct($cart->id)->map(function ($item) {
+        $items = $this->repo->getCartItemsWithProduct($cart->id)->map(function ($item) {
             return [
                 'id' => $item->product_id,
                 'name' => $item->product->name,
@@ -80,31 +163,37 @@ class CartService
                 'quantity' => $item->quantity,
                 'image' => $item->product->image,
             ];
-        })->values()->toArray();
+        })->toArray();
+
+        // Return with product ID as key for consistency
+        $itemsWithKeys = [];
+        foreach ($items as $item) {
+            $itemsWithKeys[$item['id']] = $item;
+        }
+        return $itemsWithKeys;
     }
 
     private function getSessionCartItems(): array
     {
-        return array_values(session()->get('cart', []));
-    }
+        $sessionCart = session()->get('cart', []);
 
-    private function mapItemsToSessionCart(array $items): array
-    {
-        $sessionCart = [];
-
-        foreach ($items as $item) {
-            $productId = (int) ($item['id'] ?? 0);
-            if ($productId <= 0) {
-                continue;
+        // Handle old numeric indexed format
+        if (is_array($sessionCart) && isset($sessionCart[0]) && !isset($sessionCart['id'])) {
+            $newFormat = [];
+            foreach ($sessionCart as $item) {
+                if (isset($item['id'])) {
+                    $newFormat[$item['id']] = $item;
+                }
             }
+            return $newFormat;
+        }
 
-            $sessionCart[$productId] = [
-                'id' => $productId,
-                'name' => (string) ($item['name'] ?? ''),
-                'price' => (float) ($item['price'] ?? 0),
-                'quantity' => max(1, (int) ($item['quantity'] ?? 1)),
-                'image' => (string) ($item['image'] ?? ''),
-            ];
+        // Ensure all items have required fields
+        foreach ($sessionCart as $id => &$item) {
+            if (!isset($item['id'])) {
+                $item['id'] = $id;
+            }
+            $item['quantity'] = max(1, $item['quantity'] ?? 1);
         }
 
         return $sessionCart;
@@ -113,47 +202,65 @@ class CartService
     private function queueCartSync(int $userId): void
     {
         try {
-            if (!Redis::exists($this->cartRedisKey($userId))) {
+            $key = $this->cartRedisKey($userId);
+            if (!Cache::store('redis')->has($key)) {
                 return;
             }
 
-            SyncUserCartFromRedisJob::dispatch($userId)->afterResponse();
+            SyncUserCartFromRedisJob::dispatch($userId)->onQueue('cart-sync')->delay(now()->addSeconds(2));
         } catch (Throwable $e) {
-            // Ignore queue dispatch issues to keep UX instant.
+            Log::error('Failed to dispatch cart sync job', [
+                'user_id' => $userId,
+                'error' => $e->getMessage()
+            ]);
         }
     }
 
-    private function queueGuestCartSync(): void
+    private function queueGuestCartSync(string $guestId): void
     {
         try {
-            if (!Redis::exists($this->cartRedisKey())) {
+            $key = $this->cartRedisKey(null, $guestId); // Fixed: added null for userId
+            if (!Cache::store('redis')->has($key)) {
                 return;
             }
 
-            SyncGuestCartSessionFromRedisJob::dispatch(session()->getId())->afterResponse();
+            SyncGuestCartSessionFromRedisJob::dispatch($guestId)->onQueue('cart-sync')->delay(now()->addSeconds(2)); // Fixed: correct job class
         } catch (Throwable $e) {
-            // Ignore queue dispatch issues to keep UX instant.
+            Log::error('Failed to dispatch guest cart sync job', [
+                'guest_id' => $guestId,
+                'error' => $e->getMessage()
+            ]);
         }
     }
 
-    public function syncGuestCart(int $id): void
+    public function syncGuestCart(int $userId): void
     {
-        $guestItems = $this->getCartFromRedis() ?? $this->getSessionCartItems();
+        $guestId = $this->getGuestIdentifier();
+        $guestItems = $this->getCartFromRedis(null, $guestId) ?? $this->getSessionCartItems();
 
         if (!empty($guestItems)) {
-            $guestCart = $this->mapItemsToSessionCart($guestItems);
-            $this->repo->syncGuestCartItems($id, $guestCart);
-            session()->forget('cart');
+            // Merge guest cart with existing user cart
+            $userItems = $this->getDatabaseCartItems($userId);
+            foreach ($guestItems as $productId => $item) {
+                if (isset($userItems[$productId])) {
+                    $userItems[$productId]['quantity'] += $item['quantity'];
+                } else {
+                    $userItems[$productId] = $item;
+                }
+            }
 
-            $this->clearCartRedis();
-            $this->saveCartToRedis($this->getDatabaseCartItems($id), $id);
+            $this->repo->syncGuestCartItems($userId, $userItems);
+            session()->forget('cart');
+            session()->forget('guest_cart_id');
+            $this->clearCartRedis(null, $guestId);
+            $this->saveCartToRedis($userItems, $userId);
         }
     }
 
     public function getCartItems(): array
     {
         if (Auth::check()) {
-            $userId = (int) Auth::id();
+            $userId = Auth::id();
             $cached = $this->getCartFromRedis($userId);
             if ($cached !== null) {
                 return $cached;
@@ -164,13 +271,15 @@ class CartService
             return $items;
         }
 
-        $cached = $this->getCartFromRedis();
+        $guestId = $this->getGuestIdentifier();
+        $cached = $this->getCartFromRedis(null, $guestId);
+
         if ($cached !== null) {
             return $cached;
         }
 
         $items = $this->getSessionCartItems();
-        $this->saveCartToRedis($items);
+        $this->saveCartToRedis($items, null, $guestId);
         return $items;
     }
 
@@ -189,25 +298,23 @@ class CartService
     {
         if (!$isBuyNow) {
             if (Auth::check()) {
-                $userId = (int) Auth::id();
+                $userId = Auth::id();
                 $cart = $this->repo->getCartForUser($userId);
                 if ($cart) {
                     $this->repo->clearCartItems($cart->id);
                 }
-
                 $this->clearCartRedis($userId);
             }
             session()->forget('cart');
-            $this->clearCartRedis();
+            $guestId = $this->getGuestIdentifier();
+            $this->clearCartRedis(null, $guestId);
         }
 
         session()->forget(['checkout_address_id', 'checkout_notes', 'is_buy_now', 'buy_now_items']);
     }
 
-    public function addToCart(string $productId, string $quantity): array
+    public function addToCart(int $productId, int $quantity): array
     {
-        $productId = (int) $productId;
-        $quantity = (int) $quantity;
         $product = $this->repo->findProduct($productId);
 
         if (!$product) {
@@ -218,25 +325,49 @@ class CartService
             ];
         }
 
-        if (Auth::check()) {
-            // Redis-first storage for logged-in users. DB sync happens in queue.
-            $userId = (int) Auth::id();
-            $cart = $this->getCartItems();
-            $found = false;
+        $quantity = max(1, $quantity);
 
-            foreach ($cart as &$item) {
-                if ((int) ($item['id'] ?? 0) !== $productId) {
-                    continue;
+        if (Auth::check()) {
+            $userId = Auth::id();
+            $maxRetries = 3;
+            $cart = [];
+
+            for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {
+                $cart = $this->getCartItems();
+
+                if (isset($cart[$productId])) {
+                    $cart[$productId]['quantity'] += $quantity;
+                } else {
+                    $cart[$productId] = [
+                        'id' => $product->id,
+                        'name' => $product->name,
+                        'price' => $product->price,
+                        'quantity' => $quantity,
+                        'image' => $product->image,
+                    ];
                 }
 
-                $item['quantity'] = (int) ($item['quantity'] ?? 0) + $quantity;
-                $found = true;
-                break;
-            }
-            unset($item);
+                if ($this->saveCartToRedis($cart, $userId)) {
+                    break;
+                }
 
-            if (!$found) {
-                $cart[] = [
+                if ($attempt === $maxRetries) {
+                    Log::error('Failed to save cart after max retries', ['user_id' => $userId]);
+                }
+                usleep(100000);
+            }
+
+            $this->queueCartSync($userId);
+            $totalQuantity = collect($cart)->sum('quantity');
+            $cartCount = count($cart);
+        } else {
+            $guestId = $this->getGuestIdentifier();
+            $cart = $this->getCartItems();
+
+            if (isset($cart[$productId])) {
+                $cart[$productId]['quantity'] += $quantity;
+            } else {
+                $cart[$productId] = [
                     'id' => $product->id,
                     'name' => $product->name,
                     'price' => $product->price,
@@ -245,41 +376,10 @@ class CartService
                 ];
             }
 
-            $this->saveCartToRedis($cart, $userId);
-            $this->queueCartSync($userId);
-
-            $totalQuantity = (int) collect($cart)->sum('quantity');
-            $cartCount = count($cart);
-        } else {
-            // Redis-first storage for guests. Session sync happens in queue.
-            $cart = $this->getCartItems();
-            $found = false;
-
-            foreach ($cart as &$item) {
-                if ((int) ($item['id'] ?? 0) !== $productId) {
-                    continue;
-                }
-
-                $item['quantity'] = (int) ($item['quantity'] ?? 0) + $quantity;
-                $found = true;
-                break;
-            }
-            unset($item);
-
-            if (!$found) {
-                $cart[] = [
-                    'id' => $product->id,
-                    'name' => $product->name,
-                    'price' => $product->price,
-                    'quantity' => $quantity,
-                    'image' => $product->image
-                ];
-            }
-
+            $this->saveCartToRedis($cart, null, $guestId);
+            $this->queueGuestCartSync($guestId);
             $totalQuantity = collect($cart)->sum('quantity');
             $cartCount = count($cart);
-            $this->saveCartToRedis(array_values($cart));
-            $this->queueGuestCartSync();
         }
 
         return [
@@ -288,88 +388,75 @@ class CartService
         ];
     }
 
-    public function update(int $itemId, int $quantity): array
+    public function update(int $productId, int $quantity): array
     {
-        $total = 0;
-        $totalQuantity = 0;
+        $quantity = max(1, $quantity);
 
         if (Auth::check()) {
-            $userId = (int) Auth::id();
-            $cartItems = $this->getCartItems();
+            $userId = Auth::id();
+            $cart = $this->getCartItems(); // Fixed: use $cart consistently
 
-            foreach ($cartItems as &$item) {
-                if ((int) ($item['id'] ?? 0) !== $itemId) {
-                    continue;
-                }
-
-                $item['quantity'] = max(1, $quantity);
-                break;
+            if (isset($cart[$productId])) {
+                $cart[$productId]['quantity'] = $quantity;
+                $this->saveCartToRedis($cart, $userId);
+                $this->queueCartSync($userId);
             }
-            unset($item);
 
-            $this->saveCartToRedis($cartItems, $userId);
-            $this->queueCartSync($userId);
-
-            $total = $this->calculateTotal($cartItems);
-            $totalQuantity = (int) collect($cartItems)->sum('quantity');
+            $total = $this->calculateTotal($cart);
+            $totalQuantity = collect($cart)->sum('quantity');
         } else {
-            $cartItems = $this->getCartItems();
+            $guestId = $this->getGuestIdentifier();
+            $cart = $this->getCartItems(); // Fixed: use $cart consistently
 
-            foreach ($cartItems as &$item) {
-                if ((int) ($item['id'] ?? 0) !== $itemId) {
-                    continue;
-                }
-
-                $item['quantity'] = max(1, $quantity);
-                break;
+            if (isset($cart[$productId])) {
+                $cart[$productId]['quantity'] = $quantity;
+                $this->saveCartToRedis($cart, null, $guestId);
+                $this->queueGuestCartSync($guestId);
             }
-            unset($item);
 
-            $total = $this->calculateTotal($cartItems);
-            $totalQuantity = collect($cartItems)->sum('quantity');
-            $this->saveCartToRedis(array_values($cartItems));
-            $this->queueGuestCartSync();
+            $total = $this->calculateTotal($cart);
+            $totalQuantity = collect($cart)->sum('quantity');
         }
 
         return [
             'totalQuantity' => $totalQuantity,
             'total' => $total
         ];
-
     }
 
     public function calculateTotal($items)
     {
-        return array_reduce($items, function($sum, $item) {
+        return array_reduce($items, function ($sum, $item) {
             return $sum + ($item['price'] * $item['quantity']);
         }, 0);
     }
 
-    public function remove(int $itemId): array
+    public function remove(int $productId): array  // Fixed: renamed parameter to match usage
     {
-        $total = 0;
-        $totalQuantity = 0;
-
         if (Auth::check()) {
-            $userId = (int) Auth::id();
-            $cartItems = array_values(array_filter($this->getCartItems(), function ($item) use ($itemId) {
-                return (int) ($item['id'] ?? 0) !== $itemId;
-            }));
+            $userId = Auth::id();
+            $cart = $this->getCartItems(); // Fixed: use $cart consistently
 
-            $this->saveCartToRedis($cartItems, $userId);
-            $this->queueCartSync($userId);
+            if (isset($cart[$productId])) {
+                unset($cart[$productId]);
+                $this->saveCartToRedis($cart, $userId);
+                $this->queueCartSync($userId);
+            }
 
-            $total = $this->calculateTotal($cartItems);
-            $totalQuantity = (int) collect($cartItems)->sum('quantity');
+            $total = $this->calculateTotal($cart);
+            $totalQuantity = collect($cart)->sum('quantity');
         } else {
-            $cartItems = array_values(array_filter($this->getCartItems(), function ($item) use ($itemId) {
-                return (int) ($item['id'] ?? 0) !== $itemId;
-            }));
+            $guestId = $this->getGuestIdentifier();
+            $cart = $this->getCartItems(); // Fixed: use $cart consistently
 
-            $total = $this->calculateTotal($cartItems);
-            $totalQuantity = collect($cartItems)->sum('quantity');
-            $this->saveCartToRedis(array_values($cartItems));
-            $this->queueGuestCartSync();
+            if (isset($cart[$productId])) {
+                unset($cart[$productId]);
+                $this->saveCartToRedis($cart, null, $guestId);
+                $this->queueGuestCartSync($guestId);
+            }
+
+            $total = $this->calculateTotal($cart);
+            $totalQuantity = collect($cart)->sum('quantity');
         }
 
         return [
@@ -377,9 +464,4 @@ class CartService
             'total' => $total
         ];
     }
-
 }
-
-
-
-

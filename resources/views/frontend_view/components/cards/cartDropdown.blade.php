@@ -2,6 +2,7 @@
     $cart = $cart ?? [];
     $totalPriceAmount = $totalPriceAmount ?? 0;
     $totalItemCount = $totalItemCount ?? 0;
+
 @endphp
 
 <ul class="max-h-64 overflow-y-auto divide-y">
@@ -41,3 +42,5 @@
         </div>
     </a>
 </div>
+
+
