@@ -22,14 +22,8 @@ class CartController extends Controller
      */
     protected function getCartItems()
     {
-
-            return $this->cartService->getCartItems();
-
-
+        return $this->cartService->getCartItems();
     }
-
-
-
     public function view()
     {
         $cartItems = $this->getCartItems();
