@@ -54,7 +54,7 @@ class CartController extends Controller
     public function cartRefresh()
     {
         $cart = $this->getCartItems();
-        dump($cart);
+
         $totalPriceAmount = 0;
         $totalItemCount = 0;
 
@@ -122,5 +122,14 @@ class CartController extends Controller
         return back()->with('success', 'Product removed from cart');
     }
 
+public function getCartItemsJson()
+{
+    $cartItems = $this->cartService->getCartItems();
 
+    return response()->json([
+        'items' => array_values($cartItems), // Convert to array values for JS
+        'total' => $this->cartService->calculateTotal($cartItems),
+        'totalQuantity' => collect($cartItems)->sum('quantity'),
+    ]);
+}
 }

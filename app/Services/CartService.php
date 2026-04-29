@@ -262,6 +262,7 @@ class CartService
         if (Auth::check()) {
             $userId = Auth::id();
             $cached = $this->getCartFromRedis($userId);
+            // dump($cached);
             if ($cached !== null) {
                 return $cached;
             }
@@ -272,8 +273,9 @@ class CartService
         }
 
         $guestId = $this->getGuestIdentifier();
+        //  dump($guestId);
         $cached = $this->getCartFromRedis(null, $guestId);
-
+//  dump($cached);
         if ($cached !== null) {
             return $cached;
         }

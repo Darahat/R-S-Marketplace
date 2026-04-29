@@ -60,6 +60,7 @@ Route::prefix('cart')->group(function () {
     Route::post('/update', [CartController::class, 'update'])->middleware('throttle:30,1')->name('cart.update');
     Route::post('/remove', [CartController::class, 'remove'])->middleware('throttle:30,1')->name('cart.remove');
     Route::get('/refresh', [CartController::class, 'cartRefresh'])->name('cart.refresh');
+    Route::get('/cart/items', [CartController::class, 'getCartItemsJson'])->name('cart.get-items');
 
 
 });

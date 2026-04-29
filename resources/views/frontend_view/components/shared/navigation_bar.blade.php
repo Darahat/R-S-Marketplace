@@ -1,5 +1,6 @@
 <!-- Daraz-style Responsive Header -->
-<header class="bg-white shadow-md sticky top-0 z-40" x-data="{ mobileMenuOpen: false, searchOpen: false, openCart: false, openAccount: false }">
+<header class="bg-white shadow-md sticky top-0 z-40"
+    class="bg-white shadow-md sticky top-0 z-40" x-data="navbar()">
 
     <!-- Top Utility Bar -->
     @include('frontend_view.components.shared.utility-bar')
@@ -28,14 +29,12 @@
 
     <!-- Mobile Menu -->
     @include('frontend_view.components.shared.mobile-menu')
-
-</header>
-
 <!-- Cart Dropdown — outside header so it escapes the sticky stacking context -->
 <div
     id="nav-cart-dropdown"
-    class="w-96 bg-white shadow-2xl rounded-xl border border-gray-100 overflow-hidden"
-    style="display:none; position:fixed; z-index:41;"
+    x-show="openCart"
+    :style="cartPosition"
+    class="w-96 bg-white shadow-2xl rounded-xl border border-gray-100 overflow-hidden fixed z-50"
 >
     <div class="p-4 border-b">
         <h3 class="font-bold text-gray-800">Shopping Cart</h3>
@@ -43,14 +42,34 @@
     <div id="nav-cart-dropdown-content">
         @include('frontend_view.components.cards.cartDropdown')
     </div>
+
+</div>
+<div id="loginModal"
+        x-show="loginModalOpen"
+         x-cloak class="fixed inset-0 z-50 flex justify-center items-center p-4">
+    <div class="bg-white rounded-2xl w-full max-w-md p-6 sm:p-8 relative max-h-[90vh] overflow-y-auto">
+        <button @click="loginModalOpen = false" class="close-modal absolute top-4 right-4 text-gray-400 hover:text-danger transition text-2xl">
+            <i class="fas fa-times"></i>
+        </button>
+        @include('frontend_view.pages.auth.login')
+    </div>
 </div>
 
-<!-- Account Dropdown — outside header so it escapes the sticky stacking context -->
+<div id="registerModal" x-show="registerModalOpen" x-cloak
+ class="fixed inset-0 z-50 flex justify-center items-center p-4">
+    <div class="bg-white rounded-2xl w-full max-w-md p-6 sm:p-8 relative max-h-[90vh] overflow-y-auto">
+        <button @click="registerModalOpen = false" class="close-modal absolute top-4 right-4 text-gray-400 hover:text-danger transition text-2xl">
+            <i class="fas fa-times"></i>
+        </button>
+        @include('frontend_view.pages.auth.register')
+    </div>
+</div>
 @auth
 <div
     id="nav-account-dropdown"
-    class="w-52 bg-white border border-gray-100 rounded-xl shadow-xl overflow-hidden"
-    style="display:none; position:fixed; z-index:41;"
+    x-show="openAccount"
+    :style="accountPosition"
+    class="w-52 bg-white border border-gray-100 rounded-xl shadow-xl overflow-hidden fixed z-50"
 >
     <div class="p-3 border-b bg-primary/5">
         <p class="text-sm font-semibold text-gray-800 truncate">{{ Auth::user()->name }}</p>
@@ -76,151 +95,119 @@
     </div>
 </div>
 @endauth
+</header>
+
+
+
+<!-- Account Dropdown — outside header so it escapes the sticky stacking context -->
+
 
 <!-- Modals -->
 <!-- Page overlay — shown behind modals, independent of Tailwind class scanning -->
 <div id="page-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:48;"></div>
 
-<div id="loginModal" class="fixed inset-0 z-50 hidden justify-center items-center p-4">
-    <div class="bg-white rounded-2xl w-full max-w-md p-6 sm:p-8 relative max-h-[90vh] overflow-y-auto">
-        <button class="close-modal absolute top-4 right-4 text-gray-400 hover:text-danger transition text-2xl">
-            <i class="fas fa-times"></i>
-        </button>
-        @include('frontend_view.pages.auth.login')
-    </div>
-</div>
 
-<div id="registerModal" class="fixed inset-0 z-50 hidden justify-center items-center p-4">
-    <div class="bg-white rounded-2xl w-full max-w-md p-6 sm:p-8 relative max-h-[90vh] overflow-y-auto">
-        <button class="close-modal absolute top-4 right-4 text-gray-400 hover:text-danger transition text-2xl">
-            <i class="fas fa-times"></i>
-        </button>
-        @include('frontend_view.pages.auth.register')
-    </div>
-</div>
 
 @push('scripts')
 <script>
-    console.log(typeof Alpine); // Should output "function" if loaded
-console.log(document.querySelector('[x-data]')); // Should find your header element
-    document.addEventListener('alpine:init', () => {
-        // Alpine.js is ready
-        console.log('Alpine initialized');
-    });
+document.addEventListener('alpine:init', () => {
 
-    // Modal functions (global for Alpine)
-    window.openLoginModal = function() {
-        const modal = document.getElementById('loginModal');
-        if (modal) {
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-            document.getElementById('page-overlay').style.display = 'block';
-            document.body.classList.add('overflow-hidden');
-        }
-    }
+    Alpine.data('navbar', () => ({
+        openCart: false,
+        openAccount: false,
+        loginModalOpen: false,    // New state
+        registerModalOpen: false,// New state
+        cartPosition: {},
+        accountPosition: {},
 
-    window.openRegisterModal = function() {
-        const modal = document.getElementById('registerModal');
-        if (modal) {
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-            document.getElementById('page-overlay').style.display = 'block';
-            document.body.classList.add('overflow-hidden');
-        }
-    }
+        init() {
+            // close on outside click
+            document.addEventListener('click', (e) => {
+                const cartBtn = document.getElementById('nav-cart-button');
+                const cartDrop = document.getElementById('nav-cart-dropdown');
 
-    window.closeModals = function() {
-        document.getElementById('loginModal')?.classList.add('hidden');
-        document.getElementById('loginModal')?.classList.remove('flex');
-        document.getElementById('registerModal')?.classList.add('hidden');
-        document.getElementById('registerModal')?.classList.remove('flex');
-        document.getElementById('page-overlay').style.display = 'none';
-        document.body.classList.remove('overflow-hidden');
-    }
+                const accBtn = document.getElementById('nav-avatar-button');
+                const accDrop = document.getElementById('nav-account-dropdown');
 
-    $(document).ready(function () {
-        function refreshNavCartDropdown() {
-            return $.get("{{ route('cart.refresh') }}", function (data) {
-                $('#nav-cart-dropdown-content').html(data);
+                if (!cartBtn?.contains(e.target) && !cartDrop?.contains(e.target)) {
+                    this.openCart = false;
+                }
+
+                if (!accBtn?.contains(e.target) && !accDrop?.contains(e.target)) {
+                    this.openAccount = false;
+                }
             });
-        }
 
-        $(document).on('click', '[data-modal="login"]', function () {
-            openLoginModal();
-        });
+            // ESC close
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    this.openCart = false;
+                    this.openAccount = false;
+                }
+            });
 
-        $(document).on('click', '[data-modal="register"]', function () {
-            openRegisterModal();
-        });
+            // resize reposition
+            window.addEventListener('resize', () => {
+                if (this.openCart) this.setCartPosition();
+                if (this.openAccount) this.setAccountPosition();
+            });
+        },
 
-        $(document).on('click', '#nav-cart-button', function () {
-            console.log('Cart button clicked');
-            const dropdown = $('#nav-cart-dropdown');
-            if (dropdown.is(':visible')) {
-                dropdown.hide();
-                return;
+        toggleCart() {
+            this.openCart = !this.openCart;
+
+            if (this.openCart) {
+                this.openAccount = false;
+                this.refreshCart();
+                this.setCartPosition();
             }
+        },
 
-            refreshNavCartDropdown();
+        toggleAccount() {
+            this.openAccount = !this.openAccount;
 
-            const rect = this.getBoundingClientRect();
-            dropdown.css({
-                position: 'fixed',
+            if (this.openAccount) {
+                this.openCart = false;
+                this.setAccountPosition();
+            }
+        },
+
+        setCartPosition() {
+            const btn = document.getElementById('nav-cart-button');
+            if (!btn) return;
+
+            const rect = btn.getBoundingClientRect();
+
+            this.cartPosition = {
                 top: (rect.bottom + 8) + 'px',
                 right: (window.innerWidth - rect.right) + 'px',
-                left: 'auto',
-                'z-index': 41
-            }).show();
-            $('#nav-account-dropdown').hide();
-        });
+                left: 'auto'
+            };
+        },
 
-        $(document).on('click', '#nav-avatar-button', function () {
-            console.log('Avatar button clicked');
-            const dropdown = $('#nav-account-dropdown');
-            if (dropdown.is(':visible')) {
-                dropdown.hide();
-                return;
-            }
-            const rect = this.getBoundingClientRect();
-            dropdown.css({
-                position: 'fixed',
+        setAccountPosition() {
+            const btn = document.getElementById('nav-avatar-button');
+            if (!btn) return;
+
+            const rect = btn.getBoundingClientRect();
+
+            this.accountPosition = {
                 top: (rect.bottom + 8) + 'px',
                 right: (window.innerWidth - rect.right) + 'px',
-                left: 'auto',
-                'z-index': 41
-            }).show();
-            $('#nav-cart-dropdown').hide();
-        });
+                left: 'auto'
+            };
+        },
 
-        $(document).on('click', function (e) {
-            const insideCart = $(e.target).closest('#nav-cart-button, #nav-cart-dropdown').length > 0;
-            const insideAccount = $(e.target).closest('#nav-avatar-button, #nav-account-dropdown').length > 0;
-            if (!insideCart) $('#nav-cart-dropdown').hide();
-            if (!insideAccount) $('#nav-account-dropdown').hide();
-        });
-
-        // Close modals
-        $('.close-modal').on('click', function() {
-            closeModals();
-        });
-
-        // Close modals on overlay click
-        $('#page-overlay').on('click', function() {
-            closeModals();
-        });
-
-        // Auto-open login modal when redirected with ?auth=login
-        const url = new URL(window.location.href);
-        if (url.searchParams.get('auth') === 'login') {
-            openLoginModal();
-            url.searchParams.delete('auth');
-            window.history.replaceState({}, '', url.pathname + (url.searchParams.toString() ? '?' + url.searchParams.toString() : '') + url.hash);
+        async refreshCart() {
+            try {
+                const res = await fetch("{{ route('cart.refresh') }}");
+                const html = await res.text();
+                document.getElementById('nav-cart-dropdown-content').innerHTML = html;
+            } catch (e) {
+                console.error('Cart refresh failed');
+            }
         }
-
-        const flashStatus = @json(session('status'));
-        if (flashStatus && typeof toastr !== 'undefined') {
-            toastr.success(flashStatus);
-        }
-    });
+    }));
+});
 </script>
 @endpush

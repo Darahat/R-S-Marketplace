@@ -102,8 +102,7 @@
         {{ session('success') }}
     </div>
 @endif
-<body class="bg-gray-50" style="{{ $themeVars }}">
-
+<body x-data="{}" class="bg-gray-50" style="{{ $themeVars }}">
 @include('frontend_view.components.shared.navigation_bar')
 
     @yield('content')
