@@ -1,6 +1,6 @@
 <!-- Daraz-style Responsive Header -->
 <header class="bg-white shadow-md sticky top-0 z-40"
-    class="bg-white shadow-md sticky top-0 z-40" x-data="navbar()">
+    x-data="navbar()">
 
     <!-- Top Utility Bar -->
     @include('frontend_view.components.shared.utility-bar')
@@ -46,7 +46,7 @@
 </div>
 <div id="loginModal"
         x-show="loginModalOpen"
-         x-cloak class="fixed inset-0 z-50 flex justify-center items-center p-4">
+         [x-cloak] { display: none !important; } class="fixed inset-0 z-50 flex justify-center items-center p-4">
     <div class="bg-white rounded-2xl w-full max-w-md p-6 sm:p-8 relative max-h-[90vh] overflow-y-auto">
         <button @click="loginModalOpen = false" class="close-modal absolute top-4 right-4 text-gray-400 hover:text-danger transition text-2xl">
             <i class="fas fa-times"></i>
@@ -55,7 +55,7 @@
     </div>
 </div>
 
-<div id="registerModal" x-show="registerModalOpen" x-cloak
+<div id="registerModal" x-show="registerModalOpen" [x-cloak] { display: none !important; }
  class="fixed inset-0 z-50 flex justify-center items-center p-4">
     <div class="bg-white rounded-2xl w-full max-w-md p-6 sm:p-8 relative max-h-[90vh] overflow-y-auto">
         <button @click="registerModalOpen = false" class="close-modal absolute top-4 right-4 text-gray-400 hover:text-danger transition text-2xl">
@@ -118,7 +118,9 @@ document.addEventListener('alpine:init', () => {
         loginModalOpen: false,    // New state
         registerModalOpen: false,// New state
         cartPosition: {},
+        searchOpen: false,
         accountPosition: {},
+        mobileMenuOpen :false,
 
         init() {
             // close on outside click
@@ -159,7 +161,7 @@ document.addEventListener('alpine:init', () => {
             if (this.openCart) {
                 this.openAccount = false;
                 this.refreshCart();
-                this.setCartPosition();
+                 this.setCartPosition();
             }
         },
 
@@ -198,10 +200,10 @@ document.addEventListener('alpine:init', () => {
             };
         },
 
-        async refreshCart() {
+          refreshCart() {
             try {
-                const res = await fetch("{{ route('cart.refresh') }}");
-                const html = await res.text();
+                const res =  fetch("{{ route('cart.refresh') }}");
+                const html =  res.text();
                 document.getElementById('nav-cart-dropdown-content').innerHTML = html;
             } catch (e) {
                 console.error('Cart refresh failed');

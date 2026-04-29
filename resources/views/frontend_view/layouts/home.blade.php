@@ -125,6 +125,7 @@
     }
 
     function refreshNavCartDropdown() {
+        console.log("i am from refreshnavcart");
         return $.ajax({
             url: "{{ route('cart.refresh') }}",
             method: 'GET',
