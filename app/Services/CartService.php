@@ -155,7 +155,7 @@ class CartService
     {
         $cart = $this->repo->firstOrCreateCartByUser($userId);
 
-        $items = $this->repo->getCartItemsWithProduct($cart->id)->map(function ($item) {
+        $items = $this->repo->getCartItemsWithProduct($cart->id)->with('product')->map(function ($item) {
             return [
                 'id' => $item->product_id,
                 'name' => $item->product->name,
@@ -273,15 +273,15 @@ class CartService
         }
 
         $guestId = $this->getGuestIdentifier();
-        //  dump($guestId);
+
         $cached = $this->getCartFromRedis(null, $guestId);
-//  dump($cached);
+
         if ($cached !== null) {
             return $cached;
         }
 
         $items = $this->getSessionCartItems();
-        $this->saveCartToRedis($items, null, $guestId);
+         $this->saveCartToRedis($items, null, $guestId);
         return $items;
     }
 
@@ -359,10 +359,10 @@ class CartService
                 usleep(100000);
             }
 
-            $this->queueCartSync($userId);
+            // $this->queueCartSync($userId);
             $totalQuantity = collect($cart)->sum('quantity');
             $cartCount = count($cart);
-        } else {
+            } else {
             $guestId = $this->getGuestIdentifier();
             $cart = $this->getCartItems();
 
@@ -379,7 +379,7 @@ class CartService
             }
 
             $this->saveCartToRedis($cart, null, $guestId);
-            $this->queueGuestCartSync($guestId);
+            // $this->queueGuestCartSync($guestId);
             $totalQuantity = collect($cart)->sum('quantity');
             $cartCount = count($cart);
         }
@@ -399,26 +399,26 @@ class CartService
             $cart = $this->getCartItems(); // Fixed: use $cart consistently
 
             if (isset($cart[$productId])) {
-                $cart[$productId]['quantity'] = $quantity;
+                unset($cart[$productId]);
                 $this->saveCartToRedis($cart, $userId);
-                $this->queueCartSync($userId);
+                // $this->queueCartSync($userId);
             }
 
             $total = $this->calculateTotal($cart);
             $totalQuantity = collect($cart)->sum('quantity');
-        } else {
+            } else {
             $guestId = $this->getGuestIdentifier();
             $cart = $this->getCartItems(); // Fixed: use $cart consistently
 
             if (isset($cart[$productId])) {
-                $cart[$productId]['quantity'] = $quantity;
+                unset($cart[$productId]);
                 $this->saveCartToRedis($cart, null, $guestId);
-                $this->queueGuestCartSync($guestId);
+                // $this->queueGuestCartSync($guestId);
             }
 
             $total = $this->calculateTotal($cart);
             $totalQuantity = collect($cart)->sum('quantity');
-        }
+            }
 
         return [
             'totalQuantity' => $totalQuantity,
@@ -442,24 +442,24 @@ class CartService
             if (isset($cart[$productId])) {
                 unset($cart[$productId]);
                 $this->saveCartToRedis($cart, $userId);
-                $this->queueCartSync($userId);
+                // $this->queueCartSync($userId);
             }
 
             $total = $this->calculateTotal($cart);
             $totalQuantity = collect($cart)->sum('quantity');
-        } else {
+            } else {
             $guestId = $this->getGuestIdentifier();
             $cart = $this->getCartItems(); // Fixed: use $cart consistently
 
             if (isset($cart[$productId])) {
                 unset($cart[$productId]);
                 $this->saveCartToRedis($cart, null, $guestId);
-                $this->queueGuestCartSync($guestId);
+                // $this->queueGuestCartSync($guestId);
             }
 
             $total = $this->calculateTotal($cart);
             $totalQuantity = collect($cart)->sum('quantity');
-        }
+            }
 
         return [
             'totalQuantity' => $totalQuantity,

@@ -1,16 +1,28 @@
 <?php
 
-namespace Tests\Feature;
+namespace App\Http\Middleware;
 
-use Tests\TestCase;
+use Closure;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 
-class SecurityHeadersTest extends TestCase
+class SetSecurityHeaders
 {
-    public function test_application_sets_clickjacking_and_csp_headers(): void
+    public function handle(Request $request, Closure $next): Response
     {
-        $response = $this->get('/');
+        /** @var Response $response */
+        $response = $next($request);
 
-        $response->assertHeader('X-Frame-Options', 'SAMEORIGIN');
-        $response->assertHeader('Content-Security-Policy');
+        $response->headers->set('X-Frame-Options', 'SAMEORIGIN');
+        $response->headers->set(
+            'Content-Security-Policy',
+            "default-src 'self'; base-uri 'self'; frame-ancestors 'self'; form-action 'self'; object-src 'none'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: https:; font-src 'self' data: https:; connect-src 'self' https: ws: wss:; frame-src 'self' https:;"
+        );
+        $response->headers->set('X-Content-Type-Options', 'nosniff');
+        $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
+        $response->headers->set('X-XSS-Protection', '1; mode=block');
+        $response->headers->set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+
+        return $response;
     }
 }

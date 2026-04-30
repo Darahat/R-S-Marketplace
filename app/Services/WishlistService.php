@@ -6,6 +6,8 @@ use App\Repositories\WishlistRepository;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redis;
 use App\Services\CartService;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use Throwable;
 
 class WishlistService{
@@ -19,52 +21,69 @@ class WishlistService{
 
     }
 
-    private function wishlistRedisKey(?int $userId = null): string
+    private function getGuestIdentifier(): string
+    {
+        if (!session()->has('guest_cart_id')) {
+            session()->put('guest_cart_id', 'guest_' . \Illuminate\Support\Str::uuid()->toString());
+        }
+        return session()->get('guest_cart_id');
+    }
+
+    private function wishlistRedisKey(?int $userId = null, ?string $guestId = null): string
     {
         if ($userId) {
             return "wishlist:user:{$userId}";
         }
 
-        if (session()->isStarted() === false) {
-            session()->start();
-        }
-
-        return 'wishlist:guest:' . session()->getId();
+        $id = $guestId ?? $this->getGuestIdentifier();
+        return "wishlist:guest:{$id}";
     }
 
-    private function getWishlistFromRedis(?int $userId = null): ?array
+    private function getWishlistFromRedis(?int $userId = null, ?string $guestId = null): ?array
     {
         try {
-            $payload = Redis::get($this->wishlistRedisKey($userId));
+            $key = $this->wishlistRedisKey($userId, $guestId);
+            $payload = Cache::store('redis')->get($key);
+
+            if (!$payload) {
+                 return null;
+            }
+
+            $decoded = json_decode($payload, true);
+            return is_array($decoded) ? $decoded : null;
         } catch (Throwable $e) {
+        Log::warning('Redis get failed', ['error' => $e->getMessage(), 'user_id' => $userId]);
+ if ($userId) {
+                return $this->getDatabaseWishlistItems($userId);
+            } elseif ($guestId) {
+                return $this->getSessionWishlistItems();
+            }
             return null;
         }
-
-        if (!$payload) {
-            return null;
-        }
-
-        $decoded = json_decode($payload, true);
-        return is_array($decoded) ? $decoded : null;
     }
 
-    private function saveWishlistToRedis(array $items, ?int $userId = null): void
+    private function saveWishlistToRedis(array $items, ?int $userId = null, ?string $guestId = null): void
     {
         try {
-            Redis::setex(
-                $this->wishlistRedisKey($userId),
-                self::WISHLIST_TTL_SECONDS,
-                json_encode(array_values($items))
+            $key = $this->wishlistRedisKey($userId, $guestId);
+            Cache::store('redis')->put(
+                $key,
+                json_encode(array_values($items)),
+                self::WISHLIST_TTL_SECONDS
             );
         } catch (Throwable $e) {
-            // Fallback: keep request successful even if Redis is down.
-        }
+  Log::error('Redis save failed, using fallback', [
+                'error' => $e->getMessage(),
+                'user_id' => $userId,
+                'guest_id' => $guestId,
+            ]);        }
     }
 
-    private function clearWishlistRedis(?int $userId = null): void
+    private function clearWishlistRedis(?int $userId = null, ?string $guestId = null): void
     {
         try {
-            Redis::del($this->wishlistRedisKey($userId));
+            $key = $this->wishlistRedisKey($userId, $guestId);
+            Cache::store('redis')->forget($key);
         } catch (Throwable $e) {
             // Fallback: ignore Redis clear failures.
         }
@@ -177,13 +196,14 @@ class WishlistService{
             return $items;
         }
 
-        $cached = $this->getWishlistFromRedis();
+        $guestId = $this->getGuestIdentifier();
+        $cached = $this->getWishlistFromRedis(null, $guestId);
         if ($cached !== null) {
             return $cached;
         }
 
         $wishlistItems = $this->getSessionWishlistItems();
-        $this->saveWishlistToRedis($wishlistItems);
+        $this->saveWishlistToRedis($wishlistItems, null, $guestId);
         return $wishlistItems;
     }
     /**
@@ -207,16 +227,17 @@ class WishlistService{
             }));
 
             $this->saveWishlistToRedis($items, $userId);
-            $this->queueWishlistSync($userId);
+            // $this->queueWishlistSync($userId);
             $wishlistCount = count($items);
         } else {
+            $guestId = $this->getGuestIdentifier();
             $items = array_values(array_filter($this->getWishlistItems(), function ($item) use ($productId) {
                 return (int) ($item['id'] ?? 0) !== $productId;
             }));
 
             $wishlistCount = count($items);
-            $this->saveWishlistToRedis($items);
-            $this->queueGuestWishlistSync();
+            $this->saveWishlistToRedis($items, null, $guestId);
+            // $this->queueGuestWishlistSync();
         }
 
         // Add to cart
@@ -240,16 +261,17 @@ class WishlistService{
             }));
 
             $this->saveWishlistToRedis($items, $userId);
-            $this->queueWishlistSync($userId);
+            // $this->queueWishlistSync($userId);
             $wishlistCount = count($items);
         } else {
+            $guestId = $this->getGuestIdentifier();
             $items = array_values(array_filter($this->getWishlistItems(), function ($item) use ($productId) {
                 return (int) ($item['id'] ?? 0) !== $productId;
             }));
 
             $wishlistCount = count($items);
-            $this->saveWishlistToRedis($items);
-            $this->queueGuestWishlistSync();
+            $this->saveWishlistToRedis($items, null, $guestId);
+            // $this->queueGuestWishlistSync();
 
         }
                     return $wishlistCount;
@@ -291,9 +313,10 @@ class WishlistService{
             }
 
             $this->saveWishlistToRedis($items, $userId);
-            $this->queueWishlistSync($userId);
+            // $this->queueWishlistSync($userId);
             $count = count($items);
         } else {
+            $guestId = $this->getGuestIdentifier();
             $items = $this->getWishlistItems();
             $exists = false;
 
@@ -325,8 +348,8 @@ class WishlistService{
             }
 
             $count = count($items);
-            $this->saveWishlistToRedis($items);
-            $this->queueGuestWishlistSync();
+            $this->saveWishlistToRedis($items, null, $guestId);
+            // $this->queueGuestWishlistSync();
         }
 
         return [

@@ -110,30 +110,25 @@
 @include('frontend_view.components.shared.footer')
 @push('scripts')
 <script>
-    function parseCount(selector) {
-        const raw = $(selector).first().text();
-        const value = parseInt((raw || '').toString().trim(), 10);
-        return Number.isNaN(value) ? 0 : value;
+     function refreshNavCartDropdown() {
+         const navEl = document.querySelector('[x-data="navbar()"]');
+         if (navEl) {
+             // This is the official Alpine v3 way to talk to a component
+             const alpineData = Alpine.$data(navEl);
+             if (alpineData) {
+                 alpineData.refreshCart();
+             }
+         }
     }
 
-    function setNavCartCount(count) {
-        $('#nav-cart-count, #cart-count').text(count ?? 0);
-    }
-
-    function setNavWishlistCount(count) {
-        $('#nav-wishlist-count, #wishlist-count').text(count ?? 0);
-    }
-
-    function refreshNavCartDropdown() {
-        console.log("i am from refreshnavcart");
-        return $.ajax({
-            url: "{{ route('cart.refresh') }}",
-            method: 'GET',
-            cache: false,
-            success: function(data) {
-                $('#nav-cart-dropdown-content').html(data);
+    function refreshNavWishlistCount() {
+        const navEl = document.querySelector('[x-data="navbar()"]');
+        if (navEl) {
+            const alpineData = Alpine.$data(navEl);
+            if (alpineData) {
+                alpineData.refreshWishlist();
             }
-        });
+        }
     }
 
     function formatPrice(value) {
@@ -193,67 +188,7 @@
         $button.data('icon-loading', false);
     }
 
-    function upsertNavCartDropdownItem(productId, quantity, name, price, image) {
-        const container = $('#nav-cart-dropdown-content');
-        if (!container.length) return;
 
-        const list = container.find('ul').first();
-        if (!list.length) return;
-
-        const qty = Math.max(1, parseInt(quantity, 10) || 1);
-        const unitPrice = Number(price || 0);
-        const itemTotal = formatPrice(unitPrice * qty);
-        const productName = (name || 'Product').toString();
-        const displayName = productName.length > 20 ? productName.substring(0, 20) + '...' : productName;
-        const itemImage = (image || '').toString();
-        const summaryTotalEl = container.find('.p-4.border-t .flex.justify-between span.font-semibold').first();
-        const summaryItemsEl = container.find('.p-4.border-t .bg-white.text-primary.text-xs.font-semibold').first();
-
-        list.find('li').filter(function () {
-            return !$(this).data('product-id') && $(this).text().toLowerCase().includes('your cart is empty');
-        }).remove();
-
-        let item = list.find('li[data-product-id="' + productId + '"]');
-        if (item.length) {
-            const meta = item.find('.item-meta').first();
-            const currentQty = parseInt((meta.text().split('x')[0] || '').trim(), 10) || 0;
-            const newQty = currentQty + qty;
-            meta.text(newQty + ' x ' + formatPrice(unitPrice));
-            item.find('.item-total').first().text(formatPrice(unitPrice * newQty));
-            if (summaryTotalEl.length) {
-                const currentTotal = parseMoney(summaryTotalEl.text());
-                summaryTotalEl.text('৳' + formatPrice(currentTotal + (unitPrice * qty)));
-            }
-            if (summaryItemsEl.length) {
-                const currentItems = parseInt((summaryItemsEl.text() || '').replace(/[^0-9]/g, ''), 10) || 0;
-                summaryItemsEl.text((currentItems + qty) + ' items');
-            }
-            return;
-        }
-
-        const html = `
-            <li class="flex items-center justify-between p-3" data-product-id="${productId}">
-                <div class="flex items-center">
-                    <img src="${itemImage}" class="w-10 h-10 rounded mr-3" alt="Product">
-                    <div>
-                        <p class="text-sm font-medium item-name">${displayName}</p>
-                        <p class="text-xs text-gray-500 item-meta">${qty} x ${formatPrice(unitPrice)}</p>
-                    </div>
-                </div>
-                <div class="text-sm font-semibold text-gray-800 item-total">${itemTotal}</div>
-            </li>
-        `;
-        list.append(html);
-
-        if (summaryTotalEl.length) {
-            const currentTotal = parseMoney(summaryTotalEl.text());
-            summaryTotalEl.text('৳' + formatPrice(currentTotal + (unitPrice * qty)));
-        }
-        if (summaryItemsEl.length) {
-            const currentItems = parseInt((summaryItemsEl.text() || '').replace(/[^0-9]/g, ''), 10) || 0;
-            summaryItemsEl.text((currentItems + qty) + ' items');
-        }
-    }
 
     $(document).ready(function () {
         $(document).on('submit', '.add-to-cart-form', function (e) {
@@ -268,21 +203,7 @@
             let productId = form.find('input[name="product_id"]').val();
             let qty = form.find('input[name="quantity"]').val();
             let token = $('meta[name="csrf-token"]').attr('content');
-            let prevCartCount = parseCount('#nav-cart-count, #cart-count');
-            let optimisticQty = parseInt((qty || '1').toString(), 10);
-            let card = form.closest('.group, .card-hover, [data-product-id]');
-            let productName = card.find('h4 a, h3 a, h4, h3').first().text().trim();
-            let productPriceText = card.find('.text-primary.text-lg, .text-primary.text-xl, .text-primary').first().text();
-            let productPrice = parseFloat((productPriceText || '').replace(/[^0-9.]/g, '')) || 0;
-            let productImage = card.find('img').first().attr('src') || '';
 
-            if (Number.isNaN(optimisticQty) || optimisticQty < 1) {
-                optimisticQty = 1;
-            }
-
-            // Optimistic UI for instant feedback while backend persists.
-            setNavCartCount(prevCartCount + optimisticQty);
-            upsertNavCartDropdownItem(productId, optimisticQty, productName, productPrice, productImage);
             setButtonLoading(submitBtn, true, '<i class="fas fa-spinner fa-spin mr-1.5"></i><span class="hidden sm:inline">Adding...</span>');
 
             $.ajax({
@@ -295,13 +216,9 @@
                 },
                 success: function (response) {
                     toastr.success('Product added to cart!');
-                    if (response.cartQuantity !== undefined) {
-                        setNavCartCount(response.cartQuantity);
-                    }
                     refreshNavCartDropdown();
                 },
                 error: function () {
-                    setNavCartCount(prevCartCount);
                     toastr.error('Something went wrong!');
                 },
                 complete: function () {
@@ -333,7 +250,6 @@
             },
             success: function (response) {
                 toastr.success(response.success);
-                setNavCartCount(response.totalQuantity);
 
                 // Refresh cart view section (for cart view page)
                 $.get("{{ route('cart.view.refresh') }}", function (data) {
@@ -358,17 +274,15 @@
         const token = $('meta[name="csrf-token"]').attr('content');
         const button = $(this);
         const svg = button.find('svg');
-        const prevCount = parseCount('#nav-wishlist-count, #wishlist-count');
         const wasWishlisted = svg.hasClass('fill-danger') || svg.attr('fill') === 'currentColor';
         const desiredState = !wasWishlisted;
-        const nextCount = Math.max(0, prevCount + (desiredState ? 1 : -1));
 
         if (button.data('loading') === true) {
             return;
         }
         setIconLoading(button, true);
 
-        // Optimistic icon + count update for immediate UX.
+        // Optimistic icon update for immediate UX.
         if (desiredState) {
             svg.addClass('text-danger fill-danger').removeClass('text-gray-400');
             svg.attr('fill', 'currentColor');
@@ -378,7 +292,6 @@
             svg.attr('fill', 'none');
             svg.find('path').attr('stroke-width', '1.5');
         }
-        setNavWishlistCount(nextCount);
 
         $.ajax({
             url: '{{ route("wishlist.toggle") }}',
@@ -386,8 +299,7 @@
             data: {
                 _token: token,
                 product_id: productId,
-                desired_state: desiredState,
-                count_estimate: nextCount
+                desired_state: desiredState
             },
             success: function (response) {
                 if (typeof response.is_wishlisted === 'boolean') {
@@ -403,7 +315,7 @@
                 }
 
                 if (response.count !== undefined && response.count !== null) {
-                    setNavWishlistCount(response.count);
+                    refreshNavWishlistCount();
                 }
             },
             error: function () {
@@ -417,7 +329,6 @@
                     svg.attr('fill', 'none');
                     svg.find('path').attr('stroke-width', '1.5');
                 }
-                setNavWishlistCount(prevCount);
 
                 if (typeof toastr !== 'undefined') {
                     toastr.error('Something went wrong while updating wishlist.');

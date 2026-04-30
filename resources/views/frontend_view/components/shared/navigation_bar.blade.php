@@ -121,8 +121,15 @@ document.addEventListener('alpine:init', () => {
         searchOpen: false,
         accountPosition: {},
         mobileMenuOpen :false,
-
+        cartItems: [],          // Starts as an empty list
+        totalPrice: 0,          // Starts at zero
+        totalItemCount: {{ $cartCount ?? 0 }},
+        wishlistCount: {{ $wishlistCount ?? 0 }},
         init() {
+            // Fetch fresh data on load
+            this.refreshCart();
+            this.refreshWishlist();
+
             // close on outside click
             document.addEventListener('click', (e) => {
                 const cartBtn = document.getElementById('nav-cart-button');
@@ -161,8 +168,9 @@ document.addEventListener('alpine:init', () => {
             if (this.openCart) {
                 this.openAccount = false;
                 this.refreshCart();
-                 this.setCartPosition();
+                this.setCartPosition();
             }
+
         },
 
         toggleAccount() {
@@ -171,6 +179,16 @@ document.addEventListener('alpine:init', () => {
             if (this.openAccount) {
                 this.openCart = false;
                 this.setAccountPosition();
+            }
+        },
+
+        async refreshWishlist() {
+            try {
+                const res = await fetch("{{ route('wishlist.count') }}");
+                const data = await res.json();
+                this.wishlistCount = data.count || 0;
+            } catch (e) {
+                console.error('Wishlist refresh failed', e);
             }
         },
 
@@ -200,13 +218,17 @@ document.addEventListener('alpine:init', () => {
             };
         },
 
-          refreshCart() {
+         async refreshCart() {
             try {
-                const res =  fetch("{{ route('cart.refresh') }}");
-                const html =  res.text();
-                document.getElementById('nav-cart-dropdown-content').innerHTML = html;
+                const res =  await fetch("{{ route('cart.refresh') }}");
+                const data = await res.json();
+                this.cartItems = data.items || [];
+                this.totalPrice = data.total || 0;
+                this.totalItemCount = data.count || 0;
+
+
             } catch (e) {
-                console.error('Cart refresh failed');
+                console.error('Cart refresh failed' , e);
             }
         }
     }));

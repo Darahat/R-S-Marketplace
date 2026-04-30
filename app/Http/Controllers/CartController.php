@@ -47,19 +47,16 @@ class CartController extends Controller
 
     public function cartRefresh()
     {
-        $cart = $this->getCartItems();
 
-        $totalPriceAmount = 0;
-        $totalItemCount = 0;
+         $cart = $this->getCartItems();
 
-        $html = view('frontend_view.components.cards.cartDropdown',
-            compact('totalPriceAmount', 'totalItemCount', 'cart')
-        )->render();
 
-        return response($html)
-            ->header('Cache-Control', 'no-store, no-cache, must-revalidate')
-            ->header('Pragma', 'no-cache')
-            ->header('Expires', '0');
+
+       return response()->json([
+            'items' => array_values($cart), // Alpine likes simple arrays
+            'total' => $this->cartService->calculateTotal($cart),
+            'count' => collect($cart)->sum('quantity')
+        ]);
     }
 
     public function addToCart(CartRequest $request)
@@ -116,14 +113,5 @@ class CartController extends Controller
         return back()->with('success', 'Product removed from cart');
     }
 
-public function getCartItemsJson()
-{
-    $cartItems = $this->cartService->getCartItems();
 
-    return response()->json([
-        'items' => array_values($cartItems), // Convert to array values for JS
-        'total' => $this->cartService->calculateTotal($cartItems),
-        'totalQuantity' => collect($cartItems)->sum('quantity'),
-    ]);
-}
 }
